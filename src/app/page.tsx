@@ -162,7 +162,6 @@ export default function Home() {
   const [newPatientAllergy, setNewPatientAllergy] = useState('')
   const [selectedVisitType, setSelectedVisitType] = useState<string>('')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
-  const [patientSearchSuggestions, setPatientSearchSuggestions] = useState<Patient[]>([])
   const [showAddPatient, setShowAddPatient] = useState(false)
   const [showAddService, setShowAddService] = useState(false)
   const [showAddTransaction, setShowAddTransaction] = useState(false)
@@ -195,6 +194,12 @@ export default function Home() {
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Service price editing & quick notes
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
+  const [editingServicePrice, setEditingServicePrice] = useState('')
+  const [customServicePrice, setCustomServicePrice] = useState('')
+  const [quickNote, setQuickNote] = useState('')
+
   // ─── Effects ──────────────────────────────────────────────────────────
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
   useEffect(() => { if (!seeded) { apiFetch('/seed', { method: 'POST' }).then(() => setSeeded(true)).catch(() => setSeeded(true)) } }, [seeded])
@@ -220,14 +225,14 @@ export default function Home() {
     } catch (e) { console.error(e) }
     setLoading(false)
   }, [])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (isAuthenticated) loadAllData() }, [isAuthenticated, loadAllData])
 
   // ─── Auto-suggest patient names ──────────────────────────────────────
-  useEffect(() => {
-    if (newPatientName.length >= 1) {
-      const q = newPatientName.toLowerCase()
-      setPatientSearchSuggestions(patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5))
-    } else { setPatientSearchSuggestions([]) }
+  const patientSearchSuggestions = useMemo(() => {
+    if (newPatientName.length < 1) return []
+    const q = newPatientName.toLowerCase()
+    return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
   }, [newPatientName, patients])
 
   // Laser patient search
@@ -317,16 +322,21 @@ export default function Home() {
       await addItem('/visits', { patientId, type: visitType, date: new Date().toISOString() }, setVisits)
     }
 
-    // Create sessions for selected services
+    // Create sessions for selected services - use custom price entered by user
     if (needsSession && selectedServiceIds.length > 0) {
+      const servicePrice = parseFloat(customServicePrice) || 0
       for (const serviceId of selectedServiceIds) {
-        const svc = services.find(s => s.id === serviceId)
-        await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: svc?.price || 0, paid: false, date: new Date().toISOString() }, setSessions)
+        await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: servicePrice, paid: false, date: new Date().toISOString() }, setSessions)
+      }
+      // Create financial transaction for the service value
+      if (servicePrice > 0) {
+        const svcNames = selectedServiceIds.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(', ')
+        await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: servicePrice, description: `${svcNames || 'جلسة'} - ${newPatientName}`, date: new Date().toISOString() }, setTransactions)
       }
     }
 
     // Reset form
-    setNewPatientName(''); setNewPatientPhone(''); setNewPatientPhone2(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setNewPatientAllergy(''); setSelectedVisitType(''); setSelectedServiceIds([]); setShowAddPatient(false)
+    setNewPatientName(''); setNewPatientPhone(''); setNewPatientPhone2(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setNewPatientAllergy(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setShowAddPatient(false)
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
@@ -336,6 +346,29 @@ export default function Home() {
     services.filter(s => s.active).forEach(s => { const cat = s.category || 'عام'; if (!cats[cat]) cats[cat] = []; cats[cat].push(s) })
     return cats
   }, [services])
+
+  // ─── Quick Notes helper ────────────────────────────────────────────
+  const renderQuickNotes = (section: string) => {
+    const sectionNotesList = notes.filter(n => n.section === section)
+    return (
+      <Card className="card-luxury mt-4" key={`notes-${section}`}>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><FileText size={14} className="text-primary" /> ملاحظات سريعة</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex gap-2">
+            <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-9 text-sm" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
+            <Button size="sm" className="rounded-xl" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={14} /></Button>
+          </div>
+          {sectionNotesList.slice(0, 5).map(n => (
+            <div key={n.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30">
+              <p className="flex-1 text-xs">{n.content}</p>
+              <span className="text-[9px] text-muted-foreground whitespace-nowrap">{formatDate(n.createdAt)}</span>
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={10} className="text-red-400" /></Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    )
+  }
 
   // ─── Bottom Nav ───────────────────────────────────────────────────────
   const bottomNavItems = [
@@ -397,14 +430,22 @@ export default function Home() {
                     <Badge className="badge-gold text-sm">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Badge>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {[
-                    { icon: <Users className="text-emerald-100" size={20} />, label: 'إجمالي المرضى', value: patients.length, color: 'bg-gradient-to-br from-emerald-600 to-emerald-800', sub: `+${patients.filter(p => p.createdAt?.startsWith(todayStr)).length} اليوم` },
-                    { icon: <Stethoscope className="text-blue-100" size={20} />, label: 'زيارات اليوم', value: todayVisits.length, color: 'bg-gradient-to-br from-blue-600 to-blue-800' },
-                    { icon: <DollarSign className="text-amber-100" size={20} />, label: 'إيراد اليوم', value: formatCurrency(todayIncome), color: 'bg-gradient-to-br from-amber-500 to-amber-700' },
-                    { icon: <Calendar className="text-purple-100" size={20} />, label: 'مواعيد اليوم', value: todayAppointments.length, color: 'bg-gradient-to-br from-purple-600 to-purple-800' },
+                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => p.createdAt?.startsWith(todayStr)).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
+                    { icon: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف`, gradient: 'from-emerald-500 to-emerald-700', anim: { rotate: [0, 10, -10, 0] } },
+                    { icon: '💰', label: 'إيراد اليوم', value: formatCurrency(todayIncome), sub: `${transactions.filter(t => t.type === 'income').length} معاملة`, gradient: 'from-amber-500 to-amber-700', anim: { scale: [1, 1.2, 1] } },
+                    { icon: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${appointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-purple-500 to-purple-700', anim: { y: [0, -5, 0] } },
+                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => s.date?.startsWith(todayStr)).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
+                    { icon: '💎', label: 'سجلات الليزر', value: laserRecords.filter(r => r.status === 'active').length, sub: `${new Set(laserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-700', anim: { scale: [1, 1.1, 1] } },
                   ].map((s, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="section-card p-4"><div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl shadow-lg', s.color)}>{s.icon}</div><div className="flex-1 min-w-0"><p className="text-[11px] text-muted-foreground truncate">{s.label}</p><p className="text-xl font-bold mt-0.5">{s.value}</p>{s.sub && <p className="text-[10px] text-muted-foreground">{s.sub}</p>}</div></div></motion.div>
+                    <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, type: 'spring' }} className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br', s.gradient)}>
+                      <motion.div animate={s.anim} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-5xl mb-2 drop-shadow-lg">{s.icon}</motion.div>
+                      <p className="text-sm font-medium text-white/80">{s.label}</p>
+                      <p className="text-2xl font-black mt-1">{s.value}</p>
+                      {s.sub && <p className="text-xs text-white/60 mt-1">{s.sub}</p>}
+                      <div className="absolute top-0 left-0 w-20 h-20 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+                    </motion.div>
                   ))}
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -423,6 +464,7 @@ export default function Home() {
                     <motion.button key={i} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.05 }} onClick={a.action} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted/50 transition-colors"><div className={cn('p-3 rounded-xl text-white shadow-lg', a.color)}>{a.icon}</div><span className="text-xs font-medium">{a.label}</span></motion.button>
                   ))}
                 </div></CardContent></Card>
+                {renderQuickNotes('dashboard')}
               </div>
             )}
 
@@ -447,13 +489,14 @@ export default function Home() {
                     </motion.div>
                   ))}
                 </div>
+                {renderQuickNotes('patients')}
               </div>
             )}
 
             {/* ═══ PATIENT DETAIL ═══ */}
             {activeTab === 'patients' && selectedPatient && (
               <div className="space-y-4">
-                <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 text-primary text-sm font-medium hover:underline"><ChevronRight size={16} /> العودة</button>
+                <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 text-primary text-sm font-medium hover:underline"><ChevronDown size={16} className="rotate-90" /> العودة</button>
                 <div className="section-header-animated rounded-2xl bg-blue-50 dark:bg-blue-950/30">
                   <div className="relative z-10 flex items-center gap-4">
                     <Avatar className="h-16 w-16 border-2 border-primary/30"><AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
@@ -620,6 +663,7 @@ export default function Home() {
                     </CardContent></Card>
                   </TabsContent>
                 </Tabs>
+                {renderQuickNotes('laser')}
               </div>
             )}
 
@@ -637,6 +681,7 @@ export default function Home() {
                   <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30"><TrendingUp className="text-red-600 rotate-180" size={20} /></div><div><p className="text-[11px] text-muted-foreground">المصروفات</p><p className="text-xl font-bold text-red-600">{formatCurrency(transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</p></div></div></Card>
                 </div>
                 <div className="space-y-2">{transactions.slice(0, 30).map(t => <Card key={t.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={16} /></div><div><p className="font-medium text-sm">{t.description || t.category}</p><p className="text-xs text-muted-foreground">{formatDate(t.date)}</p></div></div><span className={cn('font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></div></Card>)}</div>
+                {renderQuickNotes('finance')}
               </div>
             )}
 
@@ -655,6 +700,7 @@ export default function Home() {
                     { id: 'inventory', label: 'المخزون', emoji: '📦', gradient: 'from-amber-500 to-amber-700' },
                     { id: 'medications', label: 'الأدوية', emoji: '💊', gradient: 'from-green-500 to-green-700' },
                     { id: 'reminders', label: 'التذكيرات', emoji: '⏰', gradient: 'from-rose-500 to-rose-700' },
+                    { id: 'reports', label: 'التقارير', emoji: '📊', gradient: 'from-cyan-500 to-cyan-700' },
                     { id: 'backup', label: 'النسخ', emoji: '💾', gradient: 'from-slate-500 to-slate-700' },
                     { id: 'settings', label: 'الإعدادات', emoji: '🎨', gradient: 'from-indigo-500 to-indigo-700' },
                   ].map(s => (
@@ -665,11 +711,11 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Services Sub-tab - Enhanced */}
+                {/* Services Sub-tab - Enhanced with Price Editing */}
                 {moreSubTab === 'services' && (<div className="space-y-3">
                   <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Tag size={18} className="text-teal-500" /> الخدمات</h3><div className="flex items-center gap-2"><Badge variant="outline">{services.length} خدمة</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button></div></div>
                   {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
-                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className="font-bold">{formatCurrency(s.price)}</Badge><Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
+                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></div></div><div className="flex items-center gap-2">{editingServiceId === s.id ? (<div className="flex items-center gap-1"><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-20 h-7 text-xs rounded-lg" /><Button size="sm" className="h-7 rounded-lg text-[10px]" onClick={async () => { const newPrice = parseFloat(editingServicePrice) || 0; try { await apiFetch(`/services/${s.id}`, { method: 'PATCH', body: JSON.stringify({ price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, price: newPrice } : sv)); toast.success('تم تحديث السعر') } catch { toast.error('خطأ') } setEditingServiceId(null) }}>حفظ</Button><Button variant="ghost" size="sm" className="h-7 rounded-lg" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><Badge variant="outline" className="font-bold cursor-pointer" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}>{s.price} ج.م</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
                 </div>)}
 
                 {/* Visits Sub-tab - Enhanced */}
@@ -712,6 +758,62 @@ export default function Home() {
                   <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Bell size={18} className="text-rose-500" /> التذكيرات</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-rose-500 to-rose-600 text-white" onClick={() => setShowAddReminder(true)}><Plus size={14} className="ml-1" /> تذكير</Button></div>
                   {reminders.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⏰</p><p className="text-muted-foreground">لا توجد تذكيرات</p></Card>}
                   <div className="space-y-2">{reminders.map(r => { const isPast = new Date(r.date) < new Date(); return <Card key={r.id} className={cn('section-card p-3', isPast && r.status !== 'completed' && 'border-amber-300 dark:border-amber-800')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', r.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' : isPast ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-blue-100 dark:bg-blue-900/30')}><Bell className={r.status === 'completed' ? 'text-emerald-600' : isPast ? 'text-amber-600' : 'text-blue-600'} size={14} /></div><div><p className="font-medium text-sm">{r.title}</p><p className="text-xs text-muted-foreground">{formatDate(r.date)} {r.description && `- ${r.description}`}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className={r.status === 'completed' ? 'border-emerald-500 text-emerald-600' : r.status === 'pending' ? 'border-amber-500 text-amber-600' : 'border-blue-500 text-blue-600'}>{r.status === 'completed' ? 'مكتمل' : r.status === 'pending' ? 'قيد الانتظار' : r.status}</Badge>{r.status !== 'completed' && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); toast.success('تم إكمال التذكير') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تم</motion.button>}</div></div></Card> })}</div>
+                </div>)}
+
+                {/* Reports Sub-tab - التقارير */}
+                {moreSubTab === 'reports' && (<div className="space-y-4">
+                  {/* Financial Summary */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 size={18} className="text-cyan-600" /> الملخص المالي</CardTitle></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إجمالي الإيرادات</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20"><p className="text-xs text-muted-foreground">إجمالي المصروفات</p><p className="text-lg font-bold text-red-600">{formatCurrency(transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">صافي الربح</p><p className="text-lg font-bold text-blue-600">{formatCurrency(transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0) - transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">إيراد اليوم</p><p className="text-lg font-bold text-amber-600">{formatCurrency(todayIncome)}</p></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">إيراد الأسبوع</p><p className="text-lg font-bold text-violet-600">{formatCurrency(revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20"><p className="text-xs text-muted-foreground">إيراد الشهر</p><p className="text-lg font-bold text-teal-600">{formatCurrency(transactions.filter(t => { const d = new Date(t.date); const now = new Date(); return t.type === 'income' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).reduce((s, t) => s + t.amount, 0))}</p></div>
+                    </div>
+                  </CardContent></Card>
+
+                  {/* Patient Stats */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Users size={18} className="text-blue-600" /> إحصائيات المرضى</CardTitle></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">إجمالي المرضى</p><p className="text-lg font-bold text-blue-600">{patients.length}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const d = new Date(p.createdAt); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).length}</p></div>
+                      <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20"><p className="text-xs text-muted-foreground">ذكور</p><p className="text-lg font-bold text-sky-600">{maleCount}</p></div>
+                      <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">إناث</p><p className="text-lg font-bold text-pink-600">{femaleCount}</p></div>
+                    </div>
+                  </CardContent></Card>
+
+                  {/* Session Stats */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Zap size={18} className="text-orange-600" /> إحصائيات الجلسات</CardTitle></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20"><p className="text-xs text-muted-foreground">إجمالي الجلسات</p><p className="text-lg font-bold text-orange-600">{sessions.length}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-lg font-bold text-emerald-600">{sessions.filter(s => s.status === 'completed').length}</p></div>
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20"><p className="text-xs text-muted-foreground">غير مدفوعة</p><p className="text-lg font-bold text-red-600">{sessions.filter(s => !s.paid).length}</p></div>
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">إجمالي غير مدفوعة</p><p className="text-lg font-bold text-amber-600">{formatCurrency(sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0))}</p></div>
+                    </div>
+                  </CardContent></Card>
+
+                  {/* Laser Stats */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Zap size={18} className="text-cyan-600" /> إحصائيات الليزر</CardTitle></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-900/20"><p className="text-xs text-muted-foreground">سجلات نشطة</p><p className="text-lg font-bold text-cyan-600">{laserRecords.filter(r => r.status === 'active').length}</p></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">جلسات مكتملة</p><p className="text-lg font-bold text-violet-600">{sessions.filter(s => s.status === 'completed').length}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إيراد الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserPackages.filter(p => p.active).reduce((s, p) => s + p.price, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-blue-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div>
+                    </div>
+                  </CardContent></Card>
+
+                  {/* Visit Type Distribution */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart2 size={18} className="text-purple-600" /> توزيع أنواع الزيارات</CardTitle></CardHeader><CardContent className="flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart><Pie data={[{ name: 'كشف', value: visits.filter(v => v.type === 'checkup').length || 1 }, { name: 'إعادة', value: visits.filter(v => v.type === 'revisit').length || 1 }, { name: 'جلسة', value: visits.filter(v => v.type === 'session').length || 1 }]} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{[0,1,2].map(i => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer>
+                    </CardContent></Card>
+
+                  {/* Weekly Revenue Bar Chart */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-emerald-600" /> الإيرادات الأسبوعية</CardTitle></CardHeader><CardContent>
+                    <ResponsiveContainer width="100%" height={260}><BarChart data={revenueChartData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} /><YAxis stroke="var(--muted-foreground)" fontSize={12} /><RechartsTooltip /><Bar dataKey="إيراد" fill="#047857" radius={[4,4,0,0]} /><Bar dataKey="مصروف" fill="#D4A843" radius={[4,4,0,0]} /></BarChart></ResponsiveContainer>
+                  </CardContent></Card>
                 </div>)}
 
                 {/* Backup Sub-tab */}
@@ -830,6 +932,17 @@ export default function Home() {
                   <p className="text-xs font-bold text-violet-700 dark:text-violet-400 flex items-center gap-1"><Sparkles size={12} /> زيارة مدمجة: سيتم تسجيل {selectedVisitType === 'checkup_session' ? 'كشف + جلسة' : 'إعادة + جلسة'} معاً</p>
                 </motion.div>
               )}
+              {/* Service Value - Manual Input */}
+              {['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType) && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
+                  <Label className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-2">
+                    <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>💰</motion.span>
+                    قيمة الخدمة (ج.م) <span className="text-red-500">*</span>
+                  </Label>
+                  <Input type="number" value={customServicePrice} onChange={e => setCustomServicePrice(e.target.value)} placeholder="اكتب قيمة الخدمة بالجنيه المصري..." className="rounded-xl h-12 text-lg font-bold border-2 border-emerald-200 dark:border-emerald-700 bg-white dark:bg-black/20 focus:border-emerald-500 text-emerald-700 dark:text-emerald-300" />
+                  <p className="text-[10px] text-muted-foreground mt-1.5">سيتم تسجيل هذا المبلغ في المالية تلقائياً</p>
+                </motion.div>
+              )}
             </div>
 
             {/* ─── 3. CONTACT INFO - Side by side ─── */}
@@ -878,7 +991,7 @@ export default function Home() {
                 <div className="p-4 rounded-2xl border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-950/20 dark:to-amber-950/20">
                   <Label className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5 mb-3">
                     <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}>⚡</motion.span>
-                    اختر الخدمات
+                    اختر الخدمة
                   </Label>
                   {Object.entries(servicesByCategory).length === 0 && (
                     <div className="text-center py-4"><p className="text-sm text-muted-foreground">لا توجد خدمات متاحة</p><p className="text-xs text-muted-foreground mt-1">أضف خدمات من قسم المزيد ← الخدمات</p></div>
@@ -893,17 +1006,16 @@ export default function Home() {
                             <motion.button key={s.id} whileTap={{ scale: 0.9 }} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id])} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all', isSelected ? 'bg-orange-500 text-white border-orange-600 shadow-lg shadow-orange-200 dark:shadow-orange-900/30' : 'bg-white/80 dark:bg-black/10 border-orange-200 dark:border-orange-800 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20')}>
                               {isSelected ? <CheckCircle size={12} /> : <Circle size={12} className="text-orange-300" />}
                               <span className="font-bold">{s.name}</span>
-                              <span className={cn('text-[10px]', isSelected ? 'text-orange-100' : 'text-muted-foreground')}>{formatCurrency(s.price)}</span>
                             </motion.button>
                           )
                         })}
                       </div>
                     </div>
                   ))}
-                  {selectedServiceIds.length > 0 && (
+                  {selectedServiceIds.length > 0 && customServicePrice && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 p-3 rounded-xl bg-orange-500/10 border border-orange-300 dark:border-orange-700 flex items-center justify-between">
-                      <span className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5"><Activity size={14} /> الإجمالي</span>
-                      <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{formatCurrency(selectedServiceIds.reduce((sum, id) => { const s = services.find(sv => sv.id === id); return sum + (s?.price || 0) }, 0))}</span>
+                      <span className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5"><DollarSign size={14} /> قيمة الجلسة</span>
+                      <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{parseFloat(customServicePrice) || 0} ج.م</span>
                     </motion.div>
                   )}
                 </div>
@@ -983,7 +1095,7 @@ export default function Home() {
 
       {/* ═══ Other Dialogs ═══ */}
       {/* Add Service */}
-      <Dialog open={showAddService} onOpenChange={setShowAddService}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>خدمة جديدة</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input id="svName" placeholder="اسم الخدمة" className="input-luxury rounded-xl" /></div><div><Label>الفئة</Label><Input id="svCat" placeholder="الفئة" className="input-luxury rounded-xl" /></div><div><Label>السعر *</Label><Input id="svPrice" type="number" placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>المدة (دقيقة)</Label><Input id="svDur" type="number" placeholder="30" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { const name = (document.getElementById('svName') as HTMLInputElement)?.value; if (!name) return toast.error('الاسم مطلوب'); addItem('/services', { name, category: (document.getElementById('svCat') as HTMLInputElement)?.value, price: parseFloat((document.getElementById('svPrice') as HTMLInputElement)?.value) || 0, duration: parseInt((document.getElementById('svDur') as HTMLInputElement)?.value) || 30, active: true }, setServices); setShowAddService(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={showAddService} onOpenChange={setShowAddService}><DialogContent className="max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><Tag size={18} className="text-teal-500" /> خدمة جديدة</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>اسم الخدمة *</Label><Input id="svName" placeholder="اسم الخدمة أو الجلسة" className="input-luxury rounded-xl" /></div><div><Label>الفئة</Label><Input id="svCat" placeholder="الفئة (مثال: ليزر، جلدية...)" className="input-luxury rounded-xl" /></div><div><Label>السعر (ج.م)</Label><Input id="svPrice" type="number" placeholder="اتركه فارغ - يتم تحديد السعر عند الجلسة" className="input-luxury rounded-xl" /></div><div><Label>المدة (دقيقة)</Label><Input id="svDur" type="number" placeholder="30" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={() => { const name = (document.getElementById('svName') as HTMLInputElement)?.value; if (!name) return toast.error('الاسم مطلوب'); addItem('/services', { name, category: (document.getElementById('svCat') as HTMLInputElement)?.value, price: parseFloat((document.getElementById('svPrice') as HTMLInputElement)?.value) || 0, duration: parseInt((document.getElementById('svDur') as HTMLInputElement)?.value) || 30, active: true }, setServices); setShowAddService(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Add Transaction */}
       <Dialog open={showAddTransaction} onOpenChange={setShowAddTransaction}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>معاملة مالية</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>النوع</Label><Select><SelectTrigger className="rounded-xl"><SelectValue placeholder="النوع" /></SelectTrigger><SelectContent><SelectItem value="income">إيراد</SelectItem><SelectItem value="expense">مصروف</SelectItem></SelectContent></Select></div><div><Label>الفئة</Label><Input id="tCat" placeholder="الفئة" className="input-luxury rounded-xl" /></div><div><Label>المبلغ *</Label><Input id="tAmt" type="number" placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>الوصف</Label><Textarea id="tDesc" placeholder="وصف المعاملة" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/finance/transactions', { type: 'income', category: (document.getElementById('tCat') as HTMLInputElement)?.value || 'عام', amount: parseFloat((document.getElementById('tAmt') as HTMLInputElement)?.value) || 0, description: (document.getElementById('tDesc') as HTMLTextAreaElement)?.value, date: new Date().toISOString() }, setTransactions); setShowAddTransaction(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
