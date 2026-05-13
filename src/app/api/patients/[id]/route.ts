@@ -57,6 +57,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         allergies: body.allergies ?? undefined,
         medicalHistory: body.medicalHistory ?? undefined,
         starred: body.starred ?? undefined,
+        improved: body.improved ?? undefined,
+        colorTag: body.colorTag ?? undefined,
       },
     })
 

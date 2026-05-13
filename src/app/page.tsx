@@ -38,7 +38,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; bloodType?: string; createdAt: string; }
+interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; colorTag?: string; bloodType?: string; createdAt: string; }
 interface Visit { id: string; patientId: string; doctorId?: string; type: string; diagnosis?: string; notes?: string; date: string; }
 interface Session { id: string; patientId: string; serviceId?: string; doctorId?: string; status: string; notes?: string; date: string; price: number; paid: boolean; }
 interface Service { id: string; name: string; category?: string; price: number; duration?: number; active: boolean; }
@@ -159,7 +159,6 @@ export default function Home() {
   const [newPatientAge, setNewPatientAge] = useState('')
   const [newPatientGender, setNewPatientGender] = useState('')
   const [newPatientNotes, setNewPatientNotes] = useState('')
-  const [newPatientAllergy, setNewPatientAllergy] = useState('')
   const [selectedVisitType, setSelectedVisitType] = useState<string>('')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [showAddPatient, setShowAddPatient] = useState(false)
@@ -198,7 +197,14 @@ export default function Home() {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
   const [editingServicePrice, setEditingServicePrice] = useState('')
   const [customServicePrice, setCustomServicePrice] = useState('')
+  const [visitPrice, setVisitPrice] = useState('')
   const [quickNote, setQuickNote] = useState('')
+
+  // Patient filters & detail
+  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved'>('all')
+  const [patientDetailTab, setPatientDetailTab] = useState('overview')
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteContent, setEditingNoteContent] = useState('')
 
   // ─── Effects ──────────────────────────────────────────────────────────
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
@@ -266,7 +272,25 @@ export default function Home() {
   const femaleCount = patients.filter(p => p.gender === 'female').length
   const revenueChartData = useMemo(() => { const days: any[] = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().split('T')[0]; days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short' }), إيراد: transactions.filter(t => t.type === 'income' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0), مصروف: transactions.filter(t => t.type === 'expense' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0) }) } return days }, [transactions])
   const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
-  const filteredPatients = useMemo(() => { let list = patients; if (searchQuery) list = list.filter(p => p.name.includes(searchQuery) || p.phone?.includes(searchQuery) || p.fileNumber?.includes(searchQuery)); return list }, [patients, searchQuery])
+  const filteredPatients = useMemo(() => { let list = patients; if (searchQuery) list = list.filter(p => p.name.includes(searchQuery) || p.phone?.includes(searchQuery) || p.fileNumber?.includes(searchQuery)); if (patientFilter === 'starred') list = list.filter(p => p.starred); if (patientFilter === 'improved') list = list.filter(p => p.improved); return list }, [patients, searchQuery, patientFilter])
+
+  // ─── Financial Computed Values ──────────────────────────────
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const netProfit = totalIncome - totalExpense
+  const checkupRevenue = transactions.filter(t => t.type === 'income' && t.category === 'كشف').reduce((s, t) => s + t.amount, 0)
+  const revisitRevenue = transactions.filter(t => t.type === 'income' && t.category === 'إعادة').reduce((s, t) => s + t.amount, 0)
+  const sessionRevenue = transactions.filter(t => t.type === 'income' && t.category === 'جلسات').reduce((s, t) => s + t.amount, 0)
+  const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue
+  const unpaidTotal = sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0)
+  const thisMonthIncome = transactions.filter(t => { const d = new Date(t.date); const now = new Date(); return t.type === 'income' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).reduce((s, t) => s + t.amount, 0)
+  const thisWeekIncome = revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0)
+  const revenueByCategory = useMemo(() => [
+    { name: 'كشف', value: checkupRevenue || 0 },
+    { name: 'إعادة', value: revisitRevenue || 0 },
+    { name: 'جلسات', value: sessionRevenue || 0 },
+    { name: 'أخرى', value: otherRevenue || 0 },
+  ].filter(d => d.value > 0), [transactions])
 
   // Smart search
   const smartSearchResults = useMemo(() => {
@@ -307,36 +331,43 @@ export default function Home() {
   const handleSmartPatientSubmit = async () => {
     if (!newPatientName.trim()) return toast.error('الاسم مطلوب')
     // Create patient
-    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, phone2: newPatientPhone2, age: parseInt(newPatientAge) || null, gender: newPatientGender || null, address: newPatientAddress, notes: newPatientNotes, allergies: newPatientAllergy }, setPatients)
+    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, phone2: newPatientPhone2, age: parseInt(newPatientAge) || null, gender: newPatientGender || null, address: newPatientAddress, notes: newPatientNotes }, setPatients)
     if (!patient) return
 
     const patientId = patient.id
+    const now = new Date().toISOString()
+    const vPrice = parseFloat(visitPrice) || 0
+    const sPrice = parseFloat(customServicePrice) || 0
 
     // Determine visit and session needs based on selected type (including combos)
     const needsVisit = ['checkup', 'revisit', 'checkup_session', 'revisit_session'].includes(selectedVisitType)
     const needsSession = ['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType)
     const visitType = selectedVisitType === 'checkup_session' ? 'checkup' : selectedVisitType === 'revisit_session' ? 'revisit' : selectedVisitType
+    const visitCategory = visitType === 'checkup' ? 'كشف' : 'إعادة'
 
-    // Create visit if needed
+    // Create visit if needed + financial transaction for كشف/إعادة
     if (needsVisit && (visitType === 'checkup' || visitType === 'revisit')) {
-      await addItem('/visits', { patientId, type: visitType, date: new Date().toISOString() }, setVisits)
+      await addItem('/visits', { patientId, type: visitType, date: now }, setVisits)
+      // Auto-create income transaction for كشف/إعادة
+      if (vPrice > 0) {
+        await addItem('/finance/transactions', { type: 'income', category: visitCategory, amount: vPrice, description: `${visitCategory} - ${newPatientName}`, date: now }, setTransactions)
+      }
     }
 
     // Create sessions for selected services - use custom price entered by user
     if (needsSession && selectedServiceIds.length > 0) {
-      const servicePrice = parseFloat(customServicePrice) || 0
       for (const serviceId of selectedServiceIds) {
-        await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: servicePrice, paid: false, date: new Date().toISOString() }, setSessions)
+        await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: sPrice, paid: false, date: now }, setSessions)
       }
-      // Create financial transaction for the service value
-      if (servicePrice > 0) {
+      // Auto-create income transaction for sessions
+      if (sPrice > 0) {
         const svcNames = selectedServiceIds.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(', ')
-        await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: servicePrice, description: `${svcNames || 'جلسة'} - ${newPatientName}`, date: new Date().toISOString() }, setTransactions)
+        await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcNames || 'جلسة'} - ${newPatientName}`, date: now }, setTransactions)
       }
     }
 
     // Reset form
-    setNewPatientName(''); setNewPatientPhone(''); setNewPatientPhone2(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setNewPatientAllergy(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setShowAddPatient(false)
+    setNewPatientName(''); setNewPatientPhone(''); setNewPatientPhone2(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setShowAddPatient(false)
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
@@ -477,13 +508,22 @@ export default function Home() {
                     <Button className="btn-luxury bg-gradient-to-l from-blue-600 to-blue-700 text-white shadow-lg" onClick={() => setShowAddPatient(true)}><UserPlus size={16} className="ml-2" /> تسجيل مريض</Button>
                   </div>
                 </div>
-                <div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} /><Input placeholder="بحث بالاسم أو الهاتف أو رقم الملف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 input-luxury rounded-xl h-12" /></div>
+                {/* Search + Filter Buttons */}
                 <div className="space-y-2">
+                  <div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} /><Input placeholder="بحث بالاسم أو الهاتف أو رقم الملف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 input-luxury rounded-xl h-12" /></div>
+                  <div className="flex items-center gap-2">
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ الحالات المميزة</motion.button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
+                    {patientFilter !== 'all' && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPatientFilter('all')}>إلغاء الفلتر</Button>}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : 'لا توجد نتائج'}</p></Card>}
                   {filteredPatients.map(p => (
                     <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="section-card p-4 cursor-pointer" onClick={() => setSelectedPatient(p)}>
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12 border-2 border-blue-200 dark:border-blue-800"><AvatarFallback className="bg-blue-500/10 text-blue-600 font-bold">{p.name?.charAt(0)}</AvatarFallback></Avatar>
-                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="font-bold truncate">{safeName(p.name)}</p>{p.starred && <Star className="text-amber-500 fill-amber-500" size={14} />}</div><div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Hash size={10} />{p.fileNumber}</span>{p.phone && <span className="flex items-center gap-1"><Phone size={10} />{p.phone}</span>}{p.age && <span>{p.age} سنة</span>}</div></div>
+                        <Avatar className="h-12 w-12 border-2" style={{ borderColor: p.colorTag || (p.gender === 'female' ? '#ec4899' : '#3b82f6') }}><AvatarFallback className="bg-blue-500/10 text-blue-600 font-bold">{p.name?.charAt(0)}</AvatarFallback></Avatar>
+                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="font-bold truncate">{safeName(p.name)}</p>{p.starred && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}>⭐</motion.span>}{p.improved && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2, delay: 0.5 }}>💗</motion.span>}</div><div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Hash size={10} />{p.fileNumber}</span>{p.phone && <span className="flex items-center gap-1"><Phone size={10} />{p.phone}</span>}{p.age && <span>{p.age} سنة</span>}</div></div>
                         <Badge className={cn('text-[10px]', p.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400')}>{p.gender === 'male' ? 'ذكر' : 'أنثى'}</Badge>
                       </div>
                     </motion.div>
@@ -493,24 +533,141 @@ export default function Home() {
               </div>
             )}
 
-            {/* ═══ PATIENT DETAIL ═══ */}
+            {/* ═══ PATIENT DETAIL - DEDICATED PROFILE ═══ */}
             {activeTab === 'patients' && selectedPatient && (
               <div className="space-y-4">
-                <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 text-primary text-sm font-medium hover:underline"><ChevronDown size={16} className="rotate-90" /> العودة</button>
-                <div className="section-header-animated rounded-2xl bg-blue-50 dark:bg-blue-950/30">
-                  <div className="relative z-10 flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-primary/30"><AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
-                    <div><h2 className="text-2xl font-bold">{safeName(selectedPatient.name)}</h2><div className="flex items-center gap-3 text-sm text-muted-foreground"><span>{selectedPatient.fileNumber}</span>{selectedPatient.phone && <span>{selectedPatient.phone}</span>}{selectedPatient.age && <span>{selectedPatient.age} سنة</span>}</div></div>
+                <button onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 text-primary text-sm font-medium hover:underline"><ChevronDown size={16} className="rotate-90" /> العودة للقائمة</button>
+
+                {/* Patient Header Card */}
+                <div className="section-header-animated rounded-2xl bg-gradient-to-l from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                  <div className="relative z-10 flex items-start gap-4">
+                    <Avatar className="h-20 w-20 border-4 shadow-lg" style={{ borderColor: selectedPatient.colorTag || '#3b82f6' }}><AvatarFallback className="bg-primary/10 text-primary text-3xl font-bold">{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-2xl font-bold">{safeName(selectedPatient.name)}</h2>
+                        {selectedPatient.starred && <motion.span animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-xl">⭐</motion.span>}
+                        {selectedPatient.improved && <motion.span animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3, delay: 0.5 }} className="text-xl">💗</motion.span>}
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
+                        <span className="flex items-center gap-1"><Hash size={12} />{selectedPatient.fileNumber}</span>
+                        {selectedPatient.phone && <span className="flex items-center gap-1"><Phone size={12} />{selectedPatient.phone}</span>}
+                        {selectedPatient.age && <span>{selectedPatient.age} سنة</span>}
+                        {selectedPatient.gender && <Badge className={cn('text-[9px]', selectedPatient.gender === 'male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700')}>{selectedPatient.gender === 'male' ? 'ذكر' : 'أنثى'}</Badge>}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Quick Actions */}
+                  <div className="flex items-center gap-2 mt-4 flex-wrap">
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? { ...p, starred: !p.starred } : p)); setSelectedPatient({ ...selectedPatient, starred: !selectedPatient.starred }); toast.success(selectedPatient.starred ? 'تم إزالة العلامة الذهبية' : 'تم إضافة العلامة الذهبية ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', selectedPatient.starred ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50')}><Star size={16} className={selectedPatient.starred ? 'text-amber-500 fill-amber-500' : ''} /> {selectedPatient.starred ? '⭐ مميز' : 'تمييز'}</motion.button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? { ...p, improved: !p.improved } : p)); setSelectedPatient({ ...selectedPatient, improved: !selectedPatient.improved }); toast.success(selectedPatient.improved ? 'تم إزالة علامة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', selectedPatient.improved ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 text-pink-700 dark:text-pink-300' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50')}><Heart size={16} className={selectedPatient.improved ? 'text-pink-500 fill-pink-500' : ''} /> {selectedPatient.improved ? '💗 متحسن' : 'تحسن'}</motion.button>
+                    {selectedPatient.phone && <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${selectedPatient.phone?.replace(/[^0-9]/g, '')}`, '_blank')} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold bg-green-100 dark:bg-green-900/30 border-2 border-green-400 text-green-700 dark:text-green-300 hover:bg-green-200"><Send size={14} /> واتساب</motion.button>}
+                    {selectedPatient.phone2 && <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${selectedPatient.phone2?.replace(/[^0-9]/g, '')}`, '_blank')} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold bg-green-50 dark:bg-green-900/20 border-2 border-green-300 text-green-600 dark:text-green-400 hover:bg-green-100"><Send size={14} /> واتساب 2</motion.button>}
+                  </div>
+                  {/* Color Tag Selector */}
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-xs text-muted-foreground">لون الحالة:</span>
+                    {['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#f97316', '#06b6d4', '#84cc16', '#6366f1'].map(c => (
+                      <button key={c} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ colorTag: c }) }); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? { ...p, colorTag: c } : p)); setSelectedPatient({ ...selectedPatient, colorTag: c }) } catch { toast.error('خطأ') } }} className={cn('w-6 h-6 rounded-full border-2 transition-all', selectedPatient.colorTag === c ? 'border-foreground scale-125 shadow-lg' : 'border-transparent hover:scale-110')} style={{ backgroundColor: c }} />
+                    ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="card-luxury"><CardHeader><CardTitle className="text-sm">معلومات أساسية</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">{selectedPatient.phone && <p><span className="text-muted-foreground">الهاتف:</span> {selectedPatient.phone}</p>}{selectedPatient.phone2 && <p><span className="text-muted-foreground">هاتف آخر:</span> {selectedPatient.phone2}</p>}{selectedPatient.address && <p><span className="text-muted-foreground">العنوان:</span> {selectedPatient.address}</p>}{selectedPatient.bloodType && <p><span className="text-muted-foreground">فصيلة الدم:</span> {selectedPatient.bloodType}</p>}</CardContent></Card>
-                  <Card className="card-luxury"><CardHeader><CardTitle className="text-sm">معلومات طبية</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">{selectedPatient.allergies && <p><span className="text-muted-foreground">الحساسية:</span> {selectedPatient.allergies}</p>}{selectedPatient.medicalHistory && <p><span className="text-muted-foreground">التاريخ المرضي:</span> {selectedPatient.medicalHistory}</p>}{selectedPatient.notes && <p><span className="text-muted-foreground">ملاحظات:</span> {selectedPatient.notes}</p>}</CardContent></Card>
-                </div>
-                {/* Patient sessions */}
-                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm">جلسات المريض</CardTitle></CardHeader><CardContent className="space-y-2">{sessions.filter(s => s.patientId === selectedPatient.id).map(s => { const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors], borderColor: statusColors[s.status as keyof typeof statusColors] + '40' }} className="border">{s.status}</Badge><span className="text-sm">{svc?.name || 'جلسة'}</span></div><span className="text-sm font-medium">{formatCurrency(s.price)}</span></div> })}</CardContent></Card>
-                {/* Patient laser records */}
-                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm">سجلات الليزر</CardTitle></CardHeader><CardContent className="space-y-2">{laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => <div key={l.id} className="flex items-center justify-between p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/20"><div className="flex items-center gap-2"><Zap size={14} className="text-cyan-600" /><span className="text-sm">{l.bodyArea}</span></div><Badge variant="outline">{l.totalSessions} جلسات</Badge></div>)}</CardContent></Card>
+
+                {/* Patient Detail Tabs */}
+                <Tabs value={patientDetailTab} onValueChange={setPatientDetailTab}>
+                  <TabsList className="w-full flex flex-wrap"><TabsTrigger value="overview" className="flex-1 text-xs">📋 نظرة عامة</TabsTrigger><TabsTrigger value="visits" className="flex-1 text-xs">🩺 الزيارات</TabsTrigger><TabsTrigger value="sessions" className="flex-1 text-xs">⚡ الجلسات</TabsTrigger><TabsTrigger value="laser" className="flex-1 text-xs">💎 الليزر</TabsTrigger><TabsTrigger value="finance" className="flex-1 text-xs">💰 المالية</TabsTrigger><TabsTrigger value="notes" className="flex-1 text-xs">📝 ملاحظات</TabsTrigger></TabsList>
+
+                  {/* Overview Tab */}
+                  <TabsContent value="overview" className="space-y-3 mt-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Card className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Phone size={14} className="text-blue-500" /> بيانات الاتصال</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">{selectedPatient.phone && <p><span className="text-muted-foreground">الهاتف:</span> <a href={`tel:${selectedPatient.phone}`} className="text-primary hover:underline">{selectedPatient.phone}</a></p>}{selectedPatient.phone2 && <p><span className="text-muted-foreground">هاتف آخر:</span> <a href={`tel:${selectedPatient.phone2}`} className="text-primary hover:underline">{selectedPatient.phone2}</a></p>}{selectedPatient.address && <p><span className="text-muted-foreground">العنوان:</span> {selectedPatient.address}</p>}</CardContent></Card>
+                      <Card className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Heart size={14} className="text-red-500" /> بيانات طبية</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">{selectedPatient.bloodType && <p><span className="text-muted-foreground">فصيلة الدم:</span> {selectedPatient.bloodType}</p>}{selectedPatient.allergies && <p><span className="text-muted-foreground">الحساسية:</span> <span className="text-red-600">{selectedPatient.allergies}</span></p>}{selectedPatient.medicalHistory && <p><span className="text-muted-foreground">التاريخ المرضي:</span> {selectedPatient.medicalHistory}</p>}{selectedPatient.notes && <p><span className="text-muted-foreground">ملاحظات:</span> {selectedPatient.notes}</p>}{!selectedPatient.bloodType && !selectedPatient.allergies && !selectedPatient.medicalHistory && !selectedPatient.notes && <p className="text-muted-foreground text-xs">لا توجد بيانات طبية مسجلة</p>}</CardContent></Card>
+                    </div>
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <Card className="section-card p-3 text-center"><p className="text-2xl font-bold text-blue-600">{visits.filter(v => v.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground">زيارة</p></Card>
+                      <Card className="section-card p-3 text-center"><p className="text-2xl font-bold text-violet-600">{sessions.filter(s => s.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground">جلسة</p></Card>
+                      <Card className="section-card p-3 text-center"><p className="text-2xl font-bold text-cyan-600">{laserRecords.filter(l => l.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground">سجل ليزر</p></Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Visits Tab */}
+                  <TabsContent value="visits" className="space-y-3 mt-3">
+                    <div className="flex items-center justify-between"><h3 className="font-bold flex items-center gap-2"><Stethoscope size={16} className="text-violet-500" /> سجل الزيارات</h3><Badge variant="outline">{visits.filter(v => v.patientId === selectedPatient.id).length} زيارة</Badge></div>
+                    {visits.filter(v => v.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">🩺</p><p className="text-muted-foreground">لا توجد زيارات مسجلة</p></Card>}
+                    {visits.filter(v => v.patientId === selectedPatient.id).map(v => {
+                      const vt = VISIT_TYPES.find(t => t.id === v.type)
+                      return <Card key={v.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2 rounded-lg text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-2"><Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge>{v.diagnosis && <span className="text-sm">{v.diagnosis}</span>}</div>{v.notes && <p className="text-xs text-muted-foreground mt-0.5">{v.notes}</p>}</div></div><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span></div></Card>
+                    })}
+                  </TabsContent>
+
+                  {/* Sessions Tab */}
+                  <TabsContent value="sessions" className="space-y-3 mt-3">
+                    <div className="flex items-center justify-between"><h3 className="font-bold flex items-center gap-2"><Zap size={16} className="text-orange-500" /> سجل الجلسات</h3><Badge variant="outline">{sessions.filter(s => s.patientId === selectedPatient.id).length} جلسة</Badge></div>
+                    {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></Card>}
+                    {sessions.filter(s => s.patientId === selectedPatient.id).map(s => {
+                      const svc = services.find(sv => sv.id === s.serviceId)
+                      return <Card key={s.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={16} /> : <Clock className="text-amber-600" size={16} />}</div><div><p className="font-medium text-sm">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors] }} className="border text-[9px]">{s.status}</Badge>{s.paid ? <span className="text-[9px] text-emerald-600 font-bold">مدفوعة ✅</span> : <span className="text-[9px] text-amber-600 font-bold">غير مدفوعة ⏳</span>}</div>{s.notes && <p className="text-xs text-muted-foreground mt-0.5">{s.notes}</p>}</div></div><div className="text-left"><p className="font-bold text-sm">{formatCurrency(s.price)}</p><p className="text-[10px] text-muted-foreground">{formatDate(s.date)}</p>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PATCH', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }} className="mt-1 px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[9px] font-bold">تأكيد الدفع</motion.button>}</div></div></Card>
+                    })}
+                  </TabsContent>
+
+                  {/* Laser Tab */}
+                  <TabsContent value="laser" className="space-y-3 mt-3">
+                    <div className="flex items-center justify-between"><h3 className="font-bold flex items-center gap-2"><Zap size={16} className="text-cyan-500" /> سجلات الليزر</h3></div>
+                    {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">💎</p><p className="text-muted-foreground">لا توجد سجلات ليزر</p></Card>}
+                    {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => {
+                      const patientSessions = sessions.filter(s => s.patientId === selectedPatient.id)
+                      const completedCount = patientSessions.filter(s => s.status === 'completed').length
+                      const progressPercent = l.totalSessions > 0 ? Math.min((completedCount / l.totalSessions) * 100, 100) : 0
+                      const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea)
+                      return <Card key={l.id} className="section-card p-3"><div className="flex items-center gap-3"><div className={cn('p-2 rounded-xl text-lg', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>{areaInfo?.emoji || '💎'}</div><div className="flex-1"><div className="flex items-center gap-2"><span className="font-bold text-sm">{areaInfo?.label || l.bodyArea}</span><Badge style={{ backgroundColor: statusColors[l.status as keyof typeof statusColors] + '20', color: statusColors[l.status as keyof typeof statusColors] }} className="text-[9px]">{l.status === 'active' ? 'نشط' : l.status === 'completed' ? 'مكتمل' : l.status}</Badge></div>{l.skinType && <span className="text-xs text-muted-foreground">بشرة {l.skinType}</span>}{l.hairColor && <span className="text-xs text-muted-foreground"> | شعر {l.hairColor}</span>}<div className="mt-1"><div className="flex items-center justify-between text-[9px] mb-0.5"><span>{completedCount} من {l.totalSessions} جلسة</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1.5" /></div></div></div></Card>
+                    })}
+                  </TabsContent>
+
+                  {/* Finance Tab for this patient */}
+                  <TabsContent value="finance" className="space-y-3 mt-3">
+                    <h3 className="font-bold flex items-center gap-2"><DollarSign size={16} className="text-emerald-500" /> الملخص المالي</h3>
+                    {(() => {
+                      const pSessions = sessions.filter(s => s.patientId === selectedPatient.id)
+                      const totalPaid = pSessions.filter(s => s.paid).reduce((s, ses) => s + ses.price, 0)
+                      const totalUnpaid = pSessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0)
+                      const pTransactions = transactions.filter(t => t.description?.includes(selectedPatient.name))
+                      const pIncome = pTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+                      return <div className="grid grid-cols-2 gap-3">
+                        <Card className="section-card p-3"><p className="text-[10px] text-muted-foreground">إجمالي الإيرادات</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(pIncome)}</p></Card>
+                        <Card className="section-card p-3"><p className="text-[10px] text-muted-foreground">صافي المدفوع</p><p className="text-lg font-bold text-blue-600">{formatCurrency(totalPaid)}</p></Card>
+                        <Card className="section-card p-3"><p className="text-[10px] text-muted-foreground">غير المدفوع</p><p className="text-lg font-bold text-red-600">{formatCurrency(totalUnpaid)}</p></Card>
+                        <Card className="section-card p-3"><p className="text-[10px] text-muted-foreground">عدد الجلسات</p><p className="text-lg font-bold text-violet-600">{pSessions.length}</p></Card>
+                      </div>
+                    })()}
+                    <div className="space-y-2">{transactions.filter(t => t.description?.includes(selectedPatient.name)).slice(0, 20).map(t => <Card key={t.id} className="section-card p-2"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className={cn('p-1.5 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={12} /></div><div><p className="text-xs font-medium">{t.description || t.category}</p><p className="text-[9px] text-muted-foreground">{formatDate(t.date)}</p></div></div><span className={cn('text-xs font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></div></Card>)}</div>
+                  </TabsContent>
+
+                  {/* Notes Tab - Instant add/delete/edit */}
+                  <TabsContent value="notes" className="space-y-3 mt-3">
+                    <h3 className="font-bold flex items-center gap-2"><FileText size={16} className="text-purple-500" /> ملاحظات المريض</h3>
+                    <div className="flex gap-2">
+                      <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-10" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, patientId: selectedPatient.id, section: 'patient', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
+                      <Button className="rounded-xl" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, patientId: selectedPatient.id, section: 'patient', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={16} /></Button>
+                    </div>
+                    {notes.filter(n => n.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">📝</p><p className="text-muted-foreground">لا توجد ملاحظات</p></Card>}
+                    <div className="space-y-2">{notes.filter(n => n.patientId === selectedPatient.id).map(n => (
+                      <Card key={n.id} className="section-card p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            {editingNoteId === n.id ? (
+                              <div className="flex gap-2"><Input value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="input-luxury rounded-xl h-8 text-sm" /><Button size="sm" className="rounded-lg h-8" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent } : nn)); setEditingNoteId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingNoteId(null)}>✕</Button></div>
+                            ) : <p className="text-sm">{n.content}</p>}
+                            <p className="text-[9px] text-muted-foreground mt-1">{formatDate(n.createdAt)}</p>
+                          </div>
+                          {editingNoteId !== n.id && <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}><Edit3 size={10} className="text-blue-500" /></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={10} className="text-red-500" /></Button>
+                          </div>}
+                        </div>
+                      </Card>
+                    ))}</div>
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
 
@@ -676,11 +833,37 @@ export default function Home() {
                     <Button className="btn-luxury bg-gradient-to-l from-amber-500 to-amber-600 text-white shadow-lg" onClick={() => setShowAddTransaction(true)}><Plus size={14} className="ml-1" /> معاملة</Button>
                   </div>
                 </div>
+                {/* Main Financial Cards */}
                 <div className="grid grid-cols-2 gap-3">
-                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">الإيرادات</p><p className="text-xl font-bold text-emerald-600">{formatCurrency(transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}</p></div></div></Card>
-                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30"><TrendingUp className="text-red-600 rotate-180" size={20} /></div><div><p className="text-[11px] text-muted-foreground">المصروفات</p><p className="text-xl font-bold text-red-600">{formatCurrency(transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">الإيرادات</p><p className="text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30"><TrendingUp className="text-red-600 rotate-180" size={20} /></div><div><p className="text-[11px] text-muted-foreground">المصروفات</p><p className="text-xl font-bold text-red-600">{formatCurrency(totalExpense)}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><BarChart3 className="text-blue-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">صافي الربح</p><p className={cn('text-xl font-bold', netProfit >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(netProfit)}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">غير المدفوع</p><p className="text-xl font-bold text-amber-600">{formatCurrency(unpaidTotal)}</p></div></div></Card>
                 </div>
-                <div className="space-y-2">{transactions.slice(0, 30).map(t => <Card key={t.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={16} /></div><div><p className="font-medium text-sm">{t.description || t.category}</p><p className="text-xs text-muted-foreground">{formatDate(t.date)}</p></div></div><span className={cn('font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></div></Card>)}</div>
+                {/* Revenue by Category */}
+                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} className="text-amber-600" /> الإيرادات حسب النوع</CardTitle></CardHeader><CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">🩺</span><span className="text-sm font-bold">كشف</span></div><span className="font-bold text-emerald-600">{formatCurrency(checkupRevenue)}</span></div>
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">🔄</span><span className="text-sm font-bold">إعادة</span></div><span className="font-bold text-blue-600">{formatCurrency(revisitRevenue)}</span></div>
+                    <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">⚡</span><span className="text-sm font-bold">جلسات</span></div><span className="font-bold text-violet-600">{formatCurrency(sessionRevenue)}</span></div>
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">📊</span><span className="text-sm font-bold">أخرى</span></div><span className="font-bold text-gray-600">{formatCurrency(otherRevenue)}</span></div>
+                  </div>
+                  {/* Revenue Category Pie Chart */}
+                  {revenueByCategory.length > 0 && <div className="mt-4"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={revenueByCategory} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{revenueByCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer></div>}
+                </CardContent></Card>
+                {/* Period Summary */}
+                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Calendar size={16} className="text-purple-600" /> ملخص الفترات</CardTitle></CardHeader><CardContent>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center"><p className="text-[9px] text-muted-foreground">اليوم</p><p className="text-sm font-bold text-emerald-600">{formatCurrency(todayIncome)}</p></div>
+                    <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-center"><p className="text-[9px] text-muted-foreground">الأسبوع</p><p className="text-sm font-bold text-violet-600">{formatCurrency(thisWeekIncome)}</p></div>
+                    <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-center"><p className="text-[9px] text-muted-foreground">الشهر</p><p className="text-sm font-bold text-teal-600">{formatCurrency(thisMonthIncome)}</p></div>
+                  </div>
+                </CardContent></Card>
+                {/* Recent Transactions */}
+                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={16} className="text-emerald-600" /> آخر المعاملات</CardTitle></CardHeader><CardContent className="space-y-2">
+                  {transactions.slice(0, 20).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><div className={cn('p-1.5 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={12} /></div><div><p className="text-xs font-medium">{t.description || t.category}</p><div className="flex items-center gap-2"><Badge variant="outline" className="text-[8px]">{t.category}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><span className={cn('text-sm font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></div>)}
+                  {transactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد معاملات بعد</p>}
+                </CardContent></Card>
                 {renderQuickNotes('finance')}
               </div>
             )}
@@ -760,18 +943,29 @@ export default function Home() {
                   <div className="space-y-2">{reminders.map(r => { const isPast = new Date(r.date) < new Date(); return <Card key={r.id} className={cn('section-card p-3', isPast && r.status !== 'completed' && 'border-amber-300 dark:border-amber-800')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', r.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' : isPast ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-blue-100 dark:bg-blue-900/30')}><Bell className={r.status === 'completed' ? 'text-emerald-600' : isPast ? 'text-amber-600' : 'text-blue-600'} size={14} /></div><div><p className="font-medium text-sm">{r.title}</p><p className="text-xs text-muted-foreground">{formatDate(r.date)} {r.description && `- ${r.description}`}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className={r.status === 'completed' ? 'border-emerald-500 text-emerald-600' : r.status === 'pending' ? 'border-amber-500 text-amber-600' : 'border-blue-500 text-blue-600'}>{r.status === 'completed' ? 'مكتمل' : r.status === 'pending' ? 'قيد الانتظار' : r.status}</Badge>{r.status !== 'completed' && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); toast.success('تم إكمال التذكير') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تم</motion.button>}</div></div></Card> })}</div>
                 </div>)}
 
-                {/* Reports Sub-tab - التقارير */}
+                {/* Reports Sub-tab - التقارير المحترفة */}
                 {moreSubTab === 'reports' && (<div className="space-y-4">
                   {/* Financial Summary */}
-                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 size={18} className="text-cyan-600" /> الملخص المالي</CardTitle></CardHeader><CardContent>
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 size={18} className="text-cyan-600" /> الملخص المالي الشامل</CardTitle></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إجمالي الإيرادات</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}</p></div>
-                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20"><p className="text-xs text-muted-foreground">إجمالي المصروفات</p><p className="text-lg font-bold text-red-600">{formatCurrency(transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</p></div>
-                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">صافي الربح</p><p className="text-lg font-bold text-blue-600">{formatCurrency(transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0) - transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}</p></div>
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">إيراد اليوم</p><p className="text-lg font-bold text-amber-600">{formatCurrency(todayIncome)}</p></div>
-                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">إيراد الأسبوع</p><p className="text-lg font-bold text-violet-600">{formatCurrency(revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0))}</p></div>
-                      <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20"><p className="text-xs text-muted-foreground">إيراد الشهر</p><p className="text-lg font-bold text-teal-600">{formatCurrency(transactions.filter(t => { const d = new Date(t.date); const now = new Date(); return t.type === 'income' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).reduce((s, t) => s + t.amount, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إجمالي الإيرادات</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(totalIncome)}</p></div>
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20"><p className="text-xs text-muted-foreground">إجمالي المصروفات</p><p className="text-lg font-bold text-red-600">{formatCurrency(totalExpense)}</p></div>
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">صافي الربح</p><p className={cn('text-lg font-bold', netProfit >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(netProfit)}</p></div>
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">غير المدفوع</p><p className="text-lg font-bold text-amber-600">{formatCurrency(unpaidTotal)}</p></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">إيراد الأسبوع</p><p className="text-lg font-bold text-violet-600">{formatCurrency(thisWeekIncome)}</p></div>
+                      <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20"><p className="text-xs text-muted-foreground">إيراد الشهر</p><p className="text-lg font-bold text-teal-600">{formatCurrency(thisMonthIncome)}</p></div>
                     </div>
+                  </CardContent></Card>
+
+                  {/* Revenue by Category */}
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Receipt size={18} className="text-amber-600" /> الإيرادات حسب النوع</CardTitle></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span>🩺</span><span className="text-sm font-bold">كشف</span></div><span className="font-bold text-emerald-600">{formatCurrency(checkupRevenue)}</span></div>
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span>🔄</span><span className="text-sm font-bold">إعادة</span></div><span className="font-bold text-blue-600">{formatCurrency(revisitRevenue)}</span></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span>⚡</span><span className="text-sm font-bold">جلسات</span></div><span className="font-bold text-violet-600">{formatCurrency(sessionRevenue)}</span></div>
+                      <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span>📊</span><span className="text-sm font-bold">أخرى</span></div><span className="font-bold text-gray-600">{formatCurrency(otherRevenue)}</span></div>
+                    </div>
+                    {revenueByCategory.length > 0 && <div className="mt-4"><ResponsiveContainer width="100%" height={220}><PieChart><Pie data={revenueByCategory} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{revenueByCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer></div>}
                   </CardContent></Card>
 
                   {/* Patient Stats */}
@@ -779,8 +973,10 @@ export default function Home() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">إجمالي المرضى</p><p className="text-lg font-bold text-blue-600">{patients.length}</p></div>
                       <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const d = new Date(p.createdAt); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).length}</p></div>
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
+                      <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
                       <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20"><p className="text-xs text-muted-foreground">ذكور</p><p className="text-lg font-bold text-sky-600">{maleCount}</p></div>
-                      <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">إناث</p><p className="text-lg font-bold text-pink-600">{femaleCount}</p></div>
+                      <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20"><p className="text-xs text-muted-foreground">إناث</p><p className="text-lg font-bold text-rose-600">{femaleCount}</p></div>
                     </div>
                   </CardContent></Card>
 
@@ -790,7 +986,7 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20"><p className="text-xs text-muted-foreground">إجمالي الجلسات</p><p className="text-lg font-bold text-orange-600">{sessions.length}</p></div>
                       <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-lg font-bold text-emerald-600">{sessions.filter(s => s.status === 'completed').length}</p></div>
                       <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20"><p className="text-xs text-muted-foreground">غير مدفوعة</p><p className="text-lg font-bold text-red-600">{sessions.filter(s => !s.paid).length}</p></div>
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">إجمالي غير مدفوعة</p><p className="text-lg font-bold text-amber-600">{formatCurrency(sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">إجمالي غير مدفوعة</p><p className="text-lg font-bold text-amber-600">{formatCurrency(unpaidTotal)}</p></div>
                     </div>
                   </CardContent></Card>
 
@@ -798,8 +994,8 @@ export default function Home() {
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Zap size={18} className="text-cyan-600" /> إحصائيات الليزر</CardTitle></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-900/20"><p className="text-xs text-muted-foreground">سجلات نشطة</p><p className="text-lg font-bold text-cyan-600">{laserRecords.filter(r => r.status === 'active').length}</p></div>
-                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">جلسات مكتملة</p><p className="text-lg font-bold text-violet-600">{sessions.filter(s => s.status === 'completed').length}</p></div>
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إيراد الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserPackages.filter(p => p.active).reduce((s, p) => s + p.price, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-lg font-bold text-violet-600">{laserRecords.filter(r => r.status === 'completed').length}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إيراد الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(sessionRevenue)}</p></div>
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-blue-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div>
                     </div>
                   </CardContent></Card>
@@ -973,11 +1169,17 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ─── 5. ALLERGY ─── */}
-            <div>
-              <Label className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1"><Heart size={14} /> الحساسية</Label>
-              <Input value={newPatientAllergy} onChange={e => setNewPatientAllergy(e.target.value)} placeholder="أي حساسية" className="input-luxury rounded-xl h-11 mt-1 border-red-200 dark:border-red-800 focus:border-red-500 bg-red-50/30 dark:bg-red-950/10" />
-            </div>
+            {/* ─── 5. VISIT PRICE (for كشف/إعادة) ─── */}
+            {['checkup', 'revisit', 'checkup_session', 'revisit_session'].includes(selectedVisitType) && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                <Label className="text-sm font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1.5 mb-2">
+                  <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>🩺</motion.span>
+                  قيمة {selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? 'الكشف' : 'الإعادة'} (ج.م)
+                </Label>
+                <Input type="number" value={visitPrice} onChange={e => setVisitPrice(e.target.value)} placeholder="اكتب قيمة الكشف أو الإعادة بالجنيه المصري..." className="rounded-xl h-12 text-lg font-bold border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-black/20 focus:border-blue-500 text-blue-700 dark:text-blue-300" />
+                <p className="text-[10px] text-muted-foreground mt-1.5">سيتم تسجيل هذا المبلغ في المالية تلقائياً</p>
+              </motion.div>
+            )}
 
             {/* ─── 6. NOTES ─── */}
             <div>
