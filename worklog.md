@@ -1,41 +1,35 @@
 ---
 Task ID: 1
-Agent: Main
-Task: Implement all requested features for Elmoghazi Clinic
+Agent: main
+Task: Implement all user-requested features for Elmoghazi Clinic
 
 Work Log:
-- Updated Prisma schema: added `improved` (Boolean) and `colorTag` (String?) fields to Patient model
-- Ran `npx prisma db push` to sync database
-- Updated `/api/patients/[id]` PUT handler to support `improved` and `colorTag` fields
-- Updated Patient interface to include `improved` and `colorTag`
-- Added new state variables: `visitPrice`, `patientFilter`, `patientDetailTab`, `editingNoteId`, `editingNoteContent`
-- Fixed handleSmartPatientSubmit: now creates financial transactions for كشف, إعادة, and جلسات automatically
-- Removed allergy field from patient registration form
-- Added visit price input for كشف/إعادة types in registration dialog
-- Added ⭐ golden star filter button and 💗 pink heart filter button below search in patients tab
-- Updated patient list cards to show animated ⭐ and 💗 icons, and colorTag border
-- Completely rewrote patient detail view with:
-  - Comprehensive profile header with avatar, colorTag, star/heart toggles
-  - WhatsApp integration buttons for phone numbers
-  - Color tag selector (10 colors)
-  - 6 tab sections: overview, visits, sessions, laser, finance, notes
-  - Patient notes with instant add/delete/edit
-  - Financial summary per patient
-- Rewrote Finance tab with:
-  - 4 summary cards (income, expense, net profit, unpaid)
-  - Revenue by category breakdown (كشف, إعادة, جلسات, أخرى)
-  - Revenue category pie chart
-  - Period summary (today, week, month)
-  - Recent transactions list
-- Updated Reports section with:
-  - Full financial summary using computed values
-  - Revenue by category breakdown with pie chart
-  - Starred/improved patient counts
-  - Session and laser stats
-- Build verified successfully
+- Added PartnerDoctor model to Prisma schema with fields: name, phone, specialty, checkupPercentage, revisitPercentage, laserPercentage, sessionPercentage, fixedAmount, active, notes
+- Created /api/doctors and /api/doctors/[id] API routes (GET, POST, PUT, DELETE)
+- Ran Prisma migration (db push) successfully
+- Updated page.tsx with PartnerDoctor interface, state variables, and doctor form
+- Added doctors data loading to loadAllData (19 API calls now instead of 18)
+- Removed "الجلسات" (Sessions) and "المواعيد" (Appointments) sub-tabs from More section
+- Added "الأطباء المشاركون" (Partner Doctors) sub-tab with complete percentage-based earnings system
+- Enhanced patient profile Overview tab with comprehensive activity timeline (visits + sessions + notes) with edit/delete
+- Added role-based access control: Doctor (full access) / Secretary (patients + laser only)
+- Added password protection for sections (default: 2137) with verification dialog
+- Added sync status indicator in Settings (database connection status + record counts)
+- Enhanced Quick Notes with professional animated UI (gradient colors, animated emojis, hover effects)
+- Added Partner Doctor dialog with full CRUD (name, specialty, phone, percentages, fixed amount)
+- Added Password verification dialog for locked sections
+- Added lock icon indicator on bottom nav for restricted sections
+- Updated top bar dropdown to use handleTabSwitch for role-based access
+- Added doctorEarnings useMemo for automatic financial calculations
+- Build verified: npx next build completes successfully
 
 Stage Summary:
-- All features implemented: golden star ⭐, pink heart 💗, patient profile, finance fix, reports
-- Database schema updated with `improved` and `colorTag` fields
-- Finance system now auto-creates transactions for ALL visit types
-- Build passes successfully
+- PartnerDoctor model added to Prisma + API routes created
+- Sessions & Appointments sub-tabs removed from More tab
+- Partner Doctors section added with complete percentage system
+- Patient overview now shows comprehensive timeline with edit/delete
+- Role-based access (doctor/secretary) implemented
+- Section password protection added (default: 2137)
+- Sync status added to Settings
+- Professional animated notes implemented
+- Build: SUCCESS

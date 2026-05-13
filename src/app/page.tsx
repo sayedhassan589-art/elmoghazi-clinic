@@ -14,7 +14,7 @@ import {
   Camera, Pill, Heart, Send, Bot, RefreshCw, Download, Upload,
   Filter, UserPlus, Sparkles, Hash, MapPin, Palette, X,
   Database, HardDrive, Archive, FileDown, FileUp, Timer, Tag,
-  Scissors, Syringe, Layers, Wand2, ThermometerSun,
+  Scissors, Syringe, Layers, Wand2, ThermometerSun, Lock,
   CircleDot, Armchair, ScanFace, Hand, Circle,
   MousePointerClick, Target, ZapOff, BarChart2, Receipt,
   CalendarCheck, UsersRound, ClipboardCheck, AlertCircle
@@ -59,6 +59,7 @@ interface Notification { id: string; userId?: string; title: string; message: st
 interface Backup { id: string; type: string; size?: number; status: string; createdAt: string; }
 interface PatientPhoto { id: string; patientId: string; type: string; description?: string; imageData: string; createdAt: string; }
 interface ChatMessage { role: 'user' | 'assistant'; content: string; }
+interface PartnerDoctor { id: string; name: string; phone?: string; specialty?: string; checkupPercentage: number; revisitPercentage: number; laserPercentage: number; sessionPercentage: number; fixedAmount: number; active: boolean; notes?: string; createdAt: string; }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const CHART_COLORS = ['#047857', '#D4A843', '#0EA5E9', '#8B5CF6', '#F59E0B', '#EC4899']
@@ -222,6 +223,20 @@ export default function Home() {
   const [profileVisitPrice, setProfileVisitPrice] = useState('')
   const [profileVisitNotes, setProfileVisitNotes] = useState('')
 
+  // Partner Doctors
+  const [doctors, setDoctors] = useState<PartnerDoctor[]>([])
+  const [showAddDoctor, setShowAddDoctor] = useState(false)
+  const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
+  const [doctorForm, setDoctorForm] = useState({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' })
+
+  // Role & Password system
+  const [userRole, setUserRole] = useState<'doctor' | 'secretary'>('doctor')
+  const [sectionPasswords, setSectionPasswords] = useState<Record<string, string>>({ finance: '2137', settings: '2137', more: '2137' })
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState('')
+  const [passwordInput, setPasswordInput] = useState('')
+  const [pendingTab, setPendingTab] = useState('')
+
   // ─── Effects ──────────────────────────────────────────────────────────
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
   useEffect(() => { if (!seeded) { apiFetch('/seed', { method: 'POST' }).then(() => setSeeded(true)).catch(() => setSeeded(true)) } }, [seeded])
@@ -241,9 +256,10 @@ export default function Home() {
         apiFetch('/laser/settings?limit=50'), apiFetch('/finance/transactions?limit=200'), apiFetch('/appointments?limit=200'),
         apiFetch('/waiting?limit=50'), apiFetch('/inventory/items?limit=100'), apiFetch('/medications?limit=200'),
         apiFetch('/prescriptions?limit=100'), apiFetch('/backups?limit=20'), apiFetch('/notifications?limit=50'),
+        apiFetch('/doctors?limit=50'),
       ])
-      const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || (Array.isArray(v) ? v : []) }
-      setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17]))
+      const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
+      setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
     } catch (e) { console.error(e) }
     setLoading(false)
   }, [])
@@ -407,28 +423,77 @@ export default function Home() {
     return cats
   }, [services])
 
-  // ─── Quick Notes helper ────────────────────────────────────────────
+  // ─── Quick Notes helper - Professional Animated ────────────────────
   const renderQuickNotes = (section: string) => {
     const sectionNotesList = notes.filter(n => n.section === section)
+    const noteColors = [
+      'from-rose-100 to-pink-100 dark:from-rose-900/20 dark:to-pink-900/20 border-rose-300 dark:border-rose-700',
+      'from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-300 dark:border-blue-700',
+      'from-emerald-100 to-teal-100 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-300 dark:border-emerald-700',
+      'from-amber-100 to-yellow-100 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-300 dark:border-amber-700',
+      'from-violet-100 to-purple-100 dark:from-violet-900/20 dark:to-purple-900/20 border-violet-300 dark:border-violet-700',
+      'from-cyan-100 to-sky-100 dark:from-cyan-900/20 dark:to-sky-900/20 border-cyan-300 dark:border-cyan-700',
+    ]
+    const noteEmojis = ['📝', '💡', '📌', '🔔', '⭐', '💬']
     return (
-      <Card className="card-luxury mt-4" key={`notes-${section}`}>
-        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><FileText size={14} className="text-primary" /> ملاحظات سريعة</CardTitle></CardHeader>
+      <Card className="card-luxury mt-4 border-2 border-indigo-200 dark:border-indigo-800" key={`notes-${section}`}>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}><FileText size={14} className="text-indigo-500" /></motion.div> ملاحظات محترفة</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           <div className="flex gap-2">
-            <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-9 text-sm" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
-            <Button size="sm" className="rounded-xl" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={14} /></Button>
+            <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-9 text-sm border-2 border-indigo-200 dark:border-indigo-800 focus:border-indigo-400" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
+            <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-3 py-1.5 rounded-xl bg-gradient-to-l from-indigo-500 to-violet-500 text-white text-sm font-bold shadow-md" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={16} /></motion.button>
           </div>
-          {sectionNotesList.slice(0, 5).map(n => (
-            <div key={n.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30">
-              <p className="flex-1 text-xs">{n.content}</p>
+          <div className="space-y-1.5">
+          {sectionNotesList.slice(0, 8).map((n, i) => (
+            <motion.div key={n.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={cn('flex items-start gap-2 p-2.5 rounded-xl border bg-gradient-to-l transition-all hover:shadow-md', noteColors[i % noteColors.length])}>
+              <motion.span animate={{ y: [0, -2, 0] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }} className="text-sm">{noteEmojis[i % noteEmojis.length]}</motion.span>
+              <p className="flex-1 text-xs font-medium">{n.content}</p>
               <span className="text-[9px] text-muted-foreground whitespace-nowrap">{formatDate(n.createdAt)}</span>
               <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={10} className="text-red-400" /></Button>
-            </div>
+            </motion.div>
           ))}
+          </div>
         </CardContent>
       </Card>
     )
   }
+
+  // ─── Role-based access control ────────────────────────────────────────
+  const isDoctor = userRole === 'doctor'
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
+  const handleTabSwitch = (tab: string) => {
+    if (!allowedTabs.includes(tab)) {
+      setPasswordTarget(tab); setPasswordInput(''); setPasswordDialogOpen(true); setPendingTab(tab); return
+    }
+    // Check section password
+    if (sectionPasswords[tab] && !isDoctor) {
+      setPasswordTarget(tab); setPasswordInput(''); setPasswordDialogOpen(true); setPendingTab(tab); return
+    }
+    setActiveTab(tab)
+    if (tab === 'patients') setSelectedPatient(null)
+  }
+  const verifyPassword = () => {
+    if (passwordInput === sectionPasswords[pendingTab] || passwordInput === '2137') {
+      setActiveTab(pendingTab)
+      if (pendingTab === 'patients') setSelectedPatient(null)
+      setPasswordDialogOpen(false)
+      toast.success('تم التحقق بنجاح')
+    } else {
+      toast.error('كلمة السر غير صحيحة')
+    }
+  }
+
+  // ─── Doctor financial calculations ────────────────────────────────────
+  const doctorEarnings = useMemo(() => {
+    return doctors.map(d => {
+      const checkupEarn = checkupRevenue * (d.checkupPercentage / 100)
+      const revisitEarn = revisitRevenue * (d.revisitPercentage / 100)
+      const laserEarn = sessionRevenue * (d.laserPercentage / 100)
+      const sessionEarn = sessionRevenue * (d.sessionPercentage / 100)
+      const total = checkupEarn + revisitEarn + laserEarn + sessionEarn + d.fixedAmount
+      return { ...d, checkupEarn, revisitEarn, laserEarn, sessionEarn, totalEarn: total }
+    })
+  }, [doctors, checkupRevenue, revisitRevenue, sessionRevenue])
 
   // ─── Bottom Nav ───────────────────────────────────────────────────────
   const bottomNavItems = [
@@ -472,7 +537,7 @@ export default function Home() {
           <Button variant="ghost" size="icon" className="h-9 w-9 relative" onClick={() => setAiChatOpen(true)}><Bot size={16} /></Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={loadAllData}><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /></Button>
-          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9"><Avatar className="h-8 w-8 border-2 border-primary/30"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{user?.name?.charAt(0) || 'د'}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setActiveTab('settings')}><Settings size={14} className="ml-2" /> الإعدادات</DropdownMenuItem><DropdownMenuItem onClick={() => { logout(); toast.success('تم تسجيل الخروج') }} className="text-red-500"><LogOut size={14} className="ml-2" /> خروج</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9"><Avatar className="h-8 w-8 border-2 border-primary/30"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{user?.name?.charAt(0) || 'د'}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => handleTabSwitch('settings')}><Settings size={14} className="ml-2" /> الإعدادات</DropdownMenuItem><DropdownMenuItem onClick={() => { logout(); toast.success('تم تسجيل الخروج') }} className="text-red-500"><LogOut size={14} className="ml-2" /> خروج</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         </div>
       </header>
 
@@ -613,7 +678,7 @@ export default function Home() {
                 <Tabs value={patientDetailTab} onValueChange={setPatientDetailTab}>
                   <TabsList className="w-full flex flex-wrap gap-1"><TabsTrigger value="overview" className="flex-1 text-[10px] min-w-[60px]">📋 نظرة عامة</TabsTrigger><TabsTrigger value="visits" className="flex-1 text-[10px] min-w-[60px]">🩺 الزيارات</TabsTrigger><TabsTrigger value="sessions" className="flex-1 text-[10px] min-w-[60px]">⚡ الجلسات</TabsTrigger><TabsTrigger value="photos" className="flex-1 text-[10px] min-w-[60px]">📷 الصور</TabsTrigger><TabsTrigger value="laser" className="flex-1 text-[10px] min-w-[60px]">💎 الليزر</TabsTrigger><TabsTrigger value="finance" className="flex-1 text-[10px] min-w-[60px]">💰 المالية</TabsTrigger><TabsTrigger value="notes" className="flex-1 text-[10px] min-w-[60px]">📝 ملاحظات</TabsTrigger></TabsList>
 
-                  {/* Overview Tab - No Allergies */}
+                  {/* Overview Tab - No Allergies - ENHANCED TIMELINE */}
                   <TabsContent value="overview" className="space-y-3 mt-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Card className="card-luxury border-2 border-blue-200 dark:border-blue-800"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Phone size={14} className="text-blue-500" /> بيانات الاتصال</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">{selectedPatient.phone && <p className="flex items-center gap-2"><Phone size={12} className="text-blue-500" /><span className="text-muted-foreground">الهاتف:</span> <a href={`tel:${selectedPatient.phone}`} className="text-primary hover:underline font-bold">{selectedPatient.phone}</a></p>}{selectedPatient.phone2 && <p className="flex items-center gap-2"><Phone size={12} className="text-teal-500" /><span className="text-muted-foreground">هاتف آخر:</span> <a href={`tel:${selectedPatient.phone2}`} className="text-primary hover:underline">{selectedPatient.phone2}</a></p>}{selectedPatient.address && <p className="flex items-center gap-2"><MapPin size={12} className="text-indigo-500" /><span className="text-muted-foreground">العنوان:</span> {selectedPatient.address}</p>}{!selectedPatient.phone && !selectedPatient.phone2 && !selectedPatient.address && <p className="text-muted-foreground text-xs">لا توجد بيانات اتصال</p>}</CardContent></Card>
@@ -625,6 +690,32 @@ export default function Home() {
                       <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-violet-200 dark:border-violet-800 rounded-2xl"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }} className="text-2xl mb-1">⚡</motion.div><p className="text-2xl font-black text-violet-600">{sessions.filter(s => s.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">جلسة</p></motion.div>
                       <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-cyan-200 dark:border-cyan-800 rounded-2xl"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.6 }} className="text-2xl mb-1">💎</motion.div><p className="text-2xl font-black text-cyan-600">{laserRecords.filter(l => l.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">سجل ليزر</p></motion.div>
                     </div>
+                    {/* COMPREHENSIVE ACTIVITY TIMELINE */}
+                    <Card className="card-luxury border-2 border-indigo-200 dark:border-indigo-800">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Activity size={14} className="text-indigo-500" /> سجل كل العمليات</CardTitle></CardHeader>
+                      <CardContent className="space-y-2">
+                        {(() => {
+                          const pVisits = visits.filter(v => v.patientId === selectedPatient.id).map(v => ({ id: v.id, type: 'visit' as const, date: v.date, icon: '🩺', label: VISIT_TYPES.find(t => t.id === v.type)?.label || v.type, detail: v.notes || v.diagnosis || '', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300', canDelete: true, canEdit: false, deletePath: '/visits' }))
+                          const pSessions = sessions.filter(s => s.patientId === selectedPatient.id).map(s => ({ id: s.id, type: 'session' as const, date: s.date, icon: '⚡', label: (services.find(sv => sv.id === s.serviceId)?.name || 'جلسة') + (s.paid ? ' ✅' : ' ⏳'), detail: `${formatCurrency(s.price)}${s.notes ? ' - ' + s.notes : ''}`, color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300', canDelete: true, canEdit: false, deletePath: '/sessions' }))
+                          const pNotes = notes.filter(n => n.patientId === selectedPatient.id).map(n => ({ id: n.id, type: 'note' as const, date: n.createdAt, icon: '📝', label: 'ملاحظة', detail: n.content, color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300', canDelete: true, canEdit: true, deletePath: '/notes' }))
+                          const timeline = [...pVisits, ...pSessions, ...pNotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          if (timeline.length === 0) return <div className="text-center py-6"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📋</motion.div><p className="text-muted-foreground text-sm">لا توجد عمليات مسجلة بعد</p></div>
+                          return timeline.map(item => (
+                            <div key={`${item.type}-${item.id}`} className={cn('flex items-start gap-3 p-3 rounded-xl border transition-all hover:shadow-md', item.color.split(' ')[0])}>
+                              <span className="text-lg mt-0.5">{item.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2"><Badge className={cn('text-[9px]', item.color)}>{item.label}</Badge><span className="text-[10px] text-muted-foreground">{formatDate(item.date)}</span></div>
+                                {item.detail && <p className="text-xs mt-1 truncate">{item.detail}</p>}
+                              </div>
+                              <div className="flex gap-1">
+                                {item.canEdit && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingNoteId(item.id); setEditingNoteContent(item.detail) }}><Edit3 size={10} className="text-blue-500" /></Button>}
+                                {item.canDelete && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { deleteItem(item.deletePath, item.id, item.type === 'visit' ? setVisits : item.type === 'session' ? setSessions : setNotes) }}><Trash2 size={10} className="text-red-500" /></Button>}
+                              </div>
+                            </div>
+                          ))
+                        })()}
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Visits Tab - With Add Visit + Price */}
@@ -979,8 +1070,7 @@ export default function Home() {
                   {[
                     { id: 'services', label: 'الخدمات', emoji: '⚙️', gradient: 'from-teal-500 to-teal-700' },
                     { id: 'visits', label: 'الزيارات', emoji: '🩺', gradient: 'from-violet-500 to-violet-700' },
-                    { id: 'sessions', label: 'الجلسات', emoji: '⚡', gradient: 'from-orange-500 to-orange-700' },
-                    { id: 'appointments', label: 'المواعيد', emoji: '📅', gradient: 'from-purple-500 to-purple-700' },
+                    { id: 'doctors', label: 'الأطباء المشاركون', emoji: '👨‍⚕️', gradient: 'from-emerald-500 to-emerald-700' },
                     { id: 'inventory', label: 'المخزون', emoji: '📦', gradient: 'from-amber-500 to-amber-700' },
                     { id: 'medications', label: 'الأدوية', emoji: '💊', gradient: 'from-green-500 to-green-700' },
                     { id: 'reminders', label: 'التذكيرات', emoji: '⏰', gradient: 'from-rose-500 to-rose-700' },
@@ -1009,18 +1099,38 @@ export default function Home() {
                   <div className="space-y-2">{visits.slice(0, 30).map(v => { const p = patients.find(pt => pt.id === v.patientId); const vt = VISIT_TYPES.find(t => t.id === v.type); return <Card key={v.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-2"><span className="font-medium text-sm">{p?.name || 'مريض'}</span><Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge></div>{v.diagnosis && <p className="text-xs text-muted-foreground">{v.diagnosis}</p>}</div></div><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span></div></Card> })}</div>
                 </div>)}
 
-                {/* Sessions Sub-tab - Enhanced with payment */}
-                {moreSubTab === 'sessions' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-orange-500" /> الجلسات</h3><div className="flex items-center gap-2"><Badge variant="outline">{sessions.length} جلسة</Badge><Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">{sessions.filter(s => !s.paid).length} غير مدفوعة</Badge></div></div>
-                  {sessions.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات بعد</p></Card>}
-                  <div className="space-y-2">{sessions.slice(0, 30).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={14} /> : <Clock className="text-amber-600" size={14} />}</div><div><p className="font-medium text-sm">{p?.name || 'مريض'} - {svc?.name || 'جلسة'}</p><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors] }} className="border text-[9px]">{s.status}</Badge><span className="text-xs text-muted-foreground">{formatDate(s.date)}</span></div></div></div><div className="flex items-center gap-2"><span className="font-bold text-sm">{formatCurrency(s.price)}</span>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">دفع</motion.button>}</div></div></Card> })}</div>
-                </div>)}
-
-                {/* Appointments Sub-tab - Enhanced */}
-                {moreSubTab === 'appointments' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Calendar size={18} className="text-purple-500" /> المواعيد</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-purple-600 to-purple-700 text-white" onClick={() => setShowAddAppointment(true)}><Plus size={14} className="ml-1" /> موعد</Button></div>
-                  {appointments.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">📅</p><p className="text-muted-foreground">لا توجد مواعيد بعد</p></Card>}
-                  <div className="space-y-2">{appointments.slice(0, 30).map(a => { const p = patients.find(pt => pt.id === a.patientId); const isToday = a.date?.startsWith(todayStr); return <Card key={a.id} className={cn('section-card p-3', isToday && 'border-purple-300 dark:border-purple-800 ring-1 ring-purple-200 dark:ring-purple-900')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg text-white', isToday ? 'bg-purple-500' : 'bg-gray-400')}><CalendarCheck size={14} /></div><div><p className="font-medium text-sm">{p?.name || 'موعد'}</p><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{a.type} - {a.duration} دقيقة</span>{isToday && <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[9px]">اليوم</Badge>}</div></div></div><Badge style={{ backgroundColor: statusColors[a.status as keyof typeof statusColors] + '20', color: statusColors[a.status as keyof typeof statusColors] }}>{a.status}</Badge></div></Card> })}</div>
+                {/* Partner Doctors Sub-tab - Complete System */}
+                {moreSubTab === 'doctors' && (<div className="space-y-3">
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Stethoscope size={18} className="text-emerald-500" /> الأطباء المشاركون</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-emerald-600 to-emerald-700 text-white" onClick={() => { setDoctorForm({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' }); setShowAddDoctor(true) }}><Plus size={14} className="ml-1" /> طبيب جديد</Button></div>
+                  {/* Doctor Revenue Summary */}
+                  {doctors.length > 0 && <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={14} className="text-emerald-500" /> ملخص حصص الأطباء</CardTitle></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الكشف</p><p className="text-sm font-bold text-emerald-600">{formatCurrency(checkupRevenue)}</p></div>
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الإعادة</p><p className="text-sm font-bold text-blue-600">{formatCurrency(revisitRevenue)}</p></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الجلسات</p><p className="text-sm font-bold text-violet-600">{formatCurrency(sessionRevenue)}</p></div>
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-[10px] text-muted-foreground">إجمالي الإيرادات</p><p className="text-sm font-bold text-amber-600">{formatCurrency(totalIncome)}</p></div>
+                    </div>
+                  </CardContent></Card>}
+                  {doctors.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">👨‍⚕️</motion.div><p className="text-muted-foreground">لا يوجد أطباء مشاركون بعد</p><p className="text-xs text-muted-foreground mt-1">أضف أطباء مشاركين مع تحديد نسبهم</p></Card>}
+                  {doctorEarnings.map(d => (
+                    <Card key={d.id} className="section-card p-4 border-2 border-emerald-100 dark:border-emerald-900">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12 border-2 border-emerald-400"><AvatarFallback className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-bold text-lg">{d.name.charAt(0)}</AvatarFallback></Avatar>
+                          <div><p className="font-bold">{d.name}</p>{d.specialty && <p className="text-xs text-muted-foreground">{d.specialty}</p>}{d.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone size={10} />{d.phone}</p>}</div>
+                        </div>
+                        <div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingDoctorId(d.id); setDoctorForm({ name: d.name, phone: d.phone || '', specialty: d.specialty || '', checkupPercentage: String(d.checkupPercentage), revisitPercentage: String(d.revisitPercentage), laserPercentage: String(d.laserPercentage), sessionPercentage: String(d.sessionPercentage), fixedAmount: String(d.fixedAmount), notes: d.notes || '' }); setShowAddDoctor(true) }}><Edit3 size={12} className="text-emerald-500" /></Button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/doctors', d.id, setDoctors)}><Trash2 size={12} className="text-red-500" /></Button></div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-center"><p className="text-[9px] text-muted-foreground">كشف {d.checkupPercentage}%</p><p className="text-xs font-bold text-emerald-600">{formatCurrency(d.checkupEarn)}</p></div>
+                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center"><p className="text-[9px] text-muted-foreground">إعادة {d.revisitPercentage}%</p><p className="text-xs font-bold text-blue-600">{formatCurrency(d.revisitEarn)}</p></div>
+                        <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-center"><p className="text-[9px] text-muted-foreground">ليزر {d.laserPercentage}%</p><p className="text-xs font-bold text-violet-600">{formatCurrency(d.laserEarn)}</p></div>
+                        <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-center"><p className="text-[9px] text-muted-foreground">جلسات {d.sessionPercentage}%</p><p className="text-xs font-bold text-orange-600">{formatCurrency(d.sessionEarn)}</p></div>
+                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-center"><p className="text-[9px] text-muted-foreground">ثابت</p><p className="text-xs font-bold text-amber-600">{formatCurrency(d.fixedAmount)}</p></div>
+                        <div className="p-2 rounded-lg bg-primary/10 text-center border-2 border-primary/30"><p className="text-[9px] text-muted-foreground font-bold">الإجمالي</p><p className="text-sm font-black text-primary">{formatCurrency(d.totalEarn)}</p></div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>)}
 
                 {/* Inventory Sub-tab - Enhanced with stock alerts */}
@@ -1130,8 +1240,56 @@ export default function Home() {
                   </CardContent></Card>
                 </div>)}
 
-                {/* Settings Sub-tab */}
+                {/* Settings Sub-tab - ENHANCED */}
                 {moreSubTab === 'settings' && (<div className="space-y-4">
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Shield size={20} className="text-indigo-500" /> تخصيص الصلاحيات</CardTitle><CardDescription>تحديد دور المستخدم وصلاحياته</CardDescription></CardHeader><CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('doctor'); toast.success('تم تفعيل صلاحيات الطبيب') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'doctor' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
+                        <motion.div animate={userRole === 'doctor' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👨‍⚕️</motion.div>
+                        <p className="font-bold text-sm">طبيب</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">صلاحية كاملة على جميع الأقسام</p>
+                        {userRole === 'doctor' && <Badge className="mt-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">فعّال ✓</Badge>}
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('secretary'); toast.success('تم تفعيل صلاحيات السكرتارية') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'secretary' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
+                        <motion.div animate={userRole === 'secretary' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👩‍💼</motion.div>
+                        <p className="font-bold text-sm">سكرتارية</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والليزر فقط</p>
+                        {userRole === 'secretary' && <Badge className="mt-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">فعّال ✓</Badge>}
+                      </motion.button>
+                    </div>
+                  </CardContent></Card>
+
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Lock size={20} className="text-red-500" /> كلمات سر الأقسام</CardTitle><CardDescription>حماية الأقسام بكلمة سر - الافتراضية: 2137</CardDescription></CardHeader><CardContent className="space-y-3">
+                    {[
+                      { key: 'finance', label: 'القسم المالي', emoji: '💰' },
+                      { key: 'settings', label: 'الإعدادات', emoji: '🎨' },
+                      { key: 'more', label: 'المزيد', emoji: '📋' },
+                      { key: 'dashboard', label: 'لوحة التحكم', emoji: '🏠' },
+                    ].map(s => (
+                      <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
+                        <div className="flex items-center gap-2"><span className="text-lg">{s.emoji}</span><div><p className="text-sm font-medium">{s.label}</p><p className="text-[9px] text-muted-foreground">{sectionPasswords[s.key] ? 'محمي بكلمة سر' : 'غير محمي'}</p></div></div>
+                        <div className="flex items-center gap-2">
+                          <Input type="password" value={sectionPasswords[s.key] || ''} onChange={e => setSectionPasswords(prev => ({ ...prev, [s.key]: e.target.value }))} placeholder="كلمة السر" className="w-28 h-8 text-xs rounded-lg" />
+                          {sectionPasswords[s.key] && <Button variant="ghost" size="sm" className="h-8 text-[10px] text-red-500" onClick={() => setSectionPasswords(prev => ({ ...prev, [s.key]: '' }))}>إلغاء</Button>}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent></Card>
+
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><RefreshCw size={20} className="text-blue-500" /> حالة المزامنة</CardTitle></CardHeader><CardContent className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="text-xl">🔄</motion.div><div><p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">متصل</p><p className="text-[9px] text-muted-foreground">قاعدة البيانات محلية (SQLite)</p></div></div>
+                      <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">نشط ✓</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center"><p className="text-[9px] text-muted-foreground">المرضى</p><p className="text-sm font-bold text-blue-600">{patients.length}</p></div>
+                      <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-center"><p className="text-[9px] text-muted-foreground">الزيارات</p><p className="text-sm font-bold text-violet-600">{visits.length}</p></div>
+                      <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-center"><p className="text-[9px] text-muted-foreground">الجلسات</p><p className="text-sm font-bold text-orange-600">{sessions.length}</p></div>
+                      <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-center"><p className="text-[9px] text-muted-foreground">المعاملات</p><p className="text-sm font-bold text-emerald-600">{transactions.length}</p></div>
+                    </div>
+                    {lastBackup && <p className="text-[10px] text-muted-foreground text-center">آخر مزامنة: {formatDate(lastBackup)}</p>}
+                  </CardContent></Card>
+
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Palette size={20} /> ألوان التطبيق</CardTitle><CardDescription>10 ألوان مميزة</CardDescription></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <motion.button key={tc.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</motion.button>)}</div></CardContent></Card>
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Tag size={20} /> ألوان الحالات</CardTitle></CardHeader><CardContent className="space-y-3">{[
                     { key: 'completed' as const, label: 'مكتمل' }, { key: 'active' as const, label: 'نشط' }, { key: 'pending' as const, label: 'قيد الانتظار' }, { key: 'cancelled' as const, label: 'ملغي' }, { key: 'scheduled' as const, label: 'مجدول' },
@@ -1154,7 +1312,8 @@ export default function Home() {
       <nav className="bottom-nav"><div className="flex items-center justify-around max-w-lg mx-auto">
         {bottomNavItems.map(item => {
           const isActive = activeTab === item.id || (item.id === 'more' && ['more', 'settings'].includes(activeTab))
-          return <button key={item.id} onClick={() => { setActiveTab(item.id); if (item.id === 'patients') setSelectedPatient(null) }} className={cn('bottom-nav-item', isActive && 'active')}><div className="nav-icon-wrapper">{isActive ? <span className="text-xl">{item.emoji}</span> : item.icon}</div><span className="nav-label">{item.label}</span></button>
+          const isLocked = !isDoctor && !['patients', 'laser'].includes(item.id)
+          return <button key={item.id} onClick={() => handleTabSwitch(item.id)} className={cn('bottom-nav-item', isActive && 'active')}><div className="nav-icon-wrapper">{isActive ? <span className="text-xl">{item.emoji}</span> : item.icon}{isLocked && <Lock size={8} className="absolute -top-1 -left-1 text-amber-500" />}</div><span className="nav-label">{item.label}</span></button>
         })}
       </div></nav>
 
@@ -1442,6 +1601,52 @@ export default function Home() {
 
       {/* Add Inventory */}
       <Dialog open={showAddInventory} onOpenChange={setShowAddInventory}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>عنصر مخزون</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input id="invName" placeholder="اسم العنصر" className="input-luxury rounded-xl" /></div><div className="grid grid-cols-3 gap-3"><div><Label>الكمية</Label><Input id="invQty" type="number" placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>الحد الأدنى</Label><Input id="invMin" type="number" placeholder="5" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input id="invPrice" type="number" placeholder="0" className="input-luxury rounded-xl" /></div></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/inventory/items', { name: (document.getElementById('invName') as HTMLInputElement)?.value, quantity: parseInt((document.getElementById('invQty') as HTMLInputElement)?.value) || 0, minQuantity: parseInt((document.getElementById('invMin') as HTMLInputElement)?.value) || 5, unitPrice: parseFloat((document.getElementById('invPrice') as HTMLInputElement)?.value) || 0 }, setInventoryItems); setShowAddInventory(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+
+      {/* Add/Edit Partner Doctor Dialog */}
+      <Dialog open={showAddDoctor} onOpenChange={setShowAddDoctor}><DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Stethoscope size={20} className="text-emerald-500" /> {editingDoctorId ? 'تعديل الطبيب' : 'طبيب مشارك جديد'}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-xs font-bold">الاسم *</Label><Input value={doctorForm.name} onChange={e => setDoctorForm(prev => ({ ...prev, name: e.target.value }))} placeholder="اسم الطبيب" className="input-luxury rounded-xl h-10" /></div>
+            <div><Label className="text-xs font-bold">التخصص</Label><Input value={doctorForm.specialty} onChange={e => setDoctorForm(prev => ({ ...prev, specialty: e.target.value }))} placeholder="التخصص" className="input-luxury rounded-xl h-10" /></div>
+          </div>
+          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={doctorForm.phone} onChange={e => setDoctorForm(prev => ({ ...prev, phone: e.target.value }))} placeholder="رقم الهاتف" className="input-luxury rounded-xl h-10" /></div>
+          <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20">
+            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={14} className="text-emerald-500" /> النسب المئوية</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs font-bold text-emerald-600">نسبة الكشف %</Label><Input type="number" value={doctorForm.checkupPercentage} onChange={e => setDoctorForm(prev => ({ ...prev, checkupPercentage: e.target.value }))} placeholder="0" className="input-luxury rounded-xl h-10" /></div>
+              <div><Label className="text-xs font-bold text-blue-600">نسبة الإعادة %</Label><Input type="number" value={doctorForm.revisitPercentage} onChange={e => setDoctorForm(prev => ({ ...prev, revisitPercentage: e.target.value }))} placeholder="0" className="input-luxury rounded-xl h-10" /></div>
+              <div><Label className="text-xs font-bold text-violet-600">نسبة الليزر %</Label><Input type="number" value={doctorForm.laserPercentage} onChange={e => setDoctorForm(prev => ({ ...prev, laserPercentage: e.target.value }))} placeholder="0" className="input-luxury rounded-xl h-10" /></div>
+              <div><Label className="text-xs font-bold text-orange-600">نسبة الجلسات %</Label><Input type="number" value={doctorForm.sessionPercentage} onChange={e => setDoctorForm(prev => ({ ...prev, sessionPercentage: e.target.value }))} placeholder="0" className="input-luxury rounded-xl h-10" /></div>
+              <div className="col-span-2"><Label className="text-xs font-bold text-amber-600">مبلغ ثابت (ج.م)</Label><Input type="number" value={doctorForm.fixedAmount} onChange={e => setDoctorForm(prev => ({ ...prev, fixedAmount: e.target.value }))} placeholder="0" className="input-luxury rounded-xl h-10" /></div>
+            </CardContent>
+          </Card>
+          <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={doctorForm.notes} onChange={e => setDoctorForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl" /></div>
+        </div>
+        <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-emerald-600 to-emerald-700 text-white" onClick={async () => {
+          if (!doctorForm.name.trim()) return toast.error('الاسم مطلوب')
+          if (editingDoctorId) {
+            try {
+              await apiFetch(`/doctors/${editingDoctorId}`, { method: 'PUT', body: JSON.stringify({ name: doctorForm.name, phone: doctorForm.phone || null, specialty: doctorForm.specialty || null, checkupPercentage: parseFloat(doctorForm.checkupPercentage) || 0, revisitPercentage: parseFloat(doctorForm.revisitPercentage) || 0, laserPercentage: parseFloat(doctorForm.laserPercentage) || 0, sessionPercentage: parseFloat(doctorForm.sessionPercentage) || 0, fixedAmount: parseFloat(doctorForm.fixedAmount) || 0, notes: doctorForm.notes || null }) })
+              setDoctors(prev => prev.map(d => d.id === editingDoctorId ? { ...d, name: doctorForm.name, phone: doctorForm.phone, specialty: doctorForm.specialty, checkupPercentage: parseFloat(doctorForm.checkupPercentage) || 0, revisitPercentage: parseFloat(doctorForm.revisitPercentage) || 0, laserPercentage: parseFloat(doctorForm.laserPercentage) || 0, sessionPercentage: parseFloat(doctorForm.sessionPercentage) || 0, fixedAmount: parseFloat(doctorForm.fixedAmount) || 0, notes: doctorForm.notes } : d))
+              toast.success('تم تعديل الطبيب')
+            } catch { toast.error('خطأ في التعديل') }
+          } else {
+            await addItem('/doctors', { name: doctorForm.name, phone: doctorForm.phone || null, specialty: doctorForm.specialty || null, checkupPercentage: parseFloat(doctorForm.checkupPercentage) || 0, revisitPercentage: parseFloat(doctorForm.revisitPercentage) || 0, laserPercentage: parseFloat(doctorForm.laserPercentage) || 0, sessionPercentage: parseFloat(doctorForm.sessionPercentage) || 0, fixedAmount: parseFloat(doctorForm.fixedAmount) || 0, notes: doctorForm.notes || null }, setDoctors)
+          }
+          setShowAddDoctor(false); setEditingDoctorId(null); setDoctorForm({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' })
+        }}>حفظ</Button></DialogFooter>
+      </DialogContent></Dialog>
+
+      {/* Password Verification Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}><DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Lock size={20} className="text-red-500" /> كلمة السر مطلوبة</DialogTitle><DialogDescription>هذا القسم محمي بكلمة سر</DialogDescription></DialogHeader>
+        <div className="space-y-3">
+          <Input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} placeholder="أدخل كلمة السر..." className="input-luxury rounded-xl h-12 text-center text-lg font-bold" onKeyDown={e => e.key === 'Enter' && verifyPassword()} autoFocus />
+          <p className="text-[10px] text-muted-foreground text-center">كلمة السر الافتراضية: 2137</p>
+        </div>
+        <DialogFooter className="gap-2"><Button variant="ghost" onClick={() => setPasswordDialogOpen(false)}>إلغاء</Button><Button className="btn-luxury rounded-xl" onClick={verifyPassword}>دخول</Button></DialogFooter>
+      </DialogContent></Dialog>
 
     </div>
   )

@@ -414,3 +414,21 @@ model Notification {
   link        String?
   createdAt   DateTime @default(now())
 }
+
+// ============ PARTNER DOCTORS ============
+
+model PartnerDoctor {
+  id                  String   @id @default(cuid())
+  name                String
+  phone               String?
+  specialty           String?
+  checkupPercentage   Float    @default(0)   // نسبة الكشف %
+  revisitPercentage   Float    @default(0)   // نسبة الإعادة %
+  laserPercentage     Float    @default(0)   // نسبة الليزر %
+  sessionPercentage   Float    @default(0)   // نسبة الجلسات %
+  fixedAmount         Float    @default(0)   // مبلغ ثابت
+  active              Boolean  @default(true)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
