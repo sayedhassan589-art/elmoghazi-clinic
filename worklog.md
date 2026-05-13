@@ -55,3 +55,27 @@ Stage Summary:
 - All More sub-tabs now working (services, visits, sessions, appointments, inventory, medications, reminders, backup, settings)
 - Laser section comprehensive with body areas, skin types, hair colors, packages, machine settings
 - Patient registration smart form with auto-search, visit type selection, service auto-selection
+---
+Task ID: 1
+Agent: Main Agent
+Task: إعادة تصميم نموذج تسجيل المريض مع دمج الزيارات
+
+Work Log:
+- قراءة ملف page.tsx الكامل (974 سطر) وفهم الهيكل الحالي
+- تحديث VISIT_TYPES لإضافة أنواع الزيارات المدمجة: كشف+جلسة، إعادة+جلسة
+- إعادة تصميم حوار تسجيل المريض بالكامل:
+  1. حقل الاسم في الأعلى بلون مميز (ذهبي عند الفارغ، أخضر عند الكتابة)
+  2. أنواع الزيارات في صفين: صف أول (كشف/إعادة/جلسة) وصف ثاني (كشف+جلسة/إعادة+جلسة)
+  3. معلومات الاتصال (هاتف + عنوان) جنباً إلى جنب
+  4. معلومات شخصية (هاتف إضافي + عمر + جنس) في صف واحد
+  5. الحساسية
+  6. الملاحظات
+  7. الخدمات في الأسفل تحت الملاحظات بتصميم أنيق (خلفية برتقالية)
+- تحديث handleSmartPatientSubmit لدعم الزيارات المدمجة
+- بناء المشروع بنجاح بدون أخطاء
+
+Stage Summary:
+- تم إضافة نوعي زيارات مدمجين: checkup_session و revisit_session
+- حقل الاسم أصبح بارزاً في الأعلى مع تغيير لون ديناميكي
+- الخدمات تظهر فقط عند اختيار جلسة أو زيارة مدمجة
+- إجمالي السعر يظهر بشكل واضح عند اختيار خدمات

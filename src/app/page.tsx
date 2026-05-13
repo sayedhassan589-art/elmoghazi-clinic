@@ -107,11 +107,13 @@ const HAIR_COLORS = [
   { id: 'white', label: 'أبيض', color: 'bg-gray-100' },
 ]
 
-// Visit type config with colors
+// Visit type config with colors + combo types
 const VISIT_TYPES = [
   { id: 'checkup', label: 'كشف', emoji: '🩺', bg: 'bg-emerald-500', hoverBg: 'hover:bg-emerald-600', ring: 'ring-emerald-300' },
   { id: 'revisit', label: 'إعادة', emoji: '🔄', bg: 'bg-blue-500', hoverBg: 'hover:bg-blue-600', ring: 'ring-blue-300' },
   { id: 'session', label: 'جلسة', emoji: '⚡', bg: 'bg-violet-500', hoverBg: 'hover:bg-violet-600', ring: 'ring-violet-300' },
+  { id: 'checkup_session', label: 'كشف + جلسة', emoji: '🩺⚡', bg: 'bg-gradient-to-l from-emerald-500 to-violet-500', hoverBg: 'hover:from-emerald-600 hover:to-violet-600', ring: 'ring-emerald-300' },
+  { id: 'revisit_session', label: 'إعادة + جلسة', emoji: '🔄⚡', bg: 'bg-gradient-to-l from-blue-500 to-violet-500', hoverBg: 'hover:from-blue-600 hover:to-violet-600', ring: 'ring-blue-300' },
 ]
 
 // ─── Main App ───────────────────────────────────────────────────────────────
@@ -305,23 +307,18 @@ export default function Home() {
 
     const patientId = patient.id
 
-    // Create visit if type selected
-    if (selectedVisitType === 'checkup') {
-      await addItem('/visits', { patientId, type: 'checkup', date: new Date().toISOString() }, setVisits)
-    } else if (selectedVisitType === 'revisit') {
-      await addItem('/visits', { patientId, type: 'revisit', date: new Date().toISOString() }, setVisits)
+    // Determine visit and session needs based on selected type (including combos)
+    const needsVisit = ['checkup', 'revisit', 'checkup_session', 'revisit_session'].includes(selectedVisitType)
+    const needsSession = ['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType)
+    const visitType = selectedVisitType === 'checkup_session' ? 'checkup' : selectedVisitType === 'revisit_session' ? 'revisit' : selectedVisitType
+
+    // Create visit if needed
+    if (needsVisit && (visitType === 'checkup' || visitType === 'revisit')) {
+      await addItem('/visits', { patientId, type: visitType, date: new Date().toISOString() }, setVisits)
     }
 
     // Create sessions for selected services
-    if (selectedVisitType === 'session' && selectedServiceIds.length > 0) {
-      for (const serviceId of selectedServiceIds) {
-        const svc = services.find(s => s.id === serviceId)
-        await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: svc?.price || 0, paid: false, date: new Date().toISOString() }, setSessions)
-      }
-    }
-
-    // Also allow checkup + session combo
-    if (selectedVisitType === 'checkup' && selectedServiceIds.length > 0) {
+    if (needsSession && selectedServiceIds.length > 0) {
       for (const serviceId of selectedServiceIds) {
         const svc = services.find(s => s.id === serviceId)
         await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: svc?.price || 0, paid: false, date: new Date().toISOString() }, setSessions)
@@ -777,80 +774,77 @@ export default function Home() {
         <div className="flex items-center gap-2 pt-2 border-t border-border"><Input value={aiInput} onChange={e => setAiInput(e.target.value)} placeholder="اكتب سؤالك..." className="flex-1 input-luxury rounded-xl" onKeyDown={e => e.key === 'Enter' && sendAiMessage()} /><Button onClick={sendAiMessage} size="icon" className="rounded-xl"><Send size={16} /></Button></div>
       </DialogContent></Dialog>
 
-      {/* ═══ SMART PATIENT REGISTRATION DIALOG ═══ */}
+      {/* ═══ SMART PATIENT REGISTRATION DIALOG - REDESIGNED ═══ */}
       <Dialog open={showAddPatient} onOpenChange={setShowAddPatient}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><UserPlus size={20} className="text-primary" /> تسجيل مريض جديد</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2 text-lg"><UserPlus size={20} className="text-primary" /> تسجيل مريض جديد</DialogTitle><DialogDescription>أدخل بيانات المريض واختر نوع الزيارة</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            {/* Name with auto-suggest */}
-            <div className="relative">
-              <Label className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1"><Users size={14} /> اسم المريض *</Label>
-              <Input value={newPatientName} onChange={e => setNewPatientName(e.target.value)} placeholder="ابحث عن مريض موجود أو اكتب اسم جديد..." className="input-luxury rounded-xl h-11 mt-1 border-blue-200 dark:border-blue-800 focus:border-blue-500" autoFocus />
-              {patientSearchSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-                  {patientSearchSuggestions.map(p => (
-                    <button key={p.id} onClick={() => { setSelectedPatient(p); setShowAddPatient(false); setActiveTab('patients') }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 text-right text-sm">
-                      <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{p.name?.charAt(0)}</AvatarFallback></Avatar>
-                      <div className="flex-1 min-w-0"><p className="font-medium truncate">{p.name}</p><p className="text-xs text-muted-foreground">{p.fileNumber} | {p.phone || ''}</p></div>
-                      <Badge variant="outline" className="text-[9px]">موجود</Badge>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Visit Type Selection - colorful animated buttons */}
+            {/* ─── 1. NAME FIELD - PROMINENT AT TOP ─── */}
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative">
+              <div className={cn('rounded-2xl p-4 border-2 transition-all', newPatientName.trim() ? 'border-emerald-400 dark:border-emerald-600 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30' : 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20')}>
+                <Label className="text-sm font-bold flex items-center gap-1.5 mb-2 text-amber-700 dark:text-amber-400">
+                  <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>✏️</motion.span>
+                  اسم المريض <span className="text-red-500">*</span>
+                </Label>
+                <Input value={newPatientName} onChange={e => setNewPatientName(e.target.value)} placeholder="اكتب اسم المريض أو ابحث عن مريض موجود..." className={cn('rounded-xl h-12 text-base font-bold border-2 transition-all', newPatientName.trim() ? 'border-emerald-300 dark:border-emerald-700 bg-white dark:bg-black/20 focus:border-emerald-500' : 'border-amber-200 dark:border-amber-700 bg-white/80 dark:bg-black/10 focus:border-amber-500')} autoFocus />
+                {patientSearchSuggestions.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 z-50 mt-2 bg-card border-2 border-emerald-300 dark:border-emerald-800 rounded-xl shadow-2xl overflow-hidden">
+                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 border-b border-emerald-200 dark:border-emerald-800"><p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1"><Search size={12} /> مرضى موجودين</p></div>
+                    {patientSearchSuggestions.map(p => (
+                      <button key={p.id} onClick={() => { setSelectedPatient(p); setShowAddPatient(false); setActiveTab('patients') }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-right text-sm border-b border-border/50 last:border-0 transition-colors">
+                        <Avatar className="h-9 w-9 border-2 border-emerald-300 dark:border-emerald-700"><AvatarFallback className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 text-xs font-bold">{p.name?.charAt(0)}</AvatarFallback></Avatar>
+                        <div className="flex-1 min-w-0"><p className="font-bold truncate text-sm">{p.name}</p><p className="text-xs text-muted-foreground flex items-center gap-2"><Hash size={10} />{p.fileNumber}{p.phone && <><Phone size={10} />{p.phone}</>}</p></div>
+                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">فتح</Badge>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+
+            {/* ─── 2. VISIT TYPE SELECTION - WITH COMBOS ─── */}
             <div>
-              <Label className="text-sm font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1"><Stethoscope size={14} /> نوع الزيارة</Label>
-              <div className="flex gap-2 mt-1">
-                {VISIT_TYPES.map(vt => (
-                  <motion.button key={vt.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex-1 flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-4 shadow-lg scale-105' : 'opacity-60 hover:opacity-100', selectedVisitType === vt.id && vt.ring)}>
+              <Label className="text-sm font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1 mb-2"><Stethoscope size={14} /> نوع الزيارة</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {/* First row: كشف / إعادة / جلسة */}
+                {VISIT_TYPES.slice(0, 3).map(vt => (
+                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-4 shadow-lg scale-[1.03]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
                     <span className="text-xl">{vt.emoji}</span>
                     <span className="text-xs font-bold">{vt.label}</span>
                   </motion.button>
                 ))}
               </div>
+              {/* Second row: Combo types - كشف+جلسة / إعادة+جلسة */}
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {VISIT_TYPES.slice(3).map(vt => (
+                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-4 shadow-lg scale-[1.03]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
+                    <span className="text-lg">{vt.emoji}</span>
+                    <span className="text-xs font-bold">{vt.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+              {/* Combo indicator */}
+              {['checkup_session', 'revisit_session'].includes(selectedVisitType) && (
+                <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-2 p-2.5 rounded-xl bg-gradient-to-l from-violet-50 to-blue-50 dark:from-violet-950/20 dark:to-blue-950/20 border border-violet-200 dark:border-violet-800">
+                  <p className="text-xs font-bold text-violet-700 dark:text-violet-400 flex items-center gap-1"><Sparkles size={12} /> زيارة مدمجة: سيتم تسجيل {selectedVisitType === 'checkup_session' ? 'كشف + جلسة' : 'إعادة + جلسة'} معاً</p>
+                </motion.div>
+              )}
             </div>
 
-            {/* Session Services - show when session or checkup+session selected */}
-            {(selectedVisitType === 'session' || selectedVisitType === 'checkup') && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2">
-                <Label className="text-sm font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1"><Activity size={14} /> اختر الخدمات</Label>
-                {Object.entries(servicesByCategory).map(([cat, svcs]) => (
-                  <div key={cat}>
-                    <p className="text-xs text-muted-foreground mb-1 font-medium">{cat}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {svcs.map(s => {
-                        const isSelected = selectedServiceIds.includes(s.id)
-                        return (
-                          <motion.button key={s.id} whileTap={{ scale: 0.9 }} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id])} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all', isSelected ? 'bg-primary text-primary-foreground border-primary shadow-md' : 'bg-muted/50 border-border hover:bg-muted')}>
-                            {isSelected && <CheckCircle size={12} />}{s.name} <span className="opacity-70">{formatCurrency(s.price)}</span>
-                          </motion.button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-                {selectedServiceIds.length > 0 && (
-                  <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
-                    <p className="text-xs font-medium text-primary">الإجمالي: {formatCurrency(selectedServiceIds.reduce((sum, id) => { const s = services.find(sv => sv.id === id); return sum + (s?.price || 0) }, 0))}</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* Address & Phone side by side with distinctive colors */}
+            {/* ─── 3. CONTACT INFO - Side by side ─── */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
-                <Input value={newPatientAddress} onChange={e => setNewPatientAddress(e.target.value)} placeholder="العنوان" className="input-luxury rounded-xl h-11 mt-1 border-indigo-200 dark:border-indigo-800 focus:border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/10" />
-              </div>
               <div>
                 <Label className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Phone size={14} /> الهاتف</Label>
                 <Input value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10" />
               </div>
+              <div>
+                <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
+                <Input value={newPatientAddress} onChange={e => setNewPatientAddress(e.target.value)} placeholder="العنوان" className="input-luxury rounded-xl h-11 mt-1 border-indigo-200 dark:border-indigo-800 focus:border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/10" />
+              </div>
             </div>
 
+            {/* ─── 4. PERSONAL INFO ROW ─── */}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-sm font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1"><Phone size={14} /> هاتف آخر</Label>
@@ -866,19 +860,60 @@ export default function Home() {
               </div>
             </div>
 
+            {/* ─── 5. ALLERGY ─── */}
             <div>
               <Label className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1"><Heart size={14} /> الحساسية</Label>
               <Input value={newPatientAllergy} onChange={e => setNewPatientAllergy(e.target.value)} placeholder="أي حساسية" className="input-luxury rounded-xl h-11 mt-1 border-red-200 dark:border-red-800 focus:border-red-500 bg-red-50/30 dark:bg-red-950/10" />
             </div>
 
+            {/* ─── 6. NOTES ─── */}
             <div>
               <Label className="text-sm font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1"><FileText size={14} /> ملاحظات</Label>
               <Textarea value={newPatientNotes} onChange={e => setNewPatientNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1 border-purple-300 dark:border-purple-800 focus:border-purple-500 min-h-[60px] bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:from-purple-950/10 dark:to-fuchsia-950/10" />
             </div>
+
+            {/* ─── 7. SERVICES - AT THE BOTTOM, ELEGANT ─── */}
+            {['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType) && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-3">
+                <div className="p-4 rounded-2xl border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-950/20 dark:to-amber-950/20">
+                  <Label className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5 mb-3">
+                    <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}>⚡</motion.span>
+                    اختر الخدمات
+                  </Label>
+                  {Object.entries(servicesByCategory).length === 0 && (
+                    <div className="text-center py-4"><p className="text-sm text-muted-foreground">لا توجد خدمات متاحة</p><p className="text-xs text-muted-foreground mt-1">أضف خدمات من قسم المزيد ← الخدمات</p></div>
+                  )}
+                  {Object.entries(servicesByCategory).map(([cat, svcs]) => (
+                    <div key={cat} className="mb-3 last:mb-0">
+                      <p className="text-xs text-muted-foreground mb-1.5 font-bold flex items-center gap-1"><Tag size={10} /> {cat}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {svcs.map(s => {
+                          const isSelected = selectedServiceIds.includes(s.id)
+                          return (
+                            <motion.button key={s.id} whileTap={{ scale: 0.9 }} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id])} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all', isSelected ? 'bg-orange-500 text-white border-orange-600 shadow-lg shadow-orange-200 dark:shadow-orange-900/30' : 'bg-white/80 dark:bg-black/10 border-orange-200 dark:border-orange-800 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20')}>
+                              {isSelected ? <CheckCircle size={12} /> : <Circle size={12} className="text-orange-300" />}
+                              <span className="font-bold">{s.name}</span>
+                              <span className={cn('text-[10px]', isSelected ? 'text-orange-100' : 'text-muted-foreground')}>{formatCurrency(s.price)}</span>
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {selectedServiceIds.length > 0 && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 p-3 rounded-xl bg-orange-500/10 border border-orange-300 dark:border-orange-700 flex items-center justify-between">
+                      <span className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5"><Activity size={14} /> الإجمالي</span>
+                      <span className="text-lg font-bold text-orange-700 dark:text-orange-300">{formatCurrency(selectedServiceIds.reduce((sum, id) => { const s = services.find(sv => sv.id === id); return sum + (s?.price || 0) }, 0))}</span>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            )}
           </div>
-          <DialogFooter>
-            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-blue-600 to-blue-700 text-white font-bold h-12 text-base" onClick={handleSmartPatientSubmit}>
-              <Sparkles size={16} className="ml-2" /> تسجيل
+
+          <DialogFooter className="pt-2">
+            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-blue-600 to-blue-700 text-white font-bold h-12 text-base w-full" onClick={handleSmartPatientSubmit}>
+              <Sparkles size={16} className="ml-2" /> تسجيل المريض
             </Button>
           </DialogFooter>
         </DialogContent>
