@@ -141,6 +141,7 @@ export default function Home() {
   const [medications, setMedications] = useState<Medication[]>([])
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [backups, setBackups] = useState<Backup[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
   // UI
@@ -332,6 +333,13 @@ export default function Home() {
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
+  // Services grouped by category for smart form (must be before early return - Rules of Hooks)
+  const servicesByCategory = useMemo(() => {
+    const cats: Record<string, Service[]> = {}
+    services.filter(s => s.active).forEach(s => { const cat = s.category || 'عام'; if (!cats[cat]) cats[cat] = []; cats[cat].push(s) })
+    return cats
+  }, [services])
+
   // ─── Bottom Nav ───────────────────────────────────────────────────────
   const bottomNavItems = [
     { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} /> },
@@ -363,13 +371,6 @@ export default function Home() {
       </div>
     )
   }
-
-  // Services grouped by category for smart form
-  const servicesByCategory = useMemo(() => {
-    const cats: Record<string, Service[]> = {}
-    services.filter(s => s.active).forEach(s => { const cat = s.category || 'عام'; if (!cats[cat]) cats[cat] = []; cats[cat].push(s) })
-    return cats
-  }, [services])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -486,34 +487,38 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Laser Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  <Card className="section-card p-3 text-center"><div className="text-2xl mb-1">📊</div><p className="text-xl font-bold">{laserRecords.length}</p><p className="text-[10px] text-muted-foreground">سجل ليزر</p></Card>
-                  <Card className="section-card p-3 text-center"><div className="text-2xl mb-1">📦</div><p className="text-xl font-bold">{laserPackages.length}</p><p className="text-[10px] text-muted-foreground">باقة نشطة</p></Card>
-                  <Card className="section-card p-3 text-center"><div className="text-2xl mb-1">💰</div><p className="text-xl font-bold">{formatCurrency(laserPackages.reduce((s, p) => s + p.price, 0))}</p><p className="text-[10px] text-muted-foreground">إجمالي الباقات</p></Card>
+                {/* Laser Stats - 4 cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">سجلات نشطة</p><p className="text-xl font-bold">{laserRecords.filter(r => r.status === 'active').length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{sessions.filter(s => s.date?.startsWith(todayStr) && services.find(sv => sv.id === s.serviceId)?.category?.includes('ليزر')).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد الليزر</p><p className="text-xl font-bold">{formatCurrency(laserPackages.reduce((s, p) => s + p.price, 0))}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><Package className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">باقات نشطة</p><p className="text-xl font-bold">{laserPackages.filter(p => p.active).length}</p></div></div></motion.div>
                 </div>
 
                 <Tabs value={laserSubTab} onValueChange={setLaserSubTab}>
-                  <TabsList className="w-full flex"><TabsTrigger value="records" className="flex-1 text-xs">السجلات</TabsTrigger><TabsTrigger value="packages" className="flex-1 text-xs">الباقات</TabsTrigger><TabsTrigger value="bodymap" className="flex-1 text-xs">مناطق الجسم</TabsTrigger><TabsTrigger value="settings" className="flex-1 text-xs">الأجهزة</TabsTrigger></TabsList>
+                  <TabsList className="w-full flex flex-wrap"><TabsTrigger value="records" className="flex-1 text-xs min-w-[60px]">📋 السجلات</TabsTrigger><TabsTrigger value="sessions" className="flex-1 text-xs min-w-[60px]">⚡ الجلسات</TabsTrigger><TabsTrigger value="packages" className="flex-1 text-xs min-w-[60px]">📦 الباقات</TabsTrigger><TabsTrigger value="bodymap" className="flex-1 text-xs min-w-[60px]">🗺️ المناطق</TabsTrigger><TabsTrigger value="finance" className="flex-1 text-xs min-w-[60px]">💰 المالي</TabsTrigger><TabsTrigger value="settings" className="flex-1 text-xs min-w-[60px]">⚙️ الأجهزة</TabsTrigger></TabsList>
 
-                  {/* Laser Records */}
+                  {/* Laser Records - Full CRUD */}
                   <TabsContent value="records" className="space-y-3 mt-4">
-                    {laserRecords.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-4xl mb-2">💎</p><p className="text-muted-foreground">لا توجد سجلات ليزر بعد</p><Button className="mt-3 btn-luxury rounded-xl" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> إنشاء سجل</Button></Card>}
+                    {laserRecords.length === 0 && <Card className="card-luxury p-8 text-center"><motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">💎</motion.div><p className="text-lg font-bold mb-1">لا توجد سجلات ليزر بعد</p><p className="text-muted-foreground text-sm mb-3">ابدأ بإضافة سجل جديد لمريض</p><Button className="btn-luxury rounded-xl bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> إنشاء سجل</Button></Card>}
                     {laserRecords.map(r => {
                       const p = patients.find(pt => pt.id === r.patientId)
                       const areaInfo = BODY_AREAS.find(a => a.id === r.bodyArea || a.label === r.bodyArea)
+                      const patientSessions = sessions.filter(s => s.patientId === r.patientId)
+                      const completedCount = patientSessions.filter(s => s.status === 'completed').length
+                      const progressPercent = r.totalSessions > 0 ? Math.min((completedCount / r.totalSessions) * 100, 100) : 0
                       return (
                         <Card key={r.id} className="section-card p-4">
                           <div className="flex items-center gap-3">
                             <div className={cn('p-2.5 rounded-xl text-xl', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>{areaInfo?.emoji || '💎'}</div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
+                              <div className="flex items-center gap-2"><p className="font-bold text-sm">{p?.name || 'مريض'}</p><Badge style={{ backgroundColor: statusColors[r.status as keyof typeof statusColors] + '20', color: statusColors[r.status as keyof typeof statusColors] }} className="text-[10px]">{r.status === 'active' ? 'نشط' : r.status === 'completed' ? 'مكتمل' : r.status}</Badge></div>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{areaInfo?.label || r.bodyArea}</span>{r.skinType && <span>| بشرة {r.skinType}</span>}{r.hairColor && <span>| شعر {r.hairColor}</span>}</div>
+                              <div className="mt-2"><div className="flex items-center justify-between text-[10px] mb-1"><span>{completedCount} من {r.totalSessions} جلسة</span><span className="font-medium">{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-2" /></div>
                             </div>
-                            <div className="text-left">
-                              <Badge style={{ backgroundColor: statusColors[r.status as keyof typeof statusColors] + '20', color: statusColors[r.status as keyof typeof statusColors] }}>{r.status}</Badge>
-                              <Progress value={(parseInt(r.totalSessions.toString()) || 0) > 0 ? 100 : 0} className="w-16 h-1 mt-1" />
-                              <p className="text-[10px] text-muted-foreground mt-0.5">{r.totalSessions} جلسات</p>
+                            <div className="flex flex-col gap-1">
+                              <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => deleteItem('/laser/records', r.id, setLaserRecords)}><Trash2 size={10} /></Button>
+                              {p && <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => { setSelectedPatient(p); setActiveTab('patients') }}><Eye size={10} /></Button>}
                             </div>
                           </div>
                         </Card>
@@ -521,29 +526,73 @@ export default function Home() {
                     })}
                   </TabsContent>
 
-                  {/* Laser Packages */}
-                  <TabsContent value="packages" className="space-y-3 mt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {laserPackages.map(pkg => (
-                        <Card key={pkg.id} className={cn('section-card p-4', !pkg.active && 'opacity-50')}>
-                          <div className="flex items-center justify-between mb-2"><h3 className="font-bold">{pkg.name}</h3><Badge className={pkg.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}>{pkg.active ? 'نشط' : 'معطل'}</Badge></div>
-                          <div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-primary">{formatCurrency(pkg.price)}</p><p className="text-xs text-muted-foreground">{pkg.sessionsCount} جلسة{pkg.bodyArea ? ` - ${pkg.bodyArea}` : ''}</p></div><Button variant="outline" size="sm" className="rounded-lg" onClick={() => deleteItem('/laser/packages', pkg.id, setLaserPackages)}><Trash2 size={12} /></Button></div>
-                        </Card>
-                      ))}
+                  {/* Laser Sessions - Track individual sessions */}
+                  <TabsContent value="sessions" className="space-y-3 mt-4">
+                    <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-violet-500" /> جلسات الليزر</h3><Badge variant="outline">{sessions.length} جلسة</Badge></div>
+                    {sessions.filter(s => services.find(sv => sv.id === s.serviceId)?.category?.includes('ليزر') || s.serviceId === undefined).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p><p className="text-xs text-muted-foreground mt-1">سيتم إنشاء الجلسات تلقائياً عند تسجيل مريض بجلسات ليزر</p></Card>}
+                    <div className="space-y-2">
+                      {sessions.slice(0, 30).map(s => {
+                        const p = patients.find(pt => pt.id === s.patientId)
+                        const svc = services.find(sv => sv.id === s.serviceId)
+                        return (
+                          <Card key={s.id} className="section-card p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={cn('p-2 rounded-lg text-white', s.status === 'completed' ? 'bg-emerald-500' : s.status === 'scheduled' ? 'bg-blue-500' : s.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500')}>
+                                  {s.status === 'completed' ? <CheckCircle size={14} /> : s.status === 'scheduled' ? <Calendar size={14} /> : <Clock size={14} />}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{p?.name || 'مريض'} - {svc?.name || 'جلسة ليزر'}</p>
+                                  <p className="text-xs text-muted-foreground">{formatDate(s.date)} {s.paid ? '✅ مدفوعة' : '⏳ غير مدفوعة'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm">{formatCurrency(s.price)}</span>
+                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PATCH', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-200">دفع</motion.button>}
+                              </div>
+                            </div>
+                          </Card>
+                        )
+                      })}
                     </div>
                   </TabsContent>
 
-                  {/* Body Area Map */}
+                  {/* Laser Packages - Enhanced */}
+                  <TabsContent value="packages" className="space-y-3 mt-4">
+                    <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> باقات الليزر</h3></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {laserPackages.length === 0 && <Card className="card-luxury p-6 text-center col-span-2"><p className="text-3xl mb-2">📦</p><p className="text-muted-foreground">لا توجد باقات ليزر</p><Button className="mt-3 btn-luxury rounded-xl" onClick={() => setShowAddLaserPackage(true)}><Plus size={14} className="ml-1" /> إنشاء باقة</Button></Card>}
+                      {laserPackages.map(pkg => {
+                        const pricePerSession = pkg.sessionsCount > 0 ? pkg.price / pkg.sessionsCount : 0
+                        return (
+                          <Card key={pkg.id} className={cn('section-card p-4', !pkg.active && 'opacity-50')}>
+                            <div className="flex items-center justify-between mb-2"><h3 className="font-bold">{pkg.name}</h3><Badge className={pkg.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}>{pkg.active ? 'نشط' : 'معطل'}</Badge></div>
+                            <div className="space-y-1">
+                              <p className="text-2xl font-bold text-primary">{formatCurrency(pkg.price)}</p>
+                              <p className="text-xs text-muted-foreground">{pkg.sessionsCount} جلسة{pkg.bodyArea ? ` - ${pkg.bodyArea}` : ''}</p>
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(pricePerSession)} / جلسة</p>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button variant="outline" size="sm" className="rounded-lg flex-1" onClick={() => deleteItem('/laser/packages', pkg.id, setLaserPackages)}><Trash2 size={12} className="ml-1" /> حذف</Button>
+                            </div>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  </TabsContent>
+
+                  {/* Body Area Map - Interactive */}
                   <TabsContent value="bodymap" className="mt-4">
-                    <Card className="card-luxury"><CardHeader><CardTitle>مناطق الجسم - إزالة الشعر بالليزر</CardTitle><CardDescription>اضغط على أي منطقة لعرض سجلاتها</CardDescription></CardHeader><CardContent>
+                    <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><MapPin size={18} /> مناطق الجسم - إزالة الشعر بالليزر</CardTitle><CardDescription>اضغط على أي منطقة لعرض سجلاتها</CardDescription></CardHeader><CardContent>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {BODY_AREAS.map(area => {
                           const count = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label).length
+                          const areaRevenue = laserPackages.filter(p => p.bodyArea === area.label).reduce((s, p) => s + p.price, 0)
                           return (
-                            <motion.button key={area.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className={cn('flex flex-col items-center gap-1 p-3 rounded-xl border transition-all', area.color, count > 0 ? 'ring-2 ring-primary/30' : 'border-dashed')}>
+                            <motion.button key={area.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className={cn('flex flex-col items-center gap-1 p-3 rounded-xl border transition-all relative', area.color, count > 0 ? 'ring-2 ring-primary/30' : 'border-dashed')}>
                               <span className="text-2xl">{area.emoji}</span>
                               <span className="text-xs font-medium">{area.label}</span>
-                              {count > 0 && <Badge variant="secondary" className="text-[9px]">{count}</Badge>}
+                              {count > 0 && <Badge variant="secondary" className="text-[9px]">{count} سجل</Badge>}
                             </motion.button>
                           )
                         })}
@@ -551,11 +600,25 @@ export default function Home() {
                     </CardContent></Card>
                   </TabsContent>
 
+                  {/* Laser Financial Summary */}
+                  <TabsContent value="finance" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserPackages.filter(p => p.active).reduce((s, p) => s + p.price, 0))}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات غير مدفوعة</p><p className="text-lg font-bold text-amber-600">{sessions.filter(s => !s.paid).length}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><ClipboardCheck className="text-blue-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات مكتملة</p><p className="text-lg font-bold text-blue-600">{sessions.filter(s => s.status === 'completed').length}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30"><UsersRound className="text-violet-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-violet-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div></div></Card>
+                    </div>
+                    <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
+                      {sessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || 'جلسة'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PATCH', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
+                      {sessions.filter(s => !s.paid).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
+                    </CardContent></Card>
+                  </TabsContent>
+
                   {/* Machine Settings */}
                   <TabsContent value="settings" className="mt-4">
-                    <Card className="card-luxury"><CardHeader><CardTitle>إعدادات الأجهزة</CardTitle><CardDescription>إعدادات الطاقة والنبض لكل جهاز</CardDescription></CardHeader><CardContent>
-                      {laserSettings.length === 0 ? <div className="text-center py-8"><p className="text-4xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد إعدادات أجهزة</p></div> :
-                        laserSettings.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 mb-2"><div><p className="font-medium text-sm">{s.machineName}</p><p className="text-xs text-muted-foreground">{s.bodyArea}</p></div><div className="flex gap-2"><Badge variant="outline">طاقة: {s.defaultEnergy || '-'}</Badge><Badge variant="outline">نبض: {s.defaultPulse || '-'}</Badge></div></div>)
+                    <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Settings size={18} /> إعدادات الأجهزة</CardTitle><CardDescription>إعدادات الطاقة والنبض لكل جهاز</CardDescription></CardHeader><CardContent>
+                      {laserSettings.length === 0 ? <div className="text-center py-8"><motion.div animate={{ rotate: [0, 180, 360] }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }} className="text-4xl mb-2 inline-block">⚙️</motion.div><p className="text-muted-foreground">لا توجد إعدادات أجهزة</p><p className="text-xs text-muted-foreground mt-1">أضف إعدادات من لوحة تحكم الأجهزة</p></div> :
+                        <div className="space-y-2">{laserSettings.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Wand2 className="text-cyan-600" size={16} /></div><div><p className="font-medium text-sm">{s.machineName}</p><p className="text-xs text-muted-foreground">{s.bodyArea}</p></div></div><div className="flex gap-2"><Badge variant="outline" className="text-[10px]">⚡ طاقة: {s.defaultEnergy || '-'}</Badge><Badge variant="outline" className="text-[10px]">📢 نبض: {s.defaultPulse || '-'}</Badge></div></div>)}</div>
                       }
                     </CardContent></Card>
                   </TabsContent>
@@ -605,46 +668,53 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Services Sub-tab */}
+                {/* Services Sub-tab - Enhanced */}
                 {moreSubTab === 'services' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg">الخدمات</h3><Button className="btn-luxury rounded-xl" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button></div>
-                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} /> {cat}</CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : ''}</p></div><div className="flex items-center gap-2"><Badge variant="outline">{formatCurrency(s.price)}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Tag size={18} className="text-teal-500" /> الخدمات</h3><div className="flex items-center gap-2"><Badge variant="outline">{services.length} خدمة</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button></div></div>
+                  {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
+                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className="font-bold">{formatCurrency(s.price)}</Badge><Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
                 </div>)}
 
-                {/* Visits Sub-tab */}
+                {/* Visits Sub-tab - Enhanced */}
                 {moreSubTab === 'visits' && (<div className="space-y-3">
-                  <h3 className="font-bold text-lg">الزيارات</h3>
-                  {visits.slice(0, 30).map(v => { const p = patients.find(pt => pt.id === v.patientId); const vt = VISIT_TYPES.find(t => t.id === v.type); return <Card key={v.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Badge className={cn('text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'} {vt?.label || v.type}</Badge><span className="text-sm font-medium">{p?.name || 'مريض'}</span></div><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span></div></Card> })}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Stethoscope size={18} className="text-violet-500" /> الزيارات</h3><Badge variant="outline">{visits.length} زيارة</Badge></div>
+                  {visits.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">🩺</p><p className="text-muted-foreground">لا توجد زيارات بعد</p></Card>}
+                  <div className="space-y-2">{visits.slice(0, 30).map(v => { const p = patients.find(pt => pt.id === v.patientId); const vt = VISIT_TYPES.find(t => t.id === v.type); return <Card key={v.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-2"><span className="font-medium text-sm">{p?.name || 'مريض'}</span><Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge></div>{v.diagnosis && <p className="text-xs text-muted-foreground">{v.diagnosis}</p>}</div></div><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span></div></Card> })}</div>
                 </div>)}
 
-                {/* Sessions Sub-tab */}
+                {/* Sessions Sub-tab - Enhanced with payment */}
                 {moreSubTab === 'sessions' && (<div className="space-y-3">
-                  <h3 className="font-bold text-lg">الجلسات</h3>
-                  {sessions.slice(0, 30).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors], borderColor: statusColors[s.status as keyof typeof statusColors] + '40' }} className="border">{s.status}</Badge><span className="text-sm">{p?.name || 'مريض'} - {svc?.name || 'جلسة'}</span></div><span className="text-sm font-medium">{formatCurrency(s.price)}</span></div></Card> })}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-orange-500" /> الجلسات</h3><div className="flex items-center gap-2"><Badge variant="outline">{sessions.length} جلسة</Badge><Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">{sessions.filter(s => !s.paid).length} غير مدفوعة</Badge></div></div>
+                  {sessions.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات بعد</p></Card>}
+                  <div className="space-y-2">{sessions.slice(0, 30).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={14} /> : <Clock className="text-amber-600" size={14} />}</div><div><p className="font-medium text-sm">{p?.name || 'مريض'} - {svc?.name || 'جلسة'}</p><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors] }} className="border text-[9px]">{s.status}</Badge><span className="text-xs text-muted-foreground">{formatDate(s.date)}</span></div></div></div><div className="flex items-center gap-2"><span className="font-bold text-sm">{formatCurrency(s.price)}</span>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PATCH', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">دفع</motion.button>}</div></div></Card> })}</div>
                 </div>)}
 
-                {/* Appointments Sub-tab */}
+                {/* Appointments Sub-tab - Enhanced */}
                 {moreSubTab === 'appointments' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg">المواعيد</h3><Button className="btn-luxury rounded-xl" onClick={() => setShowAddAppointment(true)}><Plus size={14} className="ml-1" /> موعد</Button></div>
-                  {appointments.slice(0, 30).map(a => { const p = patients.find(pt => pt.id === a.patientId); return <Card key={a.id} className="section-card p-3"><div className="flex items-center justify-between"><div><p className="font-medium text-sm">{p?.name || 'موعد'}</p><p className="text-xs text-muted-foreground">{a.type} - {a.duration} دقيقة</p></div><Badge style={{ backgroundColor: statusColors[a.status as keyof typeof statusColors] + '20', color: statusColors[a.status as keyof typeof statusColors] }}>{a.status}</Badge></div></Card> })}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Calendar size={18} className="text-purple-500" /> المواعيد</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-purple-600 to-purple-700 text-white" onClick={() => setShowAddAppointment(true)}><Plus size={14} className="ml-1" /> موعد</Button></div>
+                  {appointments.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">📅</p><p className="text-muted-foreground">لا توجد مواعيد بعد</p></Card>}
+                  <div className="space-y-2">{appointments.slice(0, 30).map(a => { const p = patients.find(pt => pt.id === a.patientId); const isToday = a.date?.startsWith(todayStr); return <Card key={a.id} className={cn('section-card p-3', isToday && 'border-purple-300 dark:border-purple-800 ring-1 ring-purple-200 dark:ring-purple-900')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg text-white', isToday ? 'bg-purple-500' : 'bg-gray-400')}><CalendarCheck size={14} /></div><div><p className="font-medium text-sm">{p?.name || 'موعد'}</p><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{a.type} - {a.duration} دقيقة</span>{isToday && <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[9px]">اليوم</Badge>}</div></div></div><Badge style={{ backgroundColor: statusColors[a.status as keyof typeof statusColors] + '20', color: statusColors[a.status as keyof typeof statusColors] }}>{a.status}</Badge></div></Card> })}</div>
                 </div>)}
 
-                {/* Inventory Sub-tab */}
+                {/* Inventory Sub-tab - Enhanced with stock alerts */}
                 {moreSubTab === 'inventory' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg">المخزون</h3><Button className="btn-luxury rounded-xl" onClick={() => setShowAddInventory(true)}><Plus size={14} className="ml-1" /> عنصر</Button></div>
-                  {inventoryItems.map(i => <Card key={i.id} className={cn('section-card p-3', i.quantity <= i.minQuantity && 'border-red-300 dark:border-red-800')}><div className="flex items-center justify-between"><div><p className="font-medium text-sm">{i.name}</p><p className="text-xs text-muted-foreground">{i.category || 'عام'} - الكمية: {i.quantity}</p></div>{i.quantity <= i.minQuantity && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">منخفض</Badge>}</div></Card>)}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> المخزون</h3><div className="flex items-center gap-2">{lowStockItems.length > 0 && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">{lowStockItems.length} منخفض</Badge>}<Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={() => setShowAddInventory(true)}><Plus size={14} className="ml-1" /> عنصر</Button></div></div>
+                  {inventoryItems.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">📦</p><p className="text-muted-foreground">لا توجد عناصر في المخزون</p></Card>}
+                  <div className="space-y-2">{inventoryItems.map(i => { const isLow = i.quantity <= i.minQuantity; return <Card key={i.id} className={cn('section-card p-3', isLow && 'border-red-300 dark:border-red-800 bg-red-50/30 dark:bg-red-900/10')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', isLow ? 'bg-red-100 dark:bg-red-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30')}>{isLow ? <AlertTriangle className="text-red-600" size={14} /> : <Package className="text-emerald-600" size={14} />}</div><div><p className="font-medium text-sm">{i.name}</p><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{i.category || 'عام'}</span><span className={cn('text-xs font-bold', isLow ? 'text-red-600' : 'text-emerald-600')}>الكمية: {i.quantity} / الحد: {i.minQuantity}</span></div></div></div><div className="flex items-center gap-2">{isLow && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">⚠️ منخفض</Badge>}<span className="text-xs text-muted-foreground">{formatCurrency(i.unitPrice)}</span></div></div></Card> })}</div>
                 </div>)}
 
-                {/* Medications Sub-tab */}
+                {/* Medications Sub-tab - Enhanced */}
                 {moreSubTab === 'medications' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg">الأدوية</h3><Button className="btn-luxury rounded-xl" onClick={() => setShowAddMedication(true)}><Plus size={14} className="ml-1" /> دواء</Button></div>
-                  {medications.map(m => <Card key={m.id} className="section-card p-3"><div className="flex items-center justify-between"><div><p className="font-medium text-sm">{m.name}</p><p className="text-xs text-muted-foreground">{m.category || 'عام'} {m.dosage ? `- ${m.dosage}` : ''}</p></div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/medications', m.id, setMedications)}><Trash2 size={12} className="text-red-500" /></Button></div></Card>)}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Pill size={18} className="text-green-500" /> الأدوية</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-green-600 to-green-700 text-white" onClick={() => setShowAddMedication(true)}><Plus size={14} className="ml-1" /> دواء</Button></div>
+                  {medications.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">💊</p><p className="text-muted-foreground">لا توجد أدوية بعد</p></Card>}
+                  <div className="space-y-2">{medications.map(m => <Card key={m.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', m.active ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-900/30')}><Pill className={m.active ? 'text-green-600' : 'text-gray-400'} size={14} /></div><div><p className="font-medium text-sm">{m.name}</p><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{m.category || 'عام'}</span>{m.dosage && <span className="text-xs text-muted-foreground">- الجرعة: {m.dosage}</span>}{m.instructions && <span className="text-xs text-muted-foreground">- {m.instructions}</span>}</div></div></div><div className="flex items-center gap-2"><Badge className={m.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{m.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/medications', m.id, setMedications)}><Trash2 size={12} className="text-red-500" /></Button></div></div></Card>)}</div>
                 </div>)}
 
-                {/* Reminders Sub-tab */}
+                {/* Reminders Sub-tab - Enhanced */}
                 {moreSubTab === 'reminders' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg">التذكيرات</h3><Button className="btn-luxury rounded-xl" onClick={() => setShowAddReminder(true)}><Plus size={14} className="ml-1" /> تذكير</Button></div>
-                  {reminders.map(r => <Card key={r.id} className="section-card p-3"><div className="flex items-center justify-between"><div><p className="font-medium text-sm">{r.title}</p><p className="text-xs text-muted-foreground">{formatDate(r.date)}</p></div><Badge variant="outline">{r.status}</Badge></div></Card>)}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Bell size={18} className="text-rose-500" /> التذكيرات</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-rose-500 to-rose-600 text-white" onClick={() => setShowAddReminder(true)}><Plus size={14} className="ml-1" /> تذكير</Button></div>
+                  {reminders.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⏰</p><p className="text-muted-foreground">لا توجد تذكيرات</p></Card>}
+                  <div className="space-y-2">{reminders.map(r => { const isPast = new Date(r.date) < new Date(); return <Card key={r.id} className={cn('section-card p-3', isPast && r.status !== 'completed' && 'border-amber-300 dark:border-amber-800')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', r.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' : isPast ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-blue-100 dark:bg-blue-900/30')}><Bell className={r.status === 'completed' ? 'text-emerald-600' : isPast ? 'text-amber-600' : 'text-blue-600'} size={14} /></div><div><p className="font-medium text-sm">{r.title}</p><p className="text-xs text-muted-foreground">{formatDate(r.date)} {r.description && `- ${r.description}`}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className={r.status === 'completed' ? 'border-emerald-500 text-emerald-600' : r.status === 'pending' ? 'border-amber-500 text-amber-600' : 'border-blue-500 text-blue-600'}>{r.status === 'completed' ? 'مكتمل' : r.status === 'pending' ? 'قيد الانتظار' : r.status}</Badge>{r.status !== 'completed' && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); toast.success('تم إكمال التذكير') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تم</motion.button>}</div></div></Card> })}</div>
                 </div>)}
 
                 {/* Backup Sub-tab */}
@@ -769,41 +839,41 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Phone & Address side by side with colors */}
+            {/* Address & Phone side by side with distinctive colors */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Phone size={14} /> الهاتف</Label>
-                <Input value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500" />
+                <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
+                <Input value={newPatientAddress} onChange={e => setNewPatientAddress(e.target.value)} placeholder="العنوان" className="input-luxury rounded-xl h-11 mt-1 border-indigo-200 dark:border-indigo-800 focus:border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/10" />
               </div>
               <div>
-                <Label className="text-sm font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1"><Phone size={14} /> هاتف آخر</Label>
-                <Input value={newPatientPhone2} onChange={e => setNewPatientPhone2(e.target.value)} placeholder="رقم إضافي" className="input-luxury rounded-xl h-11 mt-1 border-teal-200 dark:border-teal-800 focus:border-teal-500" />
+                <Label className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Phone size={14} /> الهاتف</Label>
+                <Input value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10" />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
+                <Label className="text-sm font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1"><Phone size={14} /> هاتف آخر</Label>
+                <Input value={newPatientPhone2} onChange={e => setNewPatientPhone2(e.target.value)} placeholder="رقم إضافي" className="input-luxury rounded-xl h-11 mt-1 border-teal-200 dark:border-teal-800 focus:border-teal-500 bg-teal-50/30 dark:bg-teal-950/10" />
+              </div>
+              <div>
                 <Label className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1"><Hash size={14} /> العمر</Label>
-                <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="العمر" className="input-luxury rounded-xl h-11 mt-1 border-amber-200 dark:border-amber-800 focus:border-amber-500" />
+                <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="العمر" className="input-luxury rounded-xl h-11 mt-1 border-amber-200 dark:border-amber-800 focus:border-amber-500 bg-amber-50/30 dark:bg-amber-950/10" />
               </div>
               <div>
                 <Label className="text-sm font-bold text-pink-600 dark:text-pink-400">الجنس</Label>
-                <Select value={newPatientGender} onValueChange={setNewPatientGender}><SelectTrigger className="rounded-xl h-11 mt-1 border-pink-200 dark:border-pink-800"><SelectValue placeholder="الجنس" /></SelectTrigger><SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent></Select>
-              </div>
-              <div>
-                <Label className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1"><Heart size={14} /> الحساسية</Label>
-                <Input value={newPatientAllergy} onChange={e => setNewPatientAllergy(e.target.value)} placeholder="أي حساسية" className="input-luxury rounded-xl h-11 mt-1 border-red-200 dark:border-red-800 focus:border-red-500" />
+                <Select value={newPatientGender} onValueChange={setNewPatientGender}><SelectTrigger className="rounded-xl h-11 mt-1 border-pink-200 dark:border-pink-800 bg-pink-50/30 dark:bg-pink-950/10"><SelectValue placeholder="الجنس" /></SelectTrigger><SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent></Select>
               </div>
             </div>
 
             <div>
-              <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
-              <Input value={newPatientAddress} onChange={e => setNewPatientAddress(e.target.value)} placeholder="العنوان" className="input-luxury rounded-xl h-11 mt-1 border-indigo-200 dark:border-indigo-800 focus:border-indigo-500" />
+              <Label className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1"><Heart size={14} /> الحساسية</Label>
+              <Input value={newPatientAllergy} onChange={e => setNewPatientAllergy(e.target.value)} placeholder="أي حساسية" className="input-luxury rounded-xl h-11 mt-1 border-red-200 dark:border-red-800 focus:border-red-500 bg-red-50/30 dark:bg-red-950/10" />
             </div>
 
             <div>
               <Label className="text-sm font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1"><FileText size={14} /> ملاحظات</Label>
-              <Textarea value={newPatientNotes} onChange={e => setNewPatientNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1 border-purple-200 dark:border-purple-800 focus:border-purple-500 min-h-[60px]" />
+              <Textarea value={newPatientNotes} onChange={e => setNewPatientNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1 border-purple-300 dark:border-purple-800 focus:border-purple-500 min-h-[60px] bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:from-purple-950/10 dark:to-fuchsia-950/10" />
             </div>
           </div>
           <DialogFooter>
