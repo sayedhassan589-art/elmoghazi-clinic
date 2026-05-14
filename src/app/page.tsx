@@ -187,6 +187,7 @@ export default function Home() {
   const [laserFormMachine, setLaserFormMachine] = useState('')
   const [laserFormEnergy, setLaserFormEnergy] = useState('')
   const [laserFormPulse, setLaserFormPulse] = useState('')
+  const [laserFormDoctorId, setLaserFormDoctorId] = useState('')
 
   // AI Chat
   const [aiChatOpen, setAiChatOpen] = useState(false)
@@ -2555,14 +2556,8 @@ export default function Home() {
 
             {/* ─── 4. PERSONAL INFO ROW ─── */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1"><Hash size={14} /> العمر</Label>
-                <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="العمر" className="input-luxury rounded-xl h-11 mt-1 border-amber-200 dark:border-amber-800 focus:border-amber-500 bg-amber-50/30 dark:bg-amber-950/10" />
-              </div>
-              <div>
-                <Label className="text-sm font-bold text-pink-600 dark:text-pink-400">الجنس</Label>
-                <Select value={newPatientGender} onValueChange={setNewPatientGender}><SelectTrigger className="rounded-xl h-11 mt-1 border-pink-200 dark:border-pink-800 bg-pink-50/30 dark:bg-pink-950/10"><SelectValue placeholder="الجنس" /></SelectTrigger><SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent></Select>
-              </div>
+              <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="🎂 العمر" className="input-luxury rounded-xl h-11 border-amber-200 dark:border-amber-800 focus:border-amber-500 bg-amber-50/30 dark:bg-amber-950/10" />
+              <Select value={newPatientGender} onValueChange={setNewPatientGender}><SelectTrigger className="rounded-xl h-11 border-pink-200 dark:border-pink-800 bg-pink-50/30 dark:bg-pink-950/10"><SelectValue placeholder="⚧ الجنس" /></SelectTrigger><SelectContent><SelectItem value="male">♂ ذكر</SelectItem><SelectItem value="female">♀ أنثى</SelectItem></SelectContent></Select>
             </div>
 
             {/* ─── 5. VISIT PRICE (for كشف/إعادة) ─── */}
@@ -2662,34 +2657,34 @@ export default function Home() {
                 </h3>
               </div>
               <div className="p-4 space-y-3">
-                {/* Patient Search */}
+                {/* Patient Search - ENHANCED */}
                 <div className="relative">
-                  <Label className="text-xs font-bold text-cyan-700 dark:text-cyan-300">بحث المريض (الاسم / الهاتف / رقم الملف)</Label>
-                  <div className="relative mt-1">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500" size={18} />
-                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="ابحث عن العميل..." className="input-luxury rounded-xl h-12 pr-10 text-base border-2 border-cyan-200 dark:border-cyan-800 focus:border-cyan-500" />
+                  <Label className="text-xs font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5 mb-1.5"><Search size={13} /> ابحث عن المريض بالاسم أو الهاتف</Label>
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500" size={20} />
+                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اكتب اسم المريض أو رقم التليفون..." className="input-luxury rounded-xl h-14 pr-12 text-lg font-bold border-2 border-cyan-300 dark:border-cyan-700 focus:border-cyan-500 shadow-sm" autoFocus />
                   </div>
                   {laserPatientSuggestions.length > 0 && !laserFormPatientId && (
-                    <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-card border-2 border-cyan-300 dark:border-cyan-700 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
-                      <div className="sticky top-0 z-10 p-2 bg-gradient-to-l from-cyan-50 to-sky-50 dark:from-cyan-950/50 dark:to-sky-950/50 border-b border-cyan-200 dark:border-cyan-800">
-                        <p className="text-xs font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1"><Search size={12} /> مرضى موجودين ({laserPatientSuggestions.length})</p>
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 z-[100] mt-2 bg-card border-2 border-cyan-300 dark:border-cyan-700 rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="sticky top-0 z-10 px-4 py-2.5 bg-gradient-to-l from-cyan-500 to-blue-600 border-b border-cyan-300">
+                        <p className="text-sm font-bold text-white flex items-center gap-1.5"><Search size={13} /> نتائج البحث ({laserPatientSuggestions.length})</p>
                       </div>
-                      {laserPatientSuggestions.map(p => (
-                        <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right text-sm border-b border-cyan-100 dark:border-cyan-900/30 last:border-0 transition-all hover:shadow-md">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center font-bold text-white text-xl shadow-lg">{p.name?.charAt(0)}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-base">{p.name}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                              <Badge variant="outline" className="text-[9px]">#{p.fileNumber}</Badge>
-                              {p.phone && <span className="flex items-center gap-1"><Phone size={10} />{p.phone}</span>}
-                              {p.age && <span>{p.age} سنة</span>}
-                              {p.gender && <Badge className={cn('text-[9px]', p.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300')}>{p.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>}
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {laserPatientSuggestions.map((p, i) => (
+                          <motion.button key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right transition-all border-b border-cyan-100 dark:border-cyan-900/20 last:border-0">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-black text-white text-2xl shadow-lg flex-shrink-0">{p.name?.charAt(0)}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-black text-lg leading-tight truncate">{p.name}</p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
+                                <Badge variant="outline" className="text-[10px] font-bold border-cyan-400 text-cyan-600">#{p.fileNumber}</Badge>
+                                {p.phone && <span className="flex items-center gap-1 font-medium"><Phone size={12} />{p.phone}</span>}
+                              </div>
                             </div>
-                          </div>
-                          <ChevronDown size={16} className="text-cyan-400 rotate-[-90deg]" />
-                        </button>
-                      ))}
-                    </div>
+                            <ChevronDown size={20} className="text-cyan-400 rotate-[-90deg] flex-shrink-0" />
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
                   )}
                 </div>
 
@@ -2731,6 +2726,24 @@ export default function Home() {
                 <h3 className="text-sm font-bold flex items-center gap-2 text-violet-700 dark:text-violet-300"><Zap size={16} /> بيانات الليزر</h3>
               </div>
               <div className="p-4 space-y-3">
+                {/* Doctor Selection */}
+                {doctors.length > 1 && (
+                  <div>
+                    <Label className="text-xs font-bold text-violet-700 dark:text-violet-300 flex items-center gap-1.5"><Stethoscope size={13} /> الطبيب المعالج</Label>
+                    <Select value={laserFormDoctorId} onValueChange={setLaserFormDoctorId}>
+                      <SelectTrigger className="rounded-xl h-11 mt-1 border-2 border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-950/10 text-sm font-bold">
+                        <SelectValue placeholder="اختر الطبيب..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctors.filter(d => d.active).map(d => (
+                          <SelectItem key={d.id} value={d.id}>
+                            <span className="flex items-center gap-2">👨‍⚕️ {d.name}{d.specialty && <span className="text-muted-foreground text-xs">({d.specialty})</span>}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {/* Body Area */}
                 <div>
                   <Label className="text-xs font-bold text-violet-700 dark:text-violet-300">منطقة الجسم *</Label>
