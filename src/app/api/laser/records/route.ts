@@ -48,25 +48,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'patientId and bodyArea are required' }, { status: 400 })
     }
 
+    // Build data object with only defined values
+    const data: Record<string, unknown> = {
+      patientId: body.patientId,
+      bodyArea: body.bodyArea,
+      totalSessions: body.totalSessions || 0,
+      status: body.status || 'active',
+    }
+    // Only add optional fields if they have values
+    if (body.skinType) data.skinType = body.skinType
+    if (body.hairColor) data.hairColor = body.hairColor
+    if (body.hairDensity) data.hairDensity = body.hairDensity
+    if (body.notes) data.notes = body.notes
+
     const record = await db.laserRecord.create({
-      data: {
-        patientId: body.patientId,
-        bodyArea: body.bodyArea,
-        skinType: body.skinType || null,
-        hairColor: body.hairColor || null,
-        hairDensity: body.hairDensity || null,
-        totalSessions: body.totalSessions || 0,
-        status: body.status || 'active',
-        notes: body.notes || null,
-      },
+      data: data as any,
       include: {
         patient: { select: { id: true, name: true, fileNumber: true } },
       },
     })
 
     return NextResponse.json({ record }, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create laser record error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }

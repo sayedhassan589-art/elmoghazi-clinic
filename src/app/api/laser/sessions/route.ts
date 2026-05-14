@@ -62,17 +62,19 @@ export async function POST(request: Request) {
 
     const sessionNumber = lastSession ? lastSession.sessionNumber + 1 : 1
 
+    const sessionData: Record<string, unknown> = {
+      laserRecordId: body.laserRecordId,
+      sessionNumber: body.sessionNumber || sessionNumber,
+      date: body.date ? new Date(body.date) : new Date(),
+    }
+    if (body.energy) sessionData.energy = body.energy
+    if (body.pulse) sessionData.pulse = body.pulse
+    if (body.painLevel) sessionData.painLevel = body.painLevel
+    if (body.reaction) sessionData.reaction = body.reaction
+    if (body.notes) sessionData.notes = body.notes
+
     const session = await db.laserSession.create({
-      data: {
-        laserRecordId: body.laserRecordId,
-        sessionNumber: body.sessionNumber || sessionNumber,
-        energy: body.energy || null,
-        pulse: body.pulse || null,
-        painLevel: body.painLevel || null,
-        reaction: body.reaction || null,
-        notes: body.notes || null,
-        date: body.date ? new Date(body.date) : new Date(),
-      },
+      data: sessionData as any,
       include: {
         laserRecord: {
           include: {
