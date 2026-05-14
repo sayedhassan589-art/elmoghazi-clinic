@@ -2777,7 +2777,7 @@ export default function Home() {
                       </SelectTrigger>
                       <SelectContent>
                         {BODY_AREAS.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.emoji} {area.label}</SelectItem>
+                          <SelectItem key={area.id} value={area.id}>{area.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -2821,9 +2821,9 @@ export default function Home() {
                         <SelectValue placeholder="اختر الكثافة..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="light">🍃 خفيف</SelectItem>
-                        <SelectItem value="medium">🌿 متوسط</SelectItem>
-                        <SelectItem value="dense">🌳 كثيف</SelectItem>
+                        <SelectItem value="light">خفيف</SelectItem>
+                        <SelectItem value="medium">متوسط</SelectItem>
+                        <SelectItem value="dense">كثيف</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
