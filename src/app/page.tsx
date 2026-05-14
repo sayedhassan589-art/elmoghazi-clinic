@@ -190,7 +190,7 @@ export default function Home() {
 
   // Login
   const [loginEmail, setLoginEmail] = useState('doctor@elmoghazi.com')
-  const [loginPassword, setLoginPassword] = useState('123456')
+  const [loginPassword, setLoginPassword] = useState('2137')
   const [loginLoading, setLoginLoading] = useState(false)
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -228,6 +228,19 @@ export default function Home() {
   const [showAddDoctor, setShowAddDoctor] = useState(false)
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
   const [doctorForm, setDoctorForm] = useState({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' })
+
+  // Patient edit/delete
+  const [editingPatient, setEditingPatient] = useState(false)
+  const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', phone2: '', age: '', gender: '', address: '', bloodType: '', medicalHistory: '', notes: '' })
+  const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
+  const [editVisitForm, setEditVisitForm] = useState({ type: '', notes: '', price: '' })
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+  const [editSessionForm, setEditSessionForm] = useState({ price: '', notes: '', status: '', paid: false })
+  const [laserFinancePatientId, setLaserFinancePatientId] = useState('')
+  const [laserFinancePrice, setLaserFinancePrice] = useState('')
+  const [laserFinanceNotes, setLaserFinanceNotes] = useState('')
+  const [noteSearch, setNoteSearch] = useState('')
+  const [noteFilter, setNoteFilter] = useState<'all' | 'important' | 'dashboard' | 'patients' | 'laser' | 'finance' | 'general'>('all')
 
   // Role & Password system
   const [userRole, setUserRole] = useState<'doctor' | 'secretary'>('doctor')
@@ -268,6 +281,17 @@ export default function Home() {
   const [showApplyTemplate, setShowApplyTemplate] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [templatePatientId, setTemplatePatientId] = useState('')
+
+  // More tab - Notes section
+  const [notesSearch, setNotesSearch] = useState('')
+  const [notesFilterSection, setNotesFilterSection] = useState('all')
+  const [notesFilterImportant, setNotesFilterImportant] = useState(false)
+  const [showAddNote, setShowAddNote] = useState(false)
+  const [newNoteContent, setNewNoteContent] = useState('')
+  const [newNoteSection, setNewNoteSection] = useState('general')
+  const [newNoteImportant, setNewNoteImportant] = useState(false)
+  const [editingNoteIdMore, setEditingNoteIdMore] = useState<string | null>(null)
+  const [editingNoteContentMore, setEditingNoteContentMore] = useState('')
 
   // ─── Effects ──────────────────────────────────────────────────────────
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
@@ -338,6 +362,126 @@ export default function Home() {
     try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
   }
 
+  // Delete patient with full finance cleanup
+  const deletePatientWithFinance = async (patient: Patient) => {
+    try {
+      // Find all finance transactions related to this patient (by name in description)
+      const relatedTxns = transactions.filter(t => t.description?.includes(patient.name))
+      // Delete each related finance transaction
+      for (const txn of relatedTxns) {
+        try { await apiFetch(`/finance/transactions/${txn.id}`, { method: 'DELETE' }) } catch {}
+      }
+      // Remove deleted transactions from state
+      const deletedTxnIds = new Set(relatedTxns.map(t => t.id))
+      setTransactions(prev => prev.filter(t => !deletedTxnIds.has(t.id)))
+      // Delete the patient (API should cascade delete visits, sessions, notes, etc.)
+      await apiFetch(`/patients/${patient.id}`, { method: 'DELETE' })
+      // Remove patient and related data from state
+      setPatients(prev => prev.filter(p => p.id !== patient.id))
+      setVisits(prev => prev.filter(v => v.patientId !== patient.id))
+      setSessions(prev => prev.filter(s => s.patientId !== patient.id))
+      setNotes(prev => prev.filter(n => n.patientId !== patient.id))
+      setLaserRecords(prev => prev.filter(l => l.patientId !== patient.id))
+      setSelectedPatient(null)
+      setDeletePatientConfirmOpen(false)
+      toast.success(`تم حذف المريض ${patient.name} وجميع البيانات المرتبطة`)
+    } catch (e: any) { toast.error(e.message || 'خطأ في حذف المريض') }
+  }
+
+  // Delete visit with finance sync
+  const deleteVisitWithFinance = async (visit: Visit, patientName: string) => {
+    try {
+      // Find and delete the corresponding finance transaction
+      const visitCategory = visit.type === 'checkup' ? 'كشف' : visit.type === 'revisit' ? 'إعادة' : 'جلسات'
+      const visitDate = visit.date?.split('T')[0]
+      const relatedTxn = transactions.find(t =>
+        t.description?.includes(patientName) &&
+        t.category === visitCategory &&
+        t.date?.startsWith(visitDate || '')
+      )
+      if (relatedTxn) {
+        try { await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'DELETE' }) } catch {}
+        setTransactions(prev => prev.filter(t => t.id !== relatedTxn.id))
+      }
+      // Delete the visit
+      await apiFetch(`/visits/${visit.id}`, { method: 'DELETE' })
+      setVisits(prev => prev.filter(v => v.id !== visit.id))
+      toast.success('تم حذف الزيارة والمعاملة المالية المرتبطة')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  // Edit visit with finance sync
+  const editVisitWithFinance = async (visit: Visit, newType: string, newNotes: string, patientName: string) => {
+    try {
+      const oldCategory = visit.type === 'checkup' ? 'كشف' : visit.type === 'revisit' ? 'إعادة' : 'جلسات'
+      const newCategory = newType === 'checkup' ? 'كشف' : newType === 'revisit' ? 'إعادة' : 'جلسات'
+      // Find related finance transaction
+      const visitDate = visit.date?.split('T')[0]
+      const relatedTxn = transactions.find(t =>
+        t.description?.includes(patientName) &&
+        t.category === oldCategory &&
+        t.date?.startsWith(visitDate || '')
+      )
+      // Update visit
+      await apiFetch(`/visits/${visit.id}`, { method: 'PUT', body: JSON.stringify({ type: newType, notes: newNotes || undefined }) })
+      setVisits(prev => prev.map(v => v.id === visit.id ? { ...v, type: newType, notes: newNotes } : v))
+      // Update finance transaction if category changed
+      if (relatedTxn && oldCategory !== newCategory) {
+        await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'PUT', body: JSON.stringify({ category: newCategory, description: relatedTxn.description?.replace(oldCategory, newCategory) }) })
+        setTransactions(prev => prev.map(t => t.id === relatedTxn.id ? { ...t, category: newCategory, description: t.description?.replace(oldCategory, newCategory) } : t))
+      }
+      setEditingVisitId(null)
+      toast.success('تم تعديل الزيارة')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  // Delete session with finance sync
+  const deleteSessionWithFinance = async (session: Session, patientName: string) => {
+    try {
+      // Find and delete the corresponding finance transaction
+      const sessionDate = session.date?.split('T')[0]
+      const svcName = services.find(sv => sv.id === session.serviceId)?.name || 'جلسة'
+      const relatedTxn = transactions.find(t =>
+        t.description?.includes(patientName) &&
+        (t.category === 'جلسات' || t.category === 'ليزر') &&
+        t.date?.startsWith(sessionDate || '') &&
+        t.amount === session.price
+      )
+      if (relatedTxn) {
+        try { await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'DELETE' }) } catch {}
+        setTransactions(prev => prev.filter(t => t.id !== relatedTxn.id))
+      }
+      // Delete the session
+      await apiFetch(`/sessions/${session.id}`, { method: 'DELETE' })
+      setSessions(prev => prev.filter(s => s.id !== session.id))
+      toast.success('تم حذف الجلسة والمعاملة المالية المرتبطة')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  // Edit session with finance sync
+  const editSessionWithFinance = async (session: Session, newPrice: number, newNotes: string, newStatus: string, patientName: string) => {
+    try {
+      // Find related finance transaction
+      const sessionDate = session.date?.split('T')[0]
+      const relatedTxn = transactions.find(t =>
+        t.description?.includes(patientName) &&
+        (t.category === 'جلسات' || t.category === 'ليزر') &&
+        t.date?.startsWith(sessionDate || '') &&
+        t.amount === session.price
+      )
+      // Update session
+      await apiFetch(`/sessions/${session.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, notes: newNotes || undefined, status: newStatus }) })
+      setSessions(prev => prev.map(s => s.id === session.id ? { ...s, price: newPrice, notes: newNotes, status: newStatus } : s))
+      // Update finance transaction if price changed
+      if (relatedTxn && newPrice !== session.price) {
+        await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) })
+        setTransactions(prev => prev.map(t => t.id === relatedTxn.id ? { ...t, amount: newPrice } : t))
+      }
+      setEditingSessionId(null)
+      toast.success('تم تعديل الجلسة')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
   // ─── Computed ─────────────────────────────────────────────────────────
   const todayStr = new Date().toISOString().split('T')[0]
   const todayVisits = visits.filter(v => v.date?.startsWith(todayStr))
@@ -368,6 +512,27 @@ export default function Home() {
     { name: 'جلسات', value: sessionRevenue || 0 },
     { name: 'أخرى', value: otherRevenue || 0 },
   ].filter(d => d.value > 0), [transactions])
+
+  // Laser financial computed values
+  const laserRevenue = useMemo(() => transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر'))).reduce((s, t) => s + t.amount, 0), [transactions])
+  const laserRevenueByArea = useMemo(() => {
+    const areaMap: Record<string, number> = {}
+    laserRecords.forEach(r => {
+      const area = r.bodyArea || 'غير محدد'
+      const patientName = patients.find(p => p.id === r.patientId)?.name || ''
+      const areaTxns = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر')) && t.description?.includes(patientName))
+      areaMap[area] = (areaMap[area] || 0) + areaTxns.reduce((s, t) => s + t.amount, 0)
+    })
+    return Object.entries(areaMap).map(([name, value]) => ({ name, value })).filter(d => d.value > 0)
+  }, [transactions, laserRecords, patients])
+  const laserRevenueByPackage = useMemo(() => {
+    const pkgMap: Record<string, number> = {}
+    laserPackages.forEach(pkg => {
+      const areaTxns = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر')) && t.description?.includes(pkg.bodyArea || pkg.name))
+      pkgMap[pkg.name] = areaTxns.reduce((s, t) => s + t.amount, 0)
+    })
+    return Object.entries(pkgMap).map(([name, value]) => ({ name, value })).filter(d => d.value > 0)
+  }, [transactions, laserPackages])
 
   // Smart search
   const smartSearchResults = useMemo(() => {
@@ -785,11 +950,31 @@ export default function Home() {
                     </div>
                     {/* Quick Action Buttons */}
                     <div className="flex items-center gap-2 mt-4 flex-wrap">
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingPatient(!editingPatient); if (!editingPatient) setEditPatientForm({ name: selectedPatient.name, phone: selectedPatient.phone || '', phone2: selectedPatient.phone2 || '', age: String(selectedPatient.age || ''), gender: selectedPatient.gender || '', address: selectedPatient.address || '', bloodType: selectedPatient.bloodType || '', medicalHistory: selectedPatient.medicalHistory || '', notes: selectedPatient.notes || '' }) }} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', editingPatient ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-400 text-blue-700 dark:text-blue-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-blue-50')}><Edit3 size={16} className="text-blue-500" /> {editingPatient ? 'إلغاء التعديل' : 'تعديل البيانات'}</motion.button>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"><Trash2 size={16} /> حذف المريض</motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? { ...p, starred: !p.starred } : p)); setSelectedPatient({ ...selectedPatient, starred: !selectedPatient.starred }); toast.success(selectedPatient.starred ? 'تم إزالة العلامة الذهبية' : 'تم إضافة العلامة الذهبية ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', selectedPatient.starred ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50')}><Star size={16} className={selectedPatient.starred ? 'text-amber-500 fill-amber-500' : ''} /> {selectedPatient.starred ? '⭐ مميز' : 'تمييز'}</motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? { ...p, improved: !p.improved } : p)); setSelectedPatient({ ...selectedPatient, improved: !selectedPatient.improved }); toast.success(selectedPatient.improved ? 'تم إزالة علامة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', selectedPatient.improved ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50')}><Heart size={16} className={selectedPatient.improved ? 'text-pink-500 fill-pink-500' : ''} /> {selectedPatient.improved ? '💗 متحسن' : 'تحسن'}</motion.button>
                       {selectedPatient.phone && <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${selectedPatient.phone?.replace(/[^0-9]/g, '')}`, '_blank')} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold bg-green-100 dark:bg-green-900/30 border-2 border-green-400 text-green-700 dark:text-green-300 hover:bg-green-200 shadow-sm"><Send size={14} /> واتساب</motion.button>}
                       {selectedPatient.phone2 && <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${selectedPatient.phone2?.replace(/[^0-9]/g, '')}`, '_blank')} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold bg-green-50 dark:bg-green-900/20 border-2 border-green-300 text-green-600 dark:text-green-400 hover:bg-green-100"><Send size={14} /> واتساب 2</motion.button>}
                     </div>
+                    {/* Edit Patient Form */}
+                    {editingPatient && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 space-y-3">
+                        <h4 className="font-bold text-sm flex items-center gap-2"><Edit3 size={14} className="text-blue-500" /> تعديل بيانات المريض</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><Label className="text-xs font-bold">الاسم</Label><Input value={editPatientForm.name} onChange={e => setEditPatientForm(prev => ({ ...prev, name: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={editPatientForm.phone} onChange={e => setEditPatientForm(prev => ({ ...prev, phone: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">هاتف آخر</Label><Input value={editPatientForm.phone2} onChange={e => setEditPatientForm(prev => ({ ...prev, phone2: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">العمر</Label><Input type="number" value={editPatientForm.age} onChange={e => setEditPatientForm(prev => ({ ...prev, age: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">الجنس</Label><Select value={editPatientForm.gender} onValueChange={v => setEditPatientForm(prev => ({ ...prev, gender: v }))}><SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent></Select></div>
+                          <div><Label className="text-xs font-bold">فصيلة الدم</Label><Input value={editPatientForm.bloodType} onChange={e => setEditPatientForm(prev => ({ ...prev, bloodType: e.target.value }))} placeholder="A+, O-, ..." className="input-luxury rounded-xl h-10 mt-1" /></div>
+                        </div>
+                        <div><Label className="text-xs font-bold">العنوان</Label><Input value={editPatientForm.address} onChange={e => setEditPatientForm(prev => ({ ...prev, address: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                        <div><Label className="text-xs font-bold">التاريخ المرضي</Label><Textarea value={editPatientForm.medicalHistory} onChange={e => setEditPatientForm(prev => ({ ...prev, medicalHistory: e.target.value }))} className="input-luxury rounded-xl mt-1 min-h-[50px]" /></div>
+                        <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={editPatientForm.notes} onChange={e => setEditPatientForm(prev => ({ ...prev, notes: e.target.value }))} className="input-luxury rounded-xl mt-1 min-h-[50px]" /></div>
+                        <div className="flex gap-2"><Button className="btn-luxury rounded-xl bg-gradient-to-l from-blue-600 to-blue-700 text-white" onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ name: editPatientForm.name, phone: editPatientForm.phone || null, phone2: editPatientForm.phone2 || null, age: parseInt(editPatientForm.age) || null, gender: editPatientForm.gender || null, address: editPatientForm.address || null, bloodType: editPatientForm.bloodType || null, medicalHistory: editPatientForm.medicalHistory || null, notes: editPatientForm.notes || null }) }); const updated = { ...selectedPatient, name: editPatientForm.name, phone: editPatientForm.phone || undefined, phone2: editPatientForm.phone2 || undefined, age: parseInt(editPatientForm.age) || undefined, gender: editPatientForm.gender || undefined, address: editPatientForm.address || undefined, bloodType: editPatientForm.bloodType || undefined, medicalHistory: editPatientForm.medicalHistory || undefined, notes: editPatientForm.notes || undefined }; setSelectedPatient(updated); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? updated : p)); setEditingPatient(false); toast.success('تم تحديث بيانات المريض') } catch { toast.error('خطأ في التحديث') } }}>حفظ التعديلات</Button><Button variant="ghost" onClick={() => setEditingPatient(false)}>إلغاء</Button></div>
+                      </motion.div>
+                    )}
                     {/* Color Tag Selector */}
                     <div className="flex items-center gap-2 mt-3">
                       <span className="text-xs text-muted-foreground font-bold">لون الحالة:</span>
@@ -801,6 +986,31 @@ export default function Home() {
                 </motion.div>
 
                 {/* Patient Detail Tabs - Enhanced */}
+                {/* Edit/Delete Patient Buttons */}
+                <div className="flex gap-2 mb-2">
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => { if (selectedPatient) { setEditPatientForm({ name: selectedPatient.name, phone: selectedPatient.phone || '', phone2: selectedPatient.phone2 || '', age: String(selectedPatient.age || ''), gender: selectedPatient.gender || '', address: selectedPatient.address || '', bloodType: selectedPatient.bloodType || '', medicalHistory: selectedPatient.medicalHistory || '', notes: selectedPatient.notes || '' }); setEditingPatient(true) } }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-400 text-blue-700 dark:text-blue-300 hover:bg-blue-200 shadow-sm"><Edit3 size={16} /> تعديل البيانات</motion.button>
+                  <AlertDialog><AlertDialogTrigger asChild><motion.button whileTap={{ scale: 0.95 }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-red-100 dark:bg-red-900/30 border-2 border-red-400 text-red-700 dark:text-red-300 hover:bg-red-200 shadow-sm"><Trash2 size={16} /> حذف المريض</motion.button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>حذف المريض</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف {selectedPatient?.name}؟ سيتم حذف جميع البيانات المرتبطة بما فيها السجلات المالية القديمة.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={async () => { if (!selectedPatient) return; try { const pName = selectedPatient.name; const pVisits = visits.filter(v => v.patientId === selectedPatient.id); const pSessions = sessions.filter(s => s.patientId === selectedPatient.id); for (const v of pVisits) { await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); } for (const s of pSessions) { await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); } const relatedTx = transactions.filter(t => t.description?.includes(pName)); for (const tx of relatedTx) { await apiFetch(`/finance/transactions/${tx.id}`, { method: 'DELETE' }); } await apiFetch(`/patients/${selectedPatient.id}`, { method: 'DELETE' }); setPatients(prev => prev.filter(p => p.id !== selectedPatient.id)); setVisits(prev => prev.filter(v => v.patientId !== selectedPatient.id)); setSessions(prev => prev.filter(s => s.patientId !== selectedPatient.id)); setTransactions(prev => prev.filter(t => !t.description?.includes(pName))); setSelectedPatient(null); toast.success('تم حذف المريض وكل البيانات المرتبطة') } catch { toast.error('خطأ في الحذف') } }}>حذف نهائي</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+                </div>
+
+                {/* Inline Edit Patient Form */}
+                {editingPatient && selectedPatient && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 space-y-3">
+                    <h4 className="font-bold text-sm flex items-center gap-2"><Edit3 size={14} className="text-blue-500" /> تعديل بيانات المريض</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label className="text-xs font-bold">الاسم</Label><Input value={editPatientForm.name} onChange={e => setEditPatientForm(p => ({ ...p, name: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                      <div><Label className="text-xs font-bold">الهاتف</Label><Input value={editPatientForm.phone} onChange={e => setEditPatientForm(p => ({ ...p, phone: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                      <div><Label className="text-xs font-bold">هاتف 2</Label><Input value={editPatientForm.phone2} onChange={e => setEditPatientForm(p => ({ ...p, phone2: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                      <div><Label className="text-xs font-bold">العمر</Label><Input type="number" value={editPatientForm.age} onChange={e => setEditPatientForm(p => ({ ...p, age: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                      <div><Label className="text-xs font-bold">الجنس</Label><Select value={editPatientForm.gender} onValueChange={v => setEditPatientForm(p => ({ ...p, gender: v }))}><SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent></Select></div>
+                      <div><Label className="text-xs font-bold">العنوان</Label><Input value={editPatientForm.address} onChange={e => setEditPatientForm(p => ({ ...p, address: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                      <div><Label className="text-xs font-bold">فصيلة الدم</Label><Select value={editPatientForm.bloodType} onValueChange={v => setEditPatientForm(p => ({ ...p, bloodType: v }))}><SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger><SelectContent>{['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
+                      <div><Label className="text-xs font-bold">التاريخ المرضي</Label><Input value={editPatientForm.medicalHistory} onChange={e => setEditPatientForm(p => ({ ...p, medicalHistory: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+                    </div>
+                    <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={editPatientForm.notes} onChange={e => setEditPatientForm(p => ({ ...p, notes: e.target.value }))} className="input-luxury rounded-xl mt-1" rows={2} /></div>
+                    <div className="flex gap-2"><Button className="btn-luxury rounded-xl bg-gradient-to-l from-blue-600 to-blue-700 text-white" onClick={async () => { try { await apiFetch(`/patients/${selectedPatient!.id}`, { method: 'PUT', body: JSON.stringify({ name: editPatientForm.name, phone: editPatientForm.phone || null, phone2: editPatientForm.phone2 || null, age: parseInt(editPatientForm.age) || null, gender: editPatientForm.gender || null, address: editPatientForm.address || null, bloodType: editPatientForm.bloodType || null, medicalHistory: editPatientForm.medicalHistory || null, notes: editPatientForm.notes || null }) }); const updated = { ...selectedPatient!, name: editPatientForm.name, phone: editPatientForm.phone || undefined, phone2: editPatientForm.phone2 || undefined, age: parseInt(editPatientForm.age) || undefined, gender: editPatientForm.gender || undefined, address: editPatientForm.address || undefined, bloodType: editPatientForm.bloodType || undefined, medicalHistory: editPatientForm.medicalHistory || undefined, notes: editPatientForm.notes || undefined }; setSelectedPatient(updated); setPatients(prev => prev.map(p => p.id === updated.id ? updated : p)); setEditingPatient(false); toast.success('تم تحديث البيانات') } catch { toast.error('خطأ في التحديث') } }}>حفظ</Button><Button variant="ghost" onClick={() => setEditingPatient(false)}>إلغاء</Button></div>
+                  </motion.div>
+                )}
+
                 <Tabs value={patientDetailTab} onValueChange={setPatientDetailTab}>
                   <TabsList className="w-full flex flex-wrap gap-1"><TabsTrigger value="overview" className="flex-1 text-[10px] min-w-[60px]">📋 نظرة عامة</TabsTrigger><TabsTrigger value="visits" className="flex-1 text-[10px] min-w-[60px]">🩺 الزيارات</TabsTrigger><TabsTrigger value="sessions" className="flex-1 text-[10px] min-w-[60px]">⚡ الجلسات</TabsTrigger><TabsTrigger value="photos" className="flex-1 text-[10px] min-w-[60px]">📷 الصور</TabsTrigger><TabsTrigger value="laser" className="flex-1 text-[10px] min-w-[60px]">💎 الليزر</TabsTrigger><TabsTrigger value="finance" className="flex-1 text-[10px] min-w-[60px]">💰 المالية</TabsTrigger><TabsTrigger value="notes" className="flex-1 text-[10px] min-w-[60px]">📝 ملاحظات</TabsTrigger></TabsList>
 
@@ -811,10 +1021,11 @@ export default function Home() {
                       <Card className="card-luxury border-2 border-red-200 dark:border-red-800"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Heart size={14} className="text-red-500" /> بيانات طبية</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">{selectedPatient.bloodType && <p><span className="text-muted-foreground">فصيلة الدم:</span> <Badge variant="outline" className="font-bold">{selectedPatient.bloodType}</Badge></p>}{selectedPatient.medicalHistory && <p><span className="text-muted-foreground">التاريخ المرضي:</span> {selectedPatient.medicalHistory}</p>}{selectedPatient.notes && <p><span className="text-muted-foreground">ملاحظات:</span> {selectedPatient.notes}</p>}{!selectedPatient.bloodType && !selectedPatient.medicalHistory && !selectedPatient.notes && <p className="text-muted-foreground text-xs">لا توجد بيانات طبية مسجلة</p>}</CardContent></Card>
                     </div>
                     {/* Quick Stats - Animated */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-blue-200 dark:border-blue-800 rounded-2xl"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">🩺</motion.div><p className="text-2xl font-black text-blue-600">{visits.filter(v => v.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">زيارة</p></motion.div>
-                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-violet-200 dark:border-violet-800 rounded-2xl"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }} className="text-2xl mb-1">⚡</motion.div><p className="text-2xl font-black text-violet-600">{sessions.filter(s => s.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">جلسة</p></motion.div>
-                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-cyan-200 dark:border-cyan-800 rounded-2xl"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.6 }} className="text-2xl mb-1">💎</motion.div><p className="text-2xl font-black text-cyan-600">{laserRecords.filter(l => l.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">سجل ليزر</p></motion.div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-blue-200 dark:border-blue-800 rounded-2xl cursor-pointer" onClick={() => setPatientDetailTab('visits')}><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">🩺</motion.div><p className="text-2xl font-black text-blue-600">{visits.filter(v => v.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">زيارة</p></motion.div>
+                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-violet-200 dark:border-violet-800 rounded-2xl cursor-pointer" onClick={() => setPatientDetailTab('sessions')}><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }} className="text-2xl mb-1">⚡</motion.div><p className="text-2xl font-black text-violet-600">{sessions.filter(s => s.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">جلسة</p></motion.div>
+                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-cyan-200 dark:border-cyan-800 rounded-2xl cursor-pointer" onClick={() => setPatientDetailTab('laser')}><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.6 }} className="text-2xl mb-1">💎</motion.div><p className="text-2xl font-black text-cyan-600">{laserRecords.filter(l => l.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">سجل ليزر</p></motion.div>
+                      <motion.div whileHover={{ scale: 1.03 }} className="section-card p-3 text-center border-2 border-amber-200 dark:border-amber-800 rounded-2xl cursor-pointer" onClick={() => setPatientDetailTab('notes')}><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.9 }} className="text-2xl mb-1">📝</motion.div><p className="text-2xl font-black text-amber-600">{notes.filter(n => n.patientId === selectedPatient.id).length}</p><p className="text-[10px] text-muted-foreground font-bold">ملاحظة</p></motion.div>
                     </div>
                     {/* COMPREHENSIVE ACTIVITY TIMELINE */}
                     <Card className="card-luxury border-2 border-indigo-200 dark:border-indigo-800">
@@ -864,7 +1075,20 @@ export default function Home() {
                     {visits.filter(v => v.patientId === selectedPatient.id).length === 0 && !showAddVisitProfile && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">🩺</motion.div><p className="text-muted-foreground">لا توجد زيارات مسجلة</p></Card>}
                     {visits.filter(v => v.patientId === selectedPatient.id).map(v => {
                       const vt = VISIT_TYPES.find(t => t.id === v.type)
-                      return <Card key={v.id} className="section-card p-3 border-2 border-transparent hover:border-violet-200 dark:hover:border-violet-800 transition-all"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl text-white shadow-md', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-2"><Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge>{v.diagnosis && <span className="text-sm font-medium">{v.diagnosis}</span>}</div>{v.notes && <p className="text-xs text-muted-foreground mt-0.5">{v.notes}</p>}</div></div><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span></div></Card>
+                      return <Card key={v.id} className="section-card p-3 border-2 border-transparent hover:border-violet-200 dark:hover:border-violet-800 transition-all">
+                        {editingVisitId === v.id ? (
+                          <div className="space-y-2 p-2 rounded-xl bg-violet-50 dark:bg-violet-950/20 border-2 border-violet-300">
+                            <div className="grid grid-cols-2 gap-2">
+                              <Select value={editVisitForm.type} onValueChange={val => setEditVisitForm(f => ({ ...f, type: val }))}><SelectTrigger className="rounded-xl h-9"><SelectValue /></SelectTrigger><SelectContent>{VISIT_TYPES.slice(0,3).map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.emoji} {vt.label}</SelectItem>)}</SelectContent></Select>
+                              <Input value={editVisitForm.notes} onChange={e => setEditVisitForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9" />
+                            </div>
+                            <div><Label className="text-xs">السعر (ج.م)</Label><Input type="number" value={editVisitForm.price} onChange={e => setEditVisitForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
+                            <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { try { await apiFetch(`/visits/${v.id}`, { method: 'PUT', body: JSON.stringify({ type: editVisitForm.type, notes: editVisitForm.notes || undefined }) }); const oldCat = v.type === 'checkup' ? 'كشف' : 'إعادة'; const newCat = editVisitForm.type === 'checkup' ? 'كشف' : 'إعادة'; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === oldCat); if (relatedTx) { const newPrice = parseFloat(editVisitForm.price) || relatedTx.amount; await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ category: newCat, amount: newPrice, description: `${newCat} - ${selectedPatient!.name}` }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, category: newCat, amount: newPrice, description: `${newCat} - ${selectedPatient!.name}` } : t)); } setVisits(prev => prev.map(vv => vv.id === v.id ? { ...vv, type: editVisitForm.type, notes: editVisitForm.notes || undefined } : vv)); setEditingVisitId(null); toast.success('تم تعديل الزيارة') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl text-white shadow-md', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-2"><Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge>{v.diagnosis && <span className="text-sm font-medium">{v.diagnosis}</span>}</div>{v.notes && <p className="text-xs text-muted-foreground mt-0.5">{v.notes}</p>}</div></div><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingVisitId(v.id); setEditVisitForm({ type: v.type, notes: v.notes || '', price: String(transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === (v.type === 'checkup' ? 'كشف' : 'إعادة'))?.amount || '') }) }}><Edit3 size={10} className="text-violet-500" /></Button><Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { const cat = v.type === 'checkup' ? 'كشف' : 'إعادة'; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === cat); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); setVisits(prev => prev.filter(vv => vv.id !== v.id)); toast.success('تم حذف الزيارة') } catch { toast.error('خطأ') } }}><Trash2 size={10} className="text-red-500" /></Button></div></div>
+                        )}
+                      </Card>
                     })}
                   </TabsContent>
 
@@ -884,7 +1108,20 @@ export default function Home() {
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></Card>}
                     {sessions.filter(s => s.patientId === selectedPatient.id).map(s => {
                       const svc = services.find(sv => sv.id === s.serviceId)
-                      return <Card key={s.id} className="section-card p-3 border-2 border-transparent hover:border-orange-200 dark:hover:border-orange-800 transition-all"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl shadow-sm', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={16} /> : <Clock className="text-amber-600" size={16} />}</div><div><p className="font-bold text-sm">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors] }} className="border text-[9px]">{s.status}</Badge>{s.paid ? <span className="text-[9px] text-emerald-600 font-bold">مدفوعة ✅</span> : <span className="text-[9px] text-amber-600 font-bold">غير مدفوعة ⏳</span>}</div>{s.notes && <p className="text-xs text-muted-foreground mt-0.5">{s.notes}</p>}</div></div><div className="text-left"><p className="font-black text-sm text-orange-600">{formatCurrency(s.price)}</p><p className="text-[10px] text-muted-foreground">{formatDate(s.date)}</p>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }} className="mt-1 px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md">تأكيد الدفع</motion.button>}</div></div></Card>
+                      return <Card key={s.id} className="section-card p-3 border-2 border-transparent hover:border-orange-200 dark:hover:border-orange-800 transition-all">
+                        {editingSessionId === s.id ? (
+                          <div className="space-y-2 p-2 rounded-xl bg-orange-50 dark:bg-orange-950/20 border-2 border-orange-300">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div><Label className="text-xs">السعر (ج.م)</Label><Input type="number" value={editSessionForm.price} onChange={e => setEditSessionForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
+                              <div><Label className="text-xs">الحالة</Label><Select value={editSessionForm.status} onValueChange={val => setEditSessionForm(f => ({ ...f, status: val }))}><SelectTrigger className="rounded-xl h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">مجدولة</SelectItem><SelectItem value="completed">مكتملة</SelectItem><SelectItem value="cancelled">ملغاة</SelectItem></SelectContent></Select></div>
+                            </div>
+                            <Input value={editSessionForm.notes} onChange={e => setEditSessionForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9" />
+                            <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-600 text-white" onClick={async () => { try { const newPrice = parseFloat(editSessionForm.price) || s.price; await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined }) }); const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === 'جلسات'); if (relatedTx && newPrice !== s.price) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, amount: newPrice } : t)); } setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined } : ss)); setEditingSessionId(null); toast.success('تم تعديل الجلسة') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setEditingSessionId(null)}>إلغاء</Button></div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl shadow-sm', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={16} /> : <Clock className="text-amber-600" size={16} />}</div><div><p className="font-bold text-sm">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-2"><Badge style={{ backgroundColor: statusColors[s.status as keyof typeof statusColors] + '20', color: statusColors[s.status as keyof typeof statusColors] }} className="border text-[9px]">{s.status}</Badge>{s.paid ? <span className="text-[9px] text-emerald-600 font-bold">مدفوعة ✅</span> : <span className="text-[9px] text-amber-600 font-bold">غير مدفوعة ⏳</span>}</div>{s.notes && <p className="text-xs text-muted-foreground mt-0.5">{s.notes}</p>}</div></div><div className="flex items-center gap-2"><div className="text-left"><p className="font-black text-sm text-orange-600">{formatCurrency(s.price)}</p><p className="text-[10px] text-muted-foreground">{formatDate(s.date)}</p>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }} className="mt-1 px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md">تأكيد الدفع</motion.button>}</div><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingSessionId(s.id); setEditSessionForm({ price: String(s.price), notes: s.notes || '', status: s.status, paid: s.paid }) }}><Edit3 size={10} className="text-orange-500" /></Button><Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === 'جلسات'); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); setSessions(prev => prev.filter(ss => ss.id !== s.id)); toast.success('تم حذف الجلسة') } catch { toast.error('خطأ') } }}><Trash2 size={10} className="text-red-500" /></Button></div></div>
+                        )}
+                      </Card>
                     })}
                   </TabsContent>
 
@@ -1178,18 +1415,38 @@ export default function Home() {
                     </CardContent></Card>
                   </TabsContent>
 
-                  {/* Laser Financial Summary */}
+                  {/* Laser Financial Summary - Full System */}
                   <TabsContent value="finance" className="space-y-4 mt-4">
+                    {/* Laser Revenue from Transactions */}
+                    {(() => { const laserTx = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر') || t.description?.includes('Laser'))); const laserTotal = laserTx.reduce((s, t) => s + t.amount, 0); const laserUnpaid = sessions.filter(s => !s.paid && services.find(sv => sv.id === s.serviceId)?.category?.includes('laser')).reduce((s, ses) => s + ses.price, 0); const laserCompleted = sessions.filter(s => s.status === 'completed' && services.find(sv => sv.id === s.serviceId)?.category?.includes('laser')).length; return (<>
                     <div className="grid grid-cols-2 gap-3">
-                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserPackages.filter(p => p.active).reduce((s, p) => s + p.price, 0))}</p></div></div></Card>
-                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات غير مدفوعة</p><p className="text-lg font-bold text-amber-600">{sessions.filter(s => !s.paid).length}</p></div></div></Card>
-                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><ClipboardCheck className="text-blue-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات مكتملة</p><p className="text-lg font-bold text-blue-600">{sessions.filter(s => s.status === 'completed').length}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الليزر الفعلية</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserTotal)}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">غير المدفوع ليزر</p><p className="text-lg font-bold text-amber-600">{formatCurrency(laserUnpaid)}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><ClipboardCheck className="text-blue-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات مكتملة</p><p className="text-lg font-bold text-blue-600">{laserCompleted}</p></div></div></Card>
                       <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30"><UsersRound className="text-violet-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-violet-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div></div></Card>
                     </div>
+                    {/* Laser Revenue by Area */}
+                    <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><MapPin size={16} className="text-cyan-500" /> الإيرادات حسب المنطقة</CardTitle></CardHeader><CardContent>
+                      <div className="space-y-2">{BODY_AREAS.map(area => { const areaRecords = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label); if (areaRecords.length === 0) return null; const areaPatients = areaRecords.map(r => r.patientId); const areaTx = laserTx.filter(t => areaPatients.some(pid => t.description?.includes(patients.find(p => p.id === pid)?.name || '___'))); const areaTotal = areaTx.reduce((s, t) => s + t.amount, 0); return <div key={area.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><span>{area.emoji}</span><span className="text-sm font-medium">{area.label}</span><Badge variant="outline" className="text-[9px]">{areaRecords.length} سجل</Badge></div><span className="font-bold text-sm text-emerald-600">{formatCurrency(areaTotal)}</span></div> })}
+                      </div>
+                    </CardContent></Card>
+                    {/* Laser Service Pricing */}
+                    <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Tag size={16} className="text-amber-500" /> أسعار خدمات الليزر</CardTitle></CardHeader><CardContent className="space-y-2">
+                      {services.filter(s => s.category?.includes('laser') || s.name?.toLowerCase().includes('laser')).map(s => <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div><p className="text-sm font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : ''}</p></div><div className="flex items-center gap-2"><Badge variant="outline" className="font-bold">{s.price} ج.م</Badge>{editingServiceId === s.id ? (<div className="flex items-center gap-1"><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-20 h-7 text-xs rounded-lg" /><Button size="sm" className="h-7 rounded-lg text-[10px]" onClick={async () => { const newPrice = parseFloat(editingServicePrice) || 0; try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, price: newPrice } : sv)); toast.success('تم تحديث السعر') } catch { toast.error('خطأ') } setEditingServiceId(null) }}>حفظ</Button></div>) : <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}><Edit3 size={10} className="text-amber-500" /></Button>}</div></div>)}
+                    </CardContent></Card>
+                    {/* Register Laser Session */}
+                    <Card className="card-luxury border-2 border-cyan-200 dark:border-cyan-800"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Plus size={16} className="text-cyan-500" /> تسجيل جلسة ليزر جديدة</CardTitle></CardHeader><CardContent className="space-y-3">
+                      <Select value={laserFinancePatientId} onValueChange={setLaserFinancePatientId}><SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختار المريض..." /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.fileNumber})</SelectItem>)}</SelectContent></Select>
+                      <div><Label className="text-xs font-bold flex items-center gap-1"><DollarSign size={12} /> قيمة الجلسة (ج.م)</Label><Input type="number" value={laserFinancePrice} onChange={e => setLaserFinancePrice(e.target.value)} placeholder="السعر بالجنيه..." className="input-luxury rounded-xl h-10 mt-1 text-lg font-bold" /></div>
+                      <Input value={laserFinanceNotes} onChange={e => setLaserFinanceNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-10" />
+                      <Button className="btn-luxury rounded-xl w-full bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={async () => { if (!laserFinancePatientId || !laserFinancePrice) return toast.error('اختار المريض وحدد السعر'); const now = new Date().toISOString(); const price = parseFloat(laserFinancePrice) || 0; const pName = patients.find(p => p.id === laserFinancePatientId)?.name || 'مريض'; await addItem('/sessions', { patientId: laserFinancePatientId, status: 'scheduled', price, paid: false, notes: laserFinanceNotes || undefined, date: now }, setSessions); if (price > 0) { await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: price, description: `جلسة ليزر - ${pName}`, date: now }, setTransactions); } setLaserFinancePatientId(''); setLaserFinancePrice(''); setLaserFinanceNotes(''); toast.success('تم تسجيل جلسة الليزر') }}>تسجيل الجلسة</Button>
+                    </CardContent></Card>
+                    {/* Unpaid Dues */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
                       {sessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || 'جلسة'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
                       {sessions.filter(s => !s.paid).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
                     </CardContent></Card>
+                    </>) })()}
                   </TabsContent>
 
                   {/* Machine Settings */}
@@ -1267,6 +1524,7 @@ export default function Home() {
                     { id: 'waiting', label: 'قائمة الانتظار', emoji: '⏳', gradient: 'from-red-500 to-red-700' },
                     { id: 'reports', label: 'التقارير', emoji: '📊', gradient: 'from-cyan-500 to-cyan-700' },
                     { id: 'backup', label: 'النسخ', emoji: '💾', gradient: 'from-slate-500 to-slate-700' },
+                    { id: 'notes', label: 'الملاحظات', emoji: '📝', gradient: 'from-fuchsia-500 to-fuchsia-700' },
                     { id: 'settings', label: 'الإعدادات', emoji: '🎨', gradient: 'from-indigo-500 to-indigo-700' },
                   ].map(s => (
                     <motion.button key={s.id} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => setMoreSubTab(s.id)} className={cn('flex flex-col items-center gap-1 p-3 rounded-xl transition-all border', moreSubTab === s.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-transparent hover:bg-muted/50')}>
@@ -1612,6 +1870,75 @@ export default function Home() {
                     <input ref={fileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={handleFileImport} />
                     {backups.length > 0 && <div className="space-y-2">{backups.map(b => <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm"><div className="flex items-center gap-2"><Database size={14} className="text-muted-foreground" /><span>{b.type === 'auto' ? 'تلقائي' : 'يدوي'}</span></div><Badge variant="outline" className={b.status === 'completed' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'}>{b.status === 'completed' ? 'مكتمل' : b.status}</Badge></div>)}</div>}
                   </CardContent></Card>
+                </div>)}
+
+                {/* Notes Sub-tab - Professional Colorful Animated */}
+                {moreSubTab === 'notes' && (<div className="space-y-4">
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><FileText size={18} className="text-fuchsia-500" /> الملاحظات</h3><Badge variant="outline">{notes.length} ملاحظة</Badge></div>
+                  {/* Search & Filter */}
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative"><Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={noteSearch} onChange={e => setNoteSearch(e.target.value)} placeholder="بحث في الملاحظات..." className="input-luxury rounded-xl h-10 pr-9" /></div>
+                    <Select value={noteFilter} onValueChange={v => setNoteFilter(v as any)}><SelectTrigger className="rounded-xl h-10 w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">الكل</SelectItem><SelectItem value="important">⭐ مهمة</SelectItem><SelectItem value="dashboard">🏠 الرئيسية</SelectItem><SelectItem value="patients">👥 المرضى</SelectItem><SelectItem value="laser">💎 الليزر</SelectItem><SelectItem value="finance">💰 المالية</SelectItem><SelectItem value="general">📌 عام</SelectItem></SelectContent></Select>
+                  </div>
+                  {/* Add Note */}
+                  <Card className="card-luxury border-2 border-fuchsia-200 dark:border-fuchsia-800">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex gap-2">
+                        <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة جديدة..." className="input-luxury rounded-xl h-10 flex-1" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: 'general', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
+                        <Select value={noteFilter === 'all' ? 'general' : noteFilter} onValueChange={v => {}}><SelectTrigger className="rounded-xl h-10 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="general">📌 عام</SelectItem><SelectItem value="dashboard">🏠 رئيسية</SelectItem><SelectItem value="patients">👥 مرضى</SelectItem><SelectItem value="laser">💎 ليزر</SelectItem><SelectItem value="finance">💰 مالية</SelectItem></SelectContent></Select>
+                        <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-4 py-2 rounded-xl bg-gradient-to-l from-fuchsia-500 to-violet-500 text-white font-bold shadow-lg" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: 'general', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={18} /></motion.button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  {/* Notes List */}
+                  {(() => {
+                    const filteredNotes = notes.filter(n => {
+                      if (noteSearch && !n.content.toLowerCase().includes(noteSearch.toLowerCase())) return false;
+                      if (noteFilter === 'important' && !n.important) return false;
+                      if (!['all', 'important'].includes(noteFilter) && n.section !== noteFilter) return false;
+                      return true;
+                    });
+                    const noteColors = [
+                      'from-rose-100 to-pink-100 dark:from-rose-900/20 dark:to-pink-900/20 border-rose-300 dark:border-rose-700',
+                      'from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-300 dark:border-blue-700',
+                      'from-emerald-100 to-teal-100 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-300 dark:border-emerald-700',
+                      'from-amber-100 to-yellow-100 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-300 dark:border-amber-700',
+                      'from-violet-100 to-purple-100 dark:from-violet-900/20 dark:to-purple-900/20 border-violet-300 dark:border-violet-700',
+                      'from-cyan-100 to-sky-100 dark:from-cyan-900/20 dark:to-sky-900/20 border-cyan-300 dark:border-cyan-700',
+                      'from-fuchsia-100 to-pink-100 dark:from-fuchsia-900/20 dark:to-pink-900/20 border-fuchsia-300 dark:border-fuchsia-700',
+                      'from-lime-100 to-green-100 dark:from-lime-900/20 dark:to-green-900/20 border-lime-300 dark:border-lime-700',
+                    ];
+                    const noteEmojis = ['📝', '💡', '📌', '🔔', '⭐', '💬', '🎯', '✨'];
+                    const sectionConfig: Record<string, { emoji: string; color: string }> = { dashboard: { emoji: '🏠', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, patients: { emoji: '👥', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' }, laser: { emoji: '💎', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' }, finance: { emoji: '💰', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' }, general: { emoji: '📌', color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300' } };
+                    if (filteredNotes.length === 0) return <Card className="card-luxury p-8 text-center"><motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">📝</motion.div><p className="text-lg font-bold mb-1">لا توجد ملاحظات</p><p className="text-muted-foreground text-sm">أضف ملاحظاتك اليومية هنا</p></Card>;
+                    return filteredNotes.map((n, i) => {
+                      const sec = sectionConfig[n.section || 'general'] || sectionConfig.general;
+                      return (
+                        <motion.div key={n.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }} className={cn('relative p-4 rounded-2xl border-2 bg-gradient-to-l transition-all hover:shadow-lg group', noteColors[i % noteColors.length])}>
+                          <div className="flex items-start gap-3">
+                            <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }} className="text-2xl mt-0.5">{noteEmojis[i % noteEmojis.length]}</motion.div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                {n.important && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}>⭐</motion.span>}
+                                <Badge className={cn('text-[9px]', sec.color)}>{sec.emoji} {n.section || 'عام'}</Badge>
+                                <span className="text-[10px] text-muted-foreground">{formatDate(n.createdAt)}</span>
+                              </div>
+                              {editingNoteId === n.id ? (
+                                <div className="flex gap-2 mt-1"><Input value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="input-luxury rounded-xl h-8 text-sm" /><Button size="sm" className="rounded-xl h-8 bg-fuchsia-600 text-white text-[10px]" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent } : nn)); setEditingNoteId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingNoteId(null)}>✕</Button></div>
+                              ) : (
+                                <p className="text-sm font-medium leading-relaxed">{n.content}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ important: !n.important }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, important: !nn.important } : nn)); toast.success(n.important ? 'تم إزالة الأهمية' : 'تم التمييز كمهم ⭐') } catch { toast.error('خطأ') } }}><Star size={12} className={n.important ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}><Edit3 size={12} className="text-fuchsia-500" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={12} className="text-red-500" /></Button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    });
+                  })()}
                 </div>)}
 
                 {/* Settings Sub-tab - ENHANCED */}
