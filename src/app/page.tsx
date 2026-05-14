@@ -70,43 +70,85 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json()
 }
 
-// Laser body areas with icons for professional laser center
+// Laser body areas - text only, comprehensive list
 const BODY_AREAS = [
-  { id: 'face', label: 'الوجه', emoji: '😶', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
-  { id: 'chin', label: 'الذقن', emoji: '🫠', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
-  { id: 'upper_lip', label: 'الشفاة العليا', emoji: '👄', color: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' },
-  { id: 'underarms', label: 'الإبط', emoji: '💪', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
-  { id: 'arms', label: 'الذراعين', emoji: '💪', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
-  { id: 'legs', label: 'الساقين', emoji: '🦵', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
-  { id: 'bikini', label: 'البيكيني', emoji: '🩱', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
-  { id: 'back', label: 'الظهر', emoji: '🔙', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
-  { id: 'chest', label: 'الصدر', emoji: '👕', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
-  { id: 'abdomen', label: 'البطن', emoji: '🫃', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
-  { id: 'neck', label: 'الرقبة', emoji: '🦒', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
-  { id: 'shoulders', label: 'الكتفين', emoji: '🤷', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' },
-  { id: 'hands', label: 'اليدين', emoji: '🤲', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
-  { id: 'feet', label: 'القدمين', emoji: '🦶', color: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400' },
-  { id: 'full_body', label: 'جسم كامل', emoji: '🧍', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
+  { id: 'face', label: 'الوجه', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+  { id: 'forehead', label: 'الجبين', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+  { id: 'cheeks', label: 'الخدود', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
+  { id: 'chin', label: 'الذقن', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
+  { id: 'upper_lip', label: 'الشفاة العليا', color: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' },
+  { id: 'lower_lip', label: 'الشفاة السفلى', color: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' },
+  { id: 'jawline', label: 'خط الفك', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
+  { id: 'nose', label: 'الأنف', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+  { id: 'ears', label: 'الأذنين', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+  { id: 'sideburns', label: 'السوالف', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+  { id: 'neck_front', label: 'الرقبة الأمامية', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
+  { id: 'neck_back', label: 'الرقبة الخلفية', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
+  { id: 'neck', label: 'الرقبة كاملة', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
+  { id: 'shoulders', label: 'الكتفين', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' },
+  { id: 'upper_arms', label: 'الذراعين العلويين', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
+  { id: 'lower_arms', label: 'الذراعين السفليين', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
+  { id: 'arms', label: 'الذراعين كاملة', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
+  { id: 'hands', label: 'اليدين', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
+  { id: 'fingers', label: 'الأصابع', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
+  { id: 'underarms', label: 'الإبط', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
+  { id: 'chest', label: 'الصدر', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
+  { id: 'chest_between', label: 'بين الثديين', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
+  { id: 'abdomen_upper', label: 'البطن العلوي', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+  { id: 'abdomen_lower', label: 'البطن السفلي', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+  { id: 'abdomen', label: 'البطن كاملة', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+  { id: 'navel_line', label: 'خط السرة', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+  { id: 'back_upper', label: 'الظهر العلوي', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
+  { id: 'back_lower', label: 'الظهر السفلي', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
+  { id: 'back', label: 'الظهر كامل', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
+  { id: 'bikini', label: 'البيكيني', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+  { id: 'bikini_full', label: 'البيكيني الكامل', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+  { id: 'buttocks', label: 'الأرداف', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+  { id: 'thighs_front', label: 'الفخذين الأمامي', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+  { id: 'thighs_back', label: 'الفخذين الخلفي', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+  { id: 'thighs', label: 'الفخذين كاملة', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+  { id: 'calves', label: 'الساقين', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+  { id: 'shins', label: 'الساق الأمامية', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+  { id: 'legs', label: 'الرجلين كاملة', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+  { id: 'feet', label: 'القدمين', color: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400' },
+  { id: 'toes', label: 'أصابع القدم', color: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400' },
+  { id: 'full_body', label: 'جسم كامل', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
+  { id: 'half_body_upper', label: 'نصف الجسم العلوي', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
+  { id: 'half_body_lower', label: 'نصف الجسم السفلي', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
 ]
 
 const SKIN_TYPES = [
-  { id: 'I', label: 'النوع I - أبيض فاتح جداً', color: 'bg-rose-50 border-rose-300' },
-  { id: 'II', label: 'النوع II - أبيض فاتح', color: 'bg-orange-50 border-orange-300' },
-  { id: 'III', label: 'النوع III - أبيض متوسط', color: 'bg-amber-50 border-amber-300' },
-  { id: 'IV', label: 'النوع IV - حنطي', color: 'bg-yellow-50 border-yellow-300' },
-  { id: 'V', label: 'النوع V - بني فاتح', color: 'bg-emerald-50 border-emerald-300' },
-  { id: 'VI', label: 'النوع VI - بني غامق', color: 'bg-stone-50 border-stone-400' },
+  { id: 'I', label: 'النوع I - أبيض فاتح جداً (Always burns, never tans)', color: 'bg-rose-50 border-rose-300' },
+  { id: 'II', label: 'النوع II - أبيض فاتح (Burns easily, tans minimally)', color: 'bg-orange-50 border-orange-300' },
+  { id: 'III', label: 'النوع III - أبيض متوسط (Burns moderately, tans gradually)', color: 'bg-amber-50 border-amber-300' },
+  { id: 'IV', label: 'النوع IV - حنطي (Burns minimally, tans easily)', color: 'bg-yellow-50 border-yellow-300' },
+  { id: 'V', label: 'النوع V - بني فاتح (Rarely burns, tans darkly)', color: 'bg-emerald-50 border-emerald-300' },
+  { id: 'VI', label: 'النوع VI - بني غامق (Never burns, deeply pigmented)', color: 'bg-stone-50 border-stone-400' },
+  { id: 'sensitive', label: 'بشرة حساسة', color: 'bg-red-50 border-red-300' },
+  { id: 'oily', label: 'بشرة دهنية', color: 'bg-yellow-50 border-yellow-300' },
+  { id: 'dry', label: 'بشرة جافة', color: 'bg-blue-50 border-blue-300' },
+  { id: 'combination', label: 'بشرة مختلطة', color: 'bg-purple-50 border-purple-300' },
+  { id: 'normal', label: 'بشرة عادية', color: 'bg-green-50 border-green-300' },
+  { id: 'acne_prone', label: 'بشرة عرضة لحب الشباب', color: 'bg-pink-50 border-pink-300' },
 ]
 
 const HAIR_COLORS = [
   { id: 'black', label: 'أسود', color: 'bg-gray-800' },
-  { id: 'dark_brown', label: 'بني غامق', color: 'bg-amber-900' },
-  { id: 'brown', label: 'بني', color: 'bg-amber-700' },
+  { id: 'dark_brown', label: 'بني غامق جداً', color: 'bg-gray-700' },
+  { id: 'brown', label: 'بني غامق', color: 'bg-amber-900' },
+  { id: 'medium_brown', label: 'بني متوسط', color: 'bg-amber-700' },
   { id: 'light_brown', label: 'بني فاتح', color: 'bg-amber-500' },
-  { id: 'red', label: 'أحمر', color: 'bg-red-600' },
+  { id: 'dark_blonde', label: 'أشقر غامق', color: 'bg-amber-400' },
   { id: 'blonde', label: 'أشقر', color: 'bg-yellow-400' },
+  { id: 'light_blonde', label: 'أشقر فاتح', color: 'bg-yellow-300' },
+  { id: 'platinum', label: 'أشقر بلاتيني', color: 'bg-gray-200' },
+  { id: 'red', label: 'أحمر', color: 'bg-red-600' },
+  { id: 'auburn', label: 'بني محمر', color: 'bg-red-800' },
+  { id: 'strawberry', label: 'أشقر محمر', color: 'bg-red-400' },
+  { id: 'copper', label: 'نحاسي', color: 'bg-orange-600' },
   { id: 'gray', label: 'رمادي', color: 'bg-gray-400' },
   { id: 'white', label: 'أبيض', color: 'bg-gray-100' },
+  { id: 'mixed', label: 'مختلط', color: 'bg-gray-500' },
 ]
 
 // Visit type config with colors + combo types
@@ -1545,9 +1587,9 @@ export default function Home() {
                           const count = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label).length
                           const areaRevenue = laserPackages.filter(p => p.bodyArea === area.label).reduce((s, p) => s + p.price, 0)
                           return (
-                            <motion.button key={area.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className={cn('flex flex-col items-center gap-1 p-3 rounded-xl border transition-all relative', area.color, count > 0 ? 'ring-2 ring-primary/30' : 'border-dashed')}>
-                              <span className="text-2xl">{area.emoji}</span>
-                              <span className="text-xs font-medium">{area.label}</span>
+                            <motion.button key={area.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className={cn('flex items-center justify-center gap-1.5 p-2.5 rounded-xl border transition-all relative', area.color, count > 0 ? 'ring-2 ring-primary/30' : 'border-dashed')}>
+                              <MapPin size={14} />
+                              <span className="text-xs font-bold">{area.label}</span>
                               {count > 0 && <Badge variant="secondary" className="text-[9px]">{count} سجل</Badge>}
                             </motion.button>
                           )
@@ -1568,7 +1610,7 @@ export default function Home() {
                     </div>
                     {/* Laser Revenue by Area */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><MapPin size={16} className="text-cyan-500" /> الإيرادات حسب المنطقة</CardTitle></CardHeader><CardContent>
-                      <div className="space-y-2">{BODY_AREAS.map(area => { const areaRecords = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label); if (areaRecords.length === 0) return null; const areaPatients = areaRecords.map(r => r.patientId); const areaTx = laserTx.filter(t => areaPatients.some(pid => t.description?.includes(patients.find(p => p.id === pid)?.name || '___'))); const areaTotal = areaTx.reduce((s, t) => s + t.amount, 0); return <div key={area.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><span>{area.emoji}</span><span className="text-sm font-medium">{area.label}</span><Badge variant="outline" className="text-[9px]">{areaRecords.length} سجل</Badge></div><span className="font-bold text-sm text-emerald-600">{formatCurrency(areaTotal)}</span></div> })}
+                      <div className="space-y-2">{BODY_AREAS.map(area => { const areaRecords = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label); if (areaRecords.length === 0) return null; const areaPatients = areaRecords.map(r => r.patientId); const areaTx = laserTx.filter(t => areaPatients.some(pid => t.description?.includes(patients.find(p => p.id === pid)?.name || '___'))); const areaTotal = areaTx.reduce((s, t) => s + t.amount, 0); return <div key={area.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><MapPin size={14} className="text-cyan-500" /><span className="text-sm font-medium">{area.label}</span><Badge variant="outline" className="text-[9px]">{areaRecords.length} سجل</Badge></div><span className="font-bold text-sm text-emerald-600">{formatCurrency(areaTotal)}</span></div> })}
                       </div>
                     </CardContent></Card>
                     {/* Laser Service Pricing */}
@@ -3014,7 +3056,7 @@ export default function Home() {
       </DialogContent></Dialog>
 
       {/* Add Laser Package */}
-      <Dialog open={showAddLaserPackage} onOpenChange={setShowAddLaserPackage}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>باقة ليزر جديدة</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>اسم الباقة *</Label><Input id="lpName" placeholder="اسم الباقة" className="input-luxury rounded-xl" /></div><div className="grid grid-cols-2 gap-3"><div><Label>عدد الجلسات</Label><Input id="lpSess" type="number" placeholder="6" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input id="lpPrice" type="number" placeholder="0" className="input-luxury rounded-xl" /></div></div><div><Label>منطقة الجسم</Label><Select><SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر المنطقة" /></SelectTrigger><SelectContent>{BODY_AREAS.map(a => <SelectItem key={a.id} value={a.label}>{a.emoji} {a.label}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/laser/packages', { name: (document.getElementById('lpName') as HTMLInputElement)?.value, sessionsCount: parseInt((document.getElementById('lpSess') as HTMLInputElement)?.value) || 6, price: parseFloat((document.getElementById('lpPrice') as HTMLInputElement)?.value) || 0, active: true }, setLaserPackages); setShowAddLaserPackage(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={showAddLaserPackage} onOpenChange={setShowAddLaserPackage}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>باقة ليزر جديدة</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>اسم الباقة *</Label><Input id="lpName" placeholder="اسم الباقة" className="input-luxury rounded-xl" /></div><div className="grid grid-cols-2 gap-3"><div><Label>عدد الجلسات</Label><Input id="lpSess" type="number" placeholder="6" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input id="lpPrice" type="number" placeholder="0" className="input-luxury rounded-xl" /></div></div><div><Label>منطقة الجسم</Label><Select><SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر المنطقة" /></SelectTrigger><SelectContent>{BODY_AREAS.map(a => <SelectItem key={a.id} value={a.label}>{a.label}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/laser/packages', { name: (document.getElementById('lpName') as HTMLInputElement)?.value, sessionsCount: parseInt((document.getElementById('lpSess') as HTMLInputElement)?.value) || 6, price: parseFloat((document.getElementById('lpPrice') as HTMLInputElement)?.value) || 0, active: true }, setLaserPackages); setShowAddLaserPackage(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Add Medication */}
       <Dialog open={showAddMedication} onOpenChange={setShowAddMedication}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>دواء جديد</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input id="medName" placeholder="اسم الدواء" className="input-luxury rounded-xl" /></div><div><Label>الفئة</Label><Input id="medCat" placeholder="الفئة" className="input-luxury rounded-xl" /></div><div><Label>الجرعة</Label><Input id="medDosage" placeholder="الجرعة" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/medications', { name: (document.getElementById('medName') as HTMLInputElement)?.value, category: (document.getElementById('medCat') as HTMLInputElement)?.value, dosage: (document.getElementById('medDosage') as HTMLInputElement)?.value, active: true }, setMedications); setShowAddMedication(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
