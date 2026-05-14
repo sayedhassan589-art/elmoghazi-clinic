@@ -780,11 +780,11 @@ export default function Home() {
 
   // ─── Bottom Nav ───────────────────────────────────────────────────────
   const allNavItems = [
-    { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} /> },
-    { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} /> },
-    { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} /> },
-    { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} /> },
-    { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} /> },
+    { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} />, activeColor: 'from-emerald-400 to-teal-500', activeShadow: 'shadow-emerald-500/40', labelColor: 'text-emerald-600 dark:text-emerald-400' },
+    { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} />, activeColor: 'from-blue-400 to-indigo-500', activeShadow: 'shadow-blue-500/40', labelColor: 'text-blue-600 dark:text-blue-400' },
+    { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} />, activeColor: 'from-cyan-400 to-violet-500', activeShadow: 'shadow-cyan-500/40', labelColor: 'text-cyan-600 dark:text-cyan-400' },
+    { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
+    { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
   ]
   const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => i.id === 'patients' || i.id === 'laser').map(i => i.id === 'laser' ? { ...i, label: 'الجلسات', emoji: '⚡' } : i)
 
@@ -2433,7 +2433,15 @@ export default function Home() {
         {bottomNavItems.map(item => {
           const isActive = activeTab === item.id || (item.id === 'more' && ['more', 'settings'].includes(activeTab))
           const isLocked = !isDoctor && !['patients', 'laser'].includes(item.id)
-          return <button key={item.id} onClick={() => handleTabSwitch(item.id)} className={cn('bottom-nav-item', isActive && 'active')}><div className="nav-icon-wrapper">{isActive ? <span className="text-xl">{item.emoji}</span> : item.icon}{isLocked && <Lock size={8} className="absolute -top-1 -left-1 text-amber-500" />}</div><span className="nav-label">{item.label}</span></button>
+          return (
+            <button key={item.id} onClick={() => handleTabSwitch(item.id)} className={cn('bottom-nav-item', isActive && 'active')} style={isActive ? { '--active-color-from': item.activeColor?.split(' ')[0]?.replace('from-', ''), '--active-color-to': item.activeColor?.split(' ')[1]?.replace('to-', '') } as React.CSSProperties : undefined}>
+              <div className={cn('nav-icon-wrapper', isActive && `bg-gradient-to-br ${item.activeColor} ${item.activeShadow} shadow-lg`)}>
+                {isActive ? <span className="text-xl">{item.emoji}</span> : item.icon}
+                {isLocked && <Lock size={8} className="absolute -top-1 -left-1 text-amber-500" />}
+              </div>
+              <span className={cn('nav-label', isActive && item.labelColor)}>{item.label}</span>
+            </button>
+          )
         })}
       </div></nav>
 
@@ -2624,60 +2632,64 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ LASER RECORD DIALOG - COMPACT & SEARCHABLE ═══ */}
+      {/* ═══ LASER RECORD DIALOG - EXPANDED SEARCH ═══ */}
       <Dialog open={showAddLaserRecord} onOpenChange={setShowAddLaserRecord}>
-        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-0 gap-0">
-          {/* Header - Compact */}
-          <div className="relative bg-gradient-to-l from-cyan-600 via-teal-600 to-emerald-700 p-3 rounded-t-lg overflow-hidden">
+        <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0 gap-0">
+          {/* Header */}
+          <div className="relative bg-gradient-to-l from-cyan-600 via-teal-600 to-emerald-700 p-4 rounded-t-lg overflow-hidden">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-1 right-8 w-16 h-16 bg-white rounded-full blur-2xl" />
+              <div className="absolute bottom-1 left-8 w-20 h-20 bg-cyan-300 rounded-full blur-3xl" />
+            </div>
             <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <Zap size={20} className="text-white" />
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                  <Zap size={22} className="text-white" />
                 </div>
                 <div>
-                  <DialogTitle className="text-base font-bold text-white">سجل ليزر جديد</DialogTitle>
-                  <DialogDescription className="text-cyan-100 text-[10px]">بيانات العميل والخدمة - متصل بالنظام المالي</DialogDescription>
+                  <DialogTitle className="text-lg font-bold text-white">سجل ليزر جديد</DialogTitle>
+                  <DialogDescription className="text-cyan-100 text-xs">بيانات العميل والخدمة - متصل بالنظام المالي</DialogDescription>
                 </div>
               </div>
-              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-[9px] px-2 py-0.5">💎 ليزر</Badge>
+              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-[10px] px-3 py-1">💎 مركز الليزر</Badge>
             </div>
           </div>
 
-          <div className="p-3 space-y-2.5">
-            {/* ═══ Section 1: بيانات العميل - SEARCH FIRST ═══ */}
-            <div className="rounded-xl border border-cyan-200 dark:border-cyan-800 overflow-hidden">
-              <div className="bg-cyan-50 dark:bg-cyan-950/30 px-3 py-1.5 border-b border-cyan-200 dark:border-cyan-800">
-                <h3 className="text-xs font-bold flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300">
-                  <Users size={13} /> بيانات العميل
-                  <span className="text-[8px] text-cyan-500 mr-auto">مطلوب *</span>
+          <div className="p-4 space-y-3">
+            {/* ═══ Section 1: بيانات العميل - BIGGER & EXPANDED ═══ */}
+            <div className="rounded-2xl border-2 border-cyan-200 dark:border-cyan-800 overflow-hidden">
+              <div className="bg-gradient-to-l from-cyan-50 to-sky-50 dark:from-cyan-950/30 dark:to-sky-950/30 px-4 py-2.5 border-b border-cyan-200 dark:border-cyan-800">
+                <h3 className="text-sm font-bold flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
+                  <Users size={15} /> بيانات العميل
+                  <Badge variant="outline" className="text-[9px] border-cyan-400 text-cyan-600 mr-auto">مطلوب *</Badge>
                 </h3>
               </div>
-              <div className="p-3 space-y-2">
-                {/* Patient Search - IN-FLOW dropdown so names are ALWAYS visible */}
+              <div className="p-4 space-y-3">
+                {/* Patient Search - BIGGER input with IN-FLOW results */}
                 <div>
-                  <Label className="text-[10px] font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1 mb-1"><Search size={11} /> ابحث بالاسم أو الهاتف</Label>
+                  <Label className="text-xs font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5 mb-1.5"><Search size={13} /> ابحث عن المريض بالاسم أو الهاتف</Label>
                   <div className="relative">
-                    <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-500" size={16} />
-                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اسم المريض أو رقم التليفون..." className="rounded-lg h-10 pr-9 text-sm font-bold border border-cyan-300 dark:border-cyan-700 focus:border-cyan-500" autoFocus />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500" size={18} />
+                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اكتب اسم المريض أو رقم التليفون..." className="rounded-xl h-12 pr-11 text-base font-bold border-2 border-cyan-300 dark:border-cyan-700 focus:border-cyan-500" autoFocus />
                   </div>
-                  {/* Search Results - IN-FLOW so they are always visible inside scroll */}
+                  {/* Search Results - IN-FLOW always visible */}
                   {laserPatientSuggestions.length > 0 && !laserFormPatientId && (
-                    <div className="mt-1.5 border border-cyan-200 dark:border-cyan-800 rounded-xl overflow-hidden bg-card shadow-lg">
-                      <div className="px-3 py-1.5 bg-gradient-to-l from-cyan-500 to-blue-600">
-                        <p className="text-[10px] font-bold text-white flex items-center gap-1"><Search size={10} /> نتائج البحث ({laserPatientSuggestions.length})</p>
+                    <div className="mt-2 border-2 border-cyan-300 dark:border-cyan-700 rounded-2xl overflow-hidden bg-card shadow-xl">
+                      <div className="px-4 py-2 bg-gradient-to-l from-cyan-500 to-blue-600">
+                        <p className="text-xs font-bold text-white flex items-center gap-1.5"><Search size={12} /> نتائج البحث ({laserPatientSuggestions.length})</p>
                       </div>
-                      <div className="max-h-[180px] overflow-y-auto">
+                      <div className="max-h-[220px] overflow-y-auto">
                         {laserPatientSuggestions.map((p, i) => (
-                          <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right transition-all border-b border-cyan-100 dark:border-cyan-900/20 last:border-0">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-black text-white text-base shadow flex-shrink-0">{p.name?.charAt(0)}</div>
+                          <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right transition-all border-b border-cyan-100 dark:border-cyan-900/20 last:border-0">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-black text-white text-lg shadow-md flex-shrink-0">{p.name?.charAt(0)}</div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm leading-tight truncate">{p.name}</p>
-                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5 flex-wrap">
-                                <Badge variant="outline" className="text-[8px] font-bold border-cyan-400 text-cyan-600 h-4">#{p.fileNumber}</Badge>
-                                {p.phone && <span className="flex items-center gap-0.5"><Phone size={9} />{p.phone}</span>}
+                              <p className="font-bold text-base leading-tight truncate">{p.name}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                                <Badge variant="outline" className="text-[9px] font-bold border-cyan-400 text-cyan-600">#{p.fileNumber}</Badge>
+                                {p.phone && <span className="flex items-center gap-0.5"><Phone size={10} />{p.phone}</span>}
                               </div>
                             </div>
-                            <ChevronDown size={14} className="text-cyan-400 rotate-[-90deg] flex-shrink-0" />
+                            <ChevronDown size={16} className="text-cyan-400 rotate-[-90deg] flex-shrink-0" />
                           </button>
                         ))}
                       </div>
@@ -2685,29 +2697,31 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Selected Patient - COMPACT CARD */}
+                {/* Selected Patient - EXPANDED CARD */}
                 {laserFormPatientId && (() => {
                   const sp = patients.find(p => p.id === laserFormPatientId)
                   if (!sp) return null
                   return (
-                    <div className="rounded-xl border-2 border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/20 overflow-hidden">
-                      <div className="bg-gradient-to-l from-cyan-500 to-blue-600 px-3 py-2 flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border-2 border-white shadow"><AvatarFallback className="bg-white text-cyan-600 text-sm font-black">{sp.name?.charAt(0)}</AvatarFallback></Avatar>
+                    <div className="rounded-2xl border-2 border-cyan-300 dark:border-cyan-700 bg-gradient-to-l from-cyan-50 via-white to-sky-50 dark:from-cyan-950/30 dark:via-card dark:to-sky-950/30 shadow-lg overflow-hidden">
+                      <div className="bg-gradient-to-l from-cyan-500 to-blue-600 p-3 flex items-center gap-3">
+                        <Avatar className="h-14 w-14 border-3 border-white shadow-xl"><AvatarFallback className="bg-white text-cyan-600 text-xl font-black">{sp.name?.charAt(0)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-bold text-sm">{sp.name}</p>
-                          <div className="flex items-center gap-1.5 flex-wrap text-cyan-100 text-[9px]">
-                            <Badge className="bg-white/20 text-white border-white/30 text-[8px] h-4">#{sp.fileNumber}</Badge>
-                            <Badge className={cn('text-[8px] h-4', sp.gender === 'male' ? 'bg-blue-400/30 text-white' : 'bg-pink-400/30 text-white')}>{sp.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>
+                          <p className="text-white font-bold text-lg">{sp.name}</p>
+                          <div className="flex items-center gap-2 flex-wrap text-cyan-100 text-[10px] mt-0.5">
+                            <Badge className="bg-white/20 text-white border-white/30 text-[9px]">#{sp.fileNumber}</Badge>
+                            <Badge className={cn('text-[9px]', sp.gender === 'male' ? 'bg-blue-400/30 text-white' : 'bg-pink-400/30 text-white')}>{sp.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>
                             {sp.age && <span>{sp.age} سنة</span>}
                             {sp.phone && <span dir="ltr">{sp.phone}</span>}
                           </div>
                         </div>
-                        <button onClick={() => { setLaserFormPatientId(''); setLaserFormPatientSearch('') }} className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X size={14} /></button>
+                        <button onClick={() => { setLaserFormPatientId(''); setLaserFormPatientSearch('') }} className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X size={16} /></button>
                       </div>
-                      {(sp.allergies || sp.medicalHistory) && (
-                        <div className="px-3 py-1.5 space-y-1">
-                          {sp.medicalHistory && <p className="text-[9px] text-orange-600 font-bold">⚠️ التاريخ المرضي: {sp.medicalHistory}</p>}
-                          {sp.allergies && <p className="text-[9px] text-red-600 font-bold">🚨 حساسية: {sp.allergies}</p>}
+                      {(sp.allergies || sp.medicalHistory || sp.phone2 || sp.bloodType) && (
+                        <div className="px-3 py-2 grid grid-cols-2 gap-1.5">
+                          {sp.phone2 && <div className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"><p className="text-[8px] text-muted-foreground">📱 هاتف 2</p><p className="text-[10px] font-bold text-blue-700 dark:text-blue-300" dir="ltr">{sp.phone2}</p></div>}
+                          {sp.bloodType && <div className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"><p className="text-[8px] text-muted-foreground">🩸 فصيلة الدم</p><p className="text-[10px] font-bold text-red-700 dark:text-red-300">{sp.bloodType}</p></div>}
+                          {sp.medicalHistory && <div className="px-2 py-1 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-800"><p className="text-[8px] text-orange-600 font-bold">⚠️ التاريخ المرضي</p><p className="text-[10px] font-bold text-orange-700 dark:text-orange-300">{sp.medicalHistory}</p></div>}
+                          {sp.allergies && <div className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-800"><p className="text-[8px] text-red-600 font-bold">🚨 حساسية</p><p className="text-[10px] font-bold text-red-700 dark:text-red-300">{sp.allergies}</p></div>}
                         </div>
                       )}
                     </div>

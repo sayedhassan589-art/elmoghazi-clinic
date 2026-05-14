@@ -728,18 +728,19 @@
     left: 0;
     right: 0;
     z-index: 50;
-    background: oklch(0.995 0.003 80 / 95%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-top: 1px solid oklch(0.91 0.012 80);
-    box-shadow: 0 -4px 24px oklch(0.15 0.02 260 / 8%);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
     padding-bottom: env(safe-area-inset-bottom);
+    padding-top: 4px;
   }
 
   .dark .bottom-nav {
-    background: oklch(0.14 0.02 260 / 95%);
-    border-top-color: oklch(0.28 0.03 260);
-    box-shadow: 0 -4px 24px oklch(0 0 0 / 25%);
+    background: rgba(20, 20, 30, 0.95);
+    border-top-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
   }
 
   .bottom-nav-item {
@@ -747,8 +748,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    padding: 6px 0;
+    gap: 3px;
+    padding: 8px 0 6px;
     position: relative;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -757,65 +758,61 @@
   }
 
   .bottom-nav-item.active .nav-icon-wrapper {
-    transform: translateY(-4px) scale(1.15);
+    transform: translateY(-6px) scale(1.2);
   }
 
   .nav-icon-wrapper {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 16px;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: oklch(0.55 0.02 80);
   }
 
+  .dark .nav-icon-wrapper {
+    color: oklch(0.60 0.02 80);
+  }
+
+  /* Active icon wrapper now uses inline classes from component - gradient bg + shadow */
   .bottom-nav-item.active .nav-icon-wrapper {
-    background: linear-gradient(135deg, oklch(0.47 0.14 162), oklch(0.55 0.12 142));
-    box-shadow: 0 4px 16px oklch(0.47 0.14 162 / 35%);
-  }
-
-  .dark .bottom-nav-item.active .nav-icon-wrapper {
-    background: linear-gradient(135deg, oklch(0.55 0.16 162), oklch(0.60 0.14 142));
-    box-shadow: 0 4px 16px oklch(0.60 0.17 162 / 30%);
+    color: white !important;
   }
 
   .bottom-nav-item .nav-label {
     font-size: 10px;
-    font-weight: 500;
-    color: oklch(0.50 0.015 80);
+    font-weight: 600;
+    color: oklch(0.55 0.02 80);
     transition: all 0.3s ease;
+    letter-spacing: -0.01em;
   }
 
   .dark .bottom-nav-item .nav-label {
-    color: oklch(0.65 0.015 80);
+    color: oklch(0.60 0.02 80);
   }
 
-  .bottom-nav-item.active .nav-label {
-    color: oklch(0.47 0.14 162);
-    font-weight: 700;
-  }
+  /* Active label color now set via inline class from component */
 
-  .dark .bottom-nav-item.active .nav-label {
-    color: oklch(0.60 0.17 162);
-  }
-
-  /* ── Active indicator dot ── */
+  /* ── Active indicator - glowing pill ── */
   .bottom-nav-item.active::before {
     content: '';
     position: absolute;
-    top: 0;
+    top: -1px;
     left: 50%;
     transform: translateX(-50%);
-    width: 24px;
+    width: 28px;
     height: 3px;
-    border-radius: 0 0 4px 4px;
-    background: linear-gradient(90deg, oklch(0.47 0.14 162), oklch(0.76 0.13 82));
+    border-radius: 0 0 6px 6px;
+    background: linear-gradient(90deg, #34d399, #06b6d4, #8b5cf6);
+    box-shadow: 0 2px 8px rgba(52, 211, 153, 0.4);
   }
 
   .dark .bottom-nav-item.active::before {
-    background: linear-gradient(90deg, oklch(0.60 0.17 162), oklch(0.78 0.14 82));
+    background: linear-gradient(90deg, #6ee7b7, #22d3ee, #a78bfa);
+    box-shadow: 0 2px 8px rgba(110, 231, 183, 0.3);
   }
 
   /* ── Section Card with animated image ── */
