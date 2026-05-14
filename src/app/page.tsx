@@ -2624,167 +2624,164 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ LASER RECORD DIALOG - PROFESSIONAL REDESIGNED ═══ */}
+      {/* ═══ LASER RECORD DIALOG - COMPACT & SEARCHABLE ═══ */}
       <Dialog open={showAddLaserRecord} onOpenChange={setShowAddLaserRecord}>
-        <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto p-0 gap-0">
-          {/* Header Banner */}
-          <div className="relative bg-gradient-to-l from-cyan-600 via-teal-600 to-emerald-700 p-5 rounded-t-lg overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-2 right-10 w-20 h-20 bg-white rounded-full blur-2xl animate-float" />
-              <div className="absolute bottom-2 left-10 w-28 h-28 bg-cyan-300 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-            </div>
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-0 gap-0">
+          {/* Header - Compact */}
+          <div className="relative bg-gradient-to-l from-cyan-600 via-teal-600 to-emerald-700 p-3 rounded-t-lg overflow-hidden">
             <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                  <Zap size={28} className="text-white" />
-                </motion.div>
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Zap size={20} className="text-white" />
+                </div>
                 <div>
-                  <DialogTitle className="text-xl font-bold text-white">سجل ليزر جديد</DialogTitle>
-                  <DialogDescription className="text-cyan-100 text-xs">تسجيل كامل لبيانات العميل والخدمة - متصل بالنظام المالي تلقائياً</DialogDescription>
+                  <DialogTitle className="text-base font-bold text-white">سجل ليزر جديد</DialogTitle>
+                  <DialogDescription className="text-cyan-100 text-[10px]">بيانات العميل والخدمة - متصل بالنظام المالي</DialogDescription>
                 </div>
               </div>
-              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-xs px-3 py-1">💎 مركز الليزر</Badge>
+              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm text-[9px] px-2 py-0.5">💎 ليزر</Badge>
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
-            {/* ═══ Section 1: بيانات العميل - PROMINENT ═══ */}
-            <div className="rounded-2xl border-2 border-cyan-200 dark:border-cyan-800 overflow-hidden">
-              <div className="bg-gradient-to-l from-cyan-50 to-sky-50 dark:from-cyan-950/30 dark:to-sky-950/30 px-4 py-2.5 border-b border-cyan-200 dark:border-cyan-800">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
-                  <Users size={16} /> بيانات العميل
-                  <Badge variant="outline" className="text-[9px] border-cyan-400 text-cyan-600 mr-auto">مطلوب *</Badge>
+          <div className="p-3 space-y-2.5">
+            {/* ═══ Section 1: بيانات العميل - SEARCH FIRST ═══ */}
+            <div className="rounded-xl border border-cyan-200 dark:border-cyan-800 overflow-hidden">
+              <div className="bg-cyan-50 dark:bg-cyan-950/30 px-3 py-1.5 border-b border-cyan-200 dark:border-cyan-800">
+                <h3 className="text-xs font-bold flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300">
+                  <Users size={13} /> بيانات العميل
+                  <span className="text-[8px] text-cyan-500 mr-auto">مطلوب *</span>
                 </h3>
               </div>
-              <div className="p-4 space-y-3">
-                {/* Patient Search - ENHANCED */}
-                <div className="relative">
-                  <Label className="text-xs font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5 mb-1.5"><Search size={13} /> ابحث عن المريض بالاسم أو الهاتف</Label>
+              <div className="p-3 space-y-2">
+                {/* Patient Search - IN-FLOW dropdown so names are ALWAYS visible */}
+                <div>
+                  <Label className="text-[10px] font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1 mb-1"><Search size={11} /> ابحث بالاسم أو الهاتف</Label>
                   <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-500" size={20} />
-                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اكتب اسم المريض أو رقم التليفون..." className="input-luxury rounded-xl h-14 pr-12 text-lg font-bold border-2 border-cyan-300 dark:border-cyan-700 focus:border-cyan-500 shadow-sm" autoFocus />
+                    <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-cyan-500" size={16} />
+                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اسم المريض أو رقم التليفون..." className="rounded-lg h-10 pr-9 text-sm font-bold border border-cyan-300 dark:border-cyan-700 focus:border-cyan-500" autoFocus />
                   </div>
+                  {/* Search Results - IN-FLOW so they are always visible inside scroll */}
                   {laserPatientSuggestions.length > 0 && !laserFormPatientId && (
-                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 z-[100] mt-2 bg-card border-2 border-cyan-300 dark:border-cyan-700 rounded-2xl shadow-2xl overflow-hidden">
-                      <div className="sticky top-0 z-10 px-4 py-2.5 bg-gradient-to-l from-cyan-500 to-blue-600 border-b border-cyan-300">
-                        <p className="text-sm font-bold text-white flex items-center gap-1.5"><Search size={13} /> نتائج البحث ({laserPatientSuggestions.length})</p>
+                    <div className="mt-1.5 border border-cyan-200 dark:border-cyan-800 rounded-xl overflow-hidden bg-card shadow-lg">
+                      <div className="px-3 py-1.5 bg-gradient-to-l from-cyan-500 to-blue-600">
+                        <p className="text-[10px] font-bold text-white flex items-center gap-1"><Search size={10} /> نتائج البحث ({laserPatientSuggestions.length})</p>
                       </div>
-                      <div className="max-h-[300px] overflow-y-auto">
+                      <div className="max-h-[180px] overflow-y-auto">
                         {laserPatientSuggestions.map((p, i) => (
-                          <motion.button key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right transition-all border-b border-cyan-100 dark:border-cyan-900/20 last:border-0">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-black text-white text-2xl shadow-lg flex-shrink-0">{p.name?.charAt(0)}</div>
+                          <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right transition-all border-b border-cyan-100 dark:border-cyan-900/20 last:border-0">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-black text-white text-base shadow flex-shrink-0">{p.name?.charAt(0)}</div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-black text-lg leading-tight truncate">{p.name}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
-                                <Badge variant="outline" className="text-[10px] font-bold border-cyan-400 text-cyan-600">#{p.fileNumber}</Badge>
-                                {p.phone && <span className="flex items-center gap-1 font-medium"><Phone size={12} />{p.phone}</span>}
+                              <p className="font-bold text-sm leading-tight truncate">{p.name}</p>
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5 flex-wrap">
+                                <Badge variant="outline" className="text-[8px] font-bold border-cyan-400 text-cyan-600 h-4">#{p.fileNumber}</Badge>
+                                {p.phone && <span className="flex items-center gap-0.5"><Phone size={9} />{p.phone}</span>}
                               </div>
                             </div>
-                            <ChevronDown size={20} className="text-cyan-400 rotate-[-90deg] flex-shrink-0" />
-                          </motion.button>
+                            <ChevronDown size={14} className="text-cyan-400 rotate-[-90deg] flex-shrink-0" />
+                          </button>
                         ))}
                       </div>
-                    </motion.div>
+                    </div>
                   )}
                 </div>
 
-                {/* Selected Patient - FULL INFO CARD */}
+                {/* Selected Patient - COMPACT CARD */}
                 {laserFormPatientId && (() => {
                   const sp = patients.find(p => p.id === laserFormPatientId)
                   if (!sp) return null
                   return (
-                    <motion.div initial={{ opacity: 0, y: -10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="rounded-2xl border-2 border-cyan-300 dark:border-cyan-700 bg-gradient-to-l from-cyan-50 via-white to-sky-50 dark:from-cyan-950/30 dark:via-card dark:to-sky-950/30 shadow-lg overflow-hidden">
-                      <div className="bg-gradient-to-l from-cyan-500 to-blue-600 p-3 flex items-center gap-4">
-                        <Avatar className="h-16 w-16 border-3 border-white shadow-xl"><AvatarFallback className="bg-white text-cyan-600 text-2xl font-black">{sp.name?.charAt(0)}</AvatarFallback></Avatar>
+                    <div className="rounded-xl border-2 border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/20 overflow-hidden">
+                      <div className="bg-gradient-to-l from-cyan-500 to-blue-600 px-3 py-2 flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border-2 border-white shadow"><AvatarFallback className="bg-white text-cyan-600 text-sm font-black">{sp.name?.charAt(0)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-bold text-lg">{sp.name}</p>
-                          <div className="flex items-center gap-2 flex-wrap text-cyan-100 text-xs">
-                            <Badge className="bg-white/20 text-white border-white/30 text-[10px]">#{sp.fileNumber}</Badge>
-                            <Badge className={cn('text-[10px]', sp.gender === 'male' ? 'bg-blue-400/30 text-white' : 'bg-pink-400/30 text-white')}>{sp.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>
+                          <p className="text-white font-bold text-sm">{sp.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap text-cyan-100 text-[9px]">
+                            <Badge className="bg-white/20 text-white border-white/30 text-[8px] h-4">#{sp.fileNumber}</Badge>
+                            <Badge className={cn('text-[8px] h-4', sp.gender === 'male' ? 'bg-blue-400/30 text-white' : 'bg-pink-400/30 text-white')}>{sp.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>
+                            {sp.age && <span>{sp.age} سنة</span>}
+                            {sp.phone && <span dir="ltr">{sp.phone}</span>}
                           </div>
                         </div>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setLaserFormPatientId(''); setLaserFormPatientSearch('') }} className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X size={16} /></motion.button>
+                        <button onClick={() => { setLaserFormPatientId(''); setLaserFormPatientSearch('') }} className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X size={14} /></button>
                       </div>
-                      <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {sp.phone && <div className="p-2 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800"><p className="text-[9px] text-muted-foreground font-bold">📱 الهاتف</p><p className="text-xs font-bold text-cyan-700 dark:text-cyan-300" dir="ltr">{sp.phone}</p></div>}
-                        {sp.phone2 && <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"><p className="text-[9px] text-muted-foreground font-bold">📱 هاتف 2</p><p className="text-xs font-bold text-blue-700 dark:text-blue-300" dir="ltr">{sp.phone2}</p></div>}
-                        {sp.age && <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"><p className="text-[9px] text-muted-foreground font-bold">🎂 العمر</p><p className="text-xs font-bold text-amber-700 dark:text-amber-300">{sp.age} سنة</p></div>}
-                        {sp.bloodType && <div className="p-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"><p className="text-[9px] text-muted-foreground font-bold">🩸 فصيلة الدم</p><p className="text-xs font-bold text-red-700 dark:text-red-300">{sp.bloodType}</p></div>}
-                        {sp.address && <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 col-span-2"><p className="text-[9px] text-muted-foreground font-bold">📍 العنوان</p><p className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{sp.address}</p></div>}
-                        {sp.medicalHistory && <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-800 col-span-2 sm:col-span-4"><p className="text-[9px] text-orange-600 font-bold">⚠️ التاريخ المرضي</p><p className="text-xs font-bold text-orange-700 dark:text-orange-300">{sp.medicalHistory}</p></div>}
-                        {sp.allergies && <div className="p-2 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-800 col-span-2 sm:col-span-4"><p className="text-[9px] text-red-600 font-bold">🚨 حساسية</p><p className="text-xs font-bold text-red-700 dark:text-red-300">{sp.allergies}</p></div>}
-                      </div>
-                    </motion.div>
+                      {(sp.allergies || sp.medicalHistory) && (
+                        <div className="px-3 py-1.5 space-y-1">
+                          {sp.medicalHistory && <p className="text-[9px] text-orange-600 font-bold">⚠️ التاريخ المرضي: {sp.medicalHistory}</p>}
+                          {sp.allergies && <p className="text-[9px] text-red-600 font-bold">🚨 حساسية: {sp.allergies}</p>}
+                        </div>
+                      )}
+                    </div>
                   )
                 })()}
               </div>
             </div>
 
-            {/* ═══ Section 2: بيانات الليزر ═══ */}
-            <div className="rounded-2xl border-2 border-violet-200 dark:border-violet-800 overflow-hidden">
-              <div className="bg-gradient-to-l from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 px-4 py-2.5 border-b border-violet-200 dark:border-violet-800">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-violet-700 dark:text-violet-300"><Zap size={16} /> بيانات الليزر</h3>
+            {/* ═══ Section 2: بيانات الليزر - COMPACT ═══ */}
+            <div className="rounded-xl border border-violet-200 dark:border-violet-800 overflow-hidden">
+              <div className="bg-violet-50 dark:bg-violet-950/30 px-3 py-1.5 border-b border-violet-200 dark:border-violet-800">
+                <h3 className="text-xs font-bold flex items-center gap-1.5 text-violet-700 dark:text-violet-300"><Zap size={13} /> بيانات الليزر</h3>
               </div>
-              <div className="p-4 space-y-3">
-                {/* Doctor Selection */}
-                {doctors.length > 1 && (
+              <div className="p-3 space-y-2">
+                {/* Doctor Selection - ALWAYS show */}
+                {doctors.length > 0 && (
                   <div>
-                    <Label className="text-xs font-bold text-violet-700 dark:text-violet-300 flex items-center gap-1.5"><Stethoscope size={13} /> الطبيب المعالج</Label>
+                    <Label className="text-[10px] font-bold text-violet-700 dark:text-violet-300 flex items-center gap-1"><Stethoscope size={11} /> الطبيب</Label>
                     <Select value={laserFormDoctorId} onValueChange={setLaserFormDoctorId}>
-                      <SelectTrigger className="rounded-xl h-11 mt-1 border-2 border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-950/10 text-sm font-bold">
+                      <SelectTrigger className="rounded-lg h-9 mt-0.5 border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-950/10 text-xs font-bold">
                         <SelectValue placeholder="اختر الطبيب..." />
                       </SelectTrigger>
                       <SelectContent>
                         {doctors.filter(d => d.active).map(d => (
                           <SelectItem key={d.id} value={d.id}>
-                            <span className="flex items-center gap-2">👨‍⚕️ {d.name}{d.specialty && <span className="text-muted-foreground text-xs">({d.specialty})</span>}</span>
+                            <span className="flex items-center gap-1.5 text-xs">👨‍⚕️ {d.name}{d.specialty && <span className="text-muted-foreground text-[10px]">({d.specialty})</span>}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
-                {/* Body Area */}
+                {/* Body Area - Compact Grid */}
                 <div>
-                  <Label className="text-xs font-bold text-violet-700 dark:text-violet-300">منطقة الجسم *</Label>
-                  <div className="grid grid-cols-5 gap-1.5 mt-1.5">
+                  <Label className="text-[10px] font-bold text-violet-700 dark:text-violet-300">منطقة الجسم *</Label>
+                  <div className="grid grid-cols-5 gap-1 mt-1">
                     {BODY_AREAS.map(area => (
-                      <motion.button key={area.id} whileTap={{ scale: 0.9 }} onClick={() => setLaserFormArea(laserFormArea === area.id ? '' : area.id)} className={cn('flex flex-col items-center gap-0.5 p-2 rounded-xl border-2 transition-all text-center', area.color, laserFormArea === area.id ? 'ring-2 ring-violet-500 shadow-lg scale-105 border-violet-400 dark:border-violet-500' : 'opacity-50 hover:opacity-80 border-transparent')}>
-                        <span className="text-xl">{area.emoji}</span>
-                        <span className="text-[8px] font-bold leading-tight">{area.label}</span>
+                      <motion.button key={area.id} whileTap={{ scale: 0.9 }} onClick={() => setLaserFormArea(laserFormArea === area.id ? '' : area.id)} className={cn('flex flex-col items-center gap-0 p-1.5 rounded-lg border transition-all text-center', area.color, laserFormArea === area.id ? 'ring-2 ring-violet-500 shadow-md scale-105 border-violet-400 dark:border-violet-500' : 'opacity-50 hover:opacity-80 border-transparent')}>
+                        <span className="text-base leading-none">{area.emoji}</span>
+                        <span className="text-[7px] font-bold leading-tight">{area.label}</span>
                       </motion.button>
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Skin Type */}
+                {/* Skin Type + Hair in one compact row */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Skin Type - Compact */}
                   <div>
-                    <Label className="text-xs font-bold text-violet-700 dark:text-violet-300">نوع البشرة</Label>
-                    <div className="grid grid-cols-2 gap-1 mt-1">
+                    <Label className="text-[10px] font-bold text-violet-700 dark:text-violet-300">نوع البشرة</Label>
+                    <div className="grid grid-cols-2 gap-0.5 mt-0.5">
                       {SKIN_TYPES.map(st => (
-                        <motion.button key={st.id} whileTap={{ scale: 0.95 }} onClick={() => setLaserFormSkinType(laserFormSkinType === st.id ? '' : st.id)} className={cn('p-1.5 rounded-lg border-2 text-[10px] text-center transition-all font-medium', st.color, laserFormSkinType === st.id ? 'ring-2 ring-violet-500 shadow-md border-violet-400' : 'opacity-50 hover:opacity-80 border-transparent')}>
+                        <button key={st.id} onClick={() => setLaserFormSkinType(laserFormSkinType === st.id ? '' : st.id)} className={cn('p-1 rounded-md border text-[8px] text-center transition-all font-medium', st.color, laserFormSkinType === st.id ? 'ring-2 ring-violet-500 shadow-sm border-violet-400' : 'opacity-50 hover:opacity-80 border-transparent')}>
                           {st.label}
-                        </motion.button>
+                        </button>
                       ))}
                     </div>
                   </div>
-                  {/* Hair Color + Density */}
-                  <div className="space-y-2">
+                  {/* Hair Color + Density - Compact */}
+                  <div className="space-y-1.5">
                     <div>
-                      <Label className="text-xs font-bold text-violet-700 dark:text-violet-300">لون الشعر</Label>
-                      <div className="flex flex-wrap gap-1 mt-1">
+                      <Label className="text-[10px] font-bold text-violet-700 dark:text-violet-300">لون الشعر</Label>
+                      <div className="flex flex-wrap gap-0.5 mt-0.5">
                         {HAIR_COLORS.map(hc => (
-                          <motion.button key={hc.id} whileTap={{ scale: 0.9 }} onClick={() => setLaserFormHairColor(laserFormHairColor === hc.id ? '' : hc.id)} className={cn('flex items-center gap-1 px-2 py-1 rounded-full border-2 text-[10px] font-bold transition-all', laserFormHairColor === hc.id ? 'ring-2 ring-violet-500 shadow-md border-violet-400' : 'opacity-50 hover:opacity-80 border-transparent')}>
-                            <div className={cn('w-3 h-3 rounded-full', hc.color)} /> {hc.label}
-                          </motion.button>
+                          <button key={hc.id} onClick={() => setLaserFormHairColor(laserFormHairColor === hc.id ? '' : hc.id)} className={cn('flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[8px] font-bold transition-all', laserFormHairColor === hc.id ? 'ring-2 ring-violet-500 shadow-sm border-violet-400' : 'opacity-50 hover:opacity-80 border-transparent')}>
+                            <div className={cn('w-2 h-2 rounded-full', hc.color)} /> {hc.label}
+                          </button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs font-bold text-violet-700 dark:text-violet-300">كثافة الشعر</Label>
-                      <div className="flex gap-1 mt-1">
+                      <Label className="text-[10px] font-bold text-violet-700 dark:text-violet-300">الكثافة</Label>
+                      <div className="flex gap-0.5 mt-0.5">
                         {[{ id: 'light', label: 'خفيف', icon: '🍃' }, { id: 'medium', label: 'متوسط', icon: '🌿' }, { id: 'dense', label: 'كثيف', icon: '🌳' }].map(d => (
-                          <motion.button key={d.id} whileTap={{ scale: 0.95 }} onClick={() => setLaserFormHairDensity(laserFormHairDensity === d.id ? '' : d.id)} className={cn('px-3 py-1.5 rounded-xl border-2 text-xs font-bold transition-all', laserFormHairDensity === d.id ? 'bg-violet-500 text-white border-violet-400 shadow-md' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-muted')}>{d.icon} {d.label}</motion.button>
+                          <button key={d.id} onClick={() => setLaserFormHairDensity(laserFormHairDensity === d.id ? '' : d.id)} className={cn('px-2 py-1 rounded-lg border text-[9px] font-bold transition-all', laserFormHairDensity === d.id ? 'bg-violet-500 text-white border-violet-400 shadow-sm' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-muted')}>{d.icon} {d.label}</button>
                         ))}
                       </div>
                     </div>
@@ -2793,64 +2790,58 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ═══ Section 3: إعدادات الجلسة ═══ */}
-            <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-800 overflow-hidden">
-              <div className="bg-gradient-to-l from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 px-4 py-2.5 border-b border-amber-200 dark:border-amber-800">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-amber-700 dark:text-amber-300"><Settings size={16} /> إعدادات الجلسة</h3>
+            {/* ═══ Section 3: إعدادات الجلسة - INLINE COMPACT ═══ */}
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800 overflow-hidden">
+              <div className="bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 border-b border-amber-200 dark:border-amber-800">
+                <h3 className="text-xs font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-300"><Settings size={13} /> إعدادات الجلسة</h3>
               </div>
-              <div className="p-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <div><Label className="text-xs font-bold text-amber-700 dark:text-amber-300">🔧 اسم الجهاز</Label><Input value={laserFormMachine} onChange={e => setLaserFormMachine(e.target.value)} placeholder="Soprano" className="input-luxury rounded-xl h-11 mt-1 text-sm border-2 border-amber-200 dark:border-amber-800" /></div>
-                  <div><Label className="text-xs font-bold text-amber-700 dark:text-amber-300">⚡ الطاقة (J)</Label><Input type="number" value={laserFormEnergy} onChange={e => setLaserFormEnergy(e.target.value)} placeholder="14" className="input-luxury rounded-xl h-11 mt-1 text-sm border-2 border-amber-200 dark:border-amber-800" /></div>
-                  <div><Label className="text-xs font-bold text-amber-700 dark:text-amber-300">💫 النبض (ms)</Label><Input value={laserFormPulse} onChange={e => setLaserFormPulse(e.target.value)} placeholder="20" className="input-luxury rounded-xl h-11 mt-1 text-sm border-2 border-amber-200 dark:border-amber-800" /></div>
+              <div className="p-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div><Label className="text-[10px] font-bold text-amber-700 dark:text-amber-300">🔧 الجهاز</Label><Input value={laserFormMachine} onChange={e => setLaserFormMachine(e.target.value)} placeholder="Soprano" className="rounded-lg h-9 mt-0.5 text-xs border border-amber-200 dark:border-amber-800" /></div>
+                  <div><Label className="text-[10px] font-bold text-amber-700 dark:text-amber-300">⚡ الطاقة</Label><Input type="number" value={laserFormEnergy} onChange={e => setLaserFormEnergy(e.target.value)} placeholder="14" className="rounded-lg h-9 mt-0.5 text-xs border border-amber-200 dark:border-amber-800" /></div>
+                  <div><Label className="text-[10px] font-bold text-amber-700 dark:text-amber-300">💫 النبض</Label><Input value={laserFormPulse} onChange={e => setLaserFormPulse(e.target.value)} placeholder="20" className="rounded-lg h-9 mt-0.5 text-xs border border-amber-200 dark:border-amber-800" /></div>
                 </div>
               </div>
             </div>
 
-            {/* ═══ Section 4: التكلفة والمالية - CONNECTED ═══ */}
-            <div className="rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 overflow-hidden shadow-md">
-              <div className="bg-gradient-to-l from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40 px-4 py-2.5 border-b border-emerald-200 dark:border-emerald-800">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                  <DollarSign size={16} /> التكلفة والمالية
-                  <Badge className="bg-emerald-500 text-white text-[9px] mr-auto">متصل بالنظام المالي ✅</Badge>
+            {/* ═══ Section 4: التكلفة - COMPACT ═══ */}
+            <div className="rounded-xl border border-emerald-300 dark:border-emerald-700 overflow-hidden">
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 border-b border-emerald-200 dark:border-emerald-800">
+                <h3 className="text-xs font-bold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                  <DollarSign size={13} /> التكلفة
+                  <span className="text-[8px] text-emerald-500 mr-auto">متصل مالي ✅</span>
                 </h3>
               </div>
-              <div className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs font-bold text-emerald-700 dark:text-emerald-300">🔢 عدد الجلسات</Label><Input value={laserFormSessions} onChange={e => setLaserFormSessions(e.target.value)} type="number" className="input-luxury rounded-xl h-12 mt-1 text-sm font-bold text-center text-lg border-2 border-emerald-200 dark:border-emerald-800" /></div>
-                  <div><Label className="text-xs font-bold text-emerald-700 dark:text-emerald-300">💰 سعر الجلسة (ج.م) *</Label><Input type="number" value={laserFormPrice} onChange={e => setLaserFormPrice(e.target.value)} placeholder="السعر بالجنيه..." className="input-luxury rounded-xl h-12 mt-1 text-lg font-black text-emerald-600 text-center border-2 border-emerald-200 dark:border-emerald-800" /></div>
+              <div className="p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">🔢 الجلسات</Label><Input value={laserFormSessions} onChange={e => setLaserFormSessions(e.target.value)} type="number" className="rounded-lg h-9 mt-0.5 text-sm font-bold text-center border border-emerald-200 dark:border-emerald-800" /></div>
+                  <div><Label className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">💰 سعر الجلسة</Label><Input type="number" value={laserFormPrice} onChange={e => setLaserFormPrice(e.target.value)} placeholder="ج.م" className="rounded-lg h-9 mt-0.5 text-sm font-black text-emerald-600 text-center border border-emerald-200 dark:border-emerald-800" /></div>
                 </div>
                 {laserFormPrice && parseInt(laserFormSessions) > 0 && (
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-2xl bg-gradient-to-l from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 border-2 border-emerald-300 dark:border-emerald-700 shadow-inner">
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">إجمالي الباقة ({laserFormSessions} جلسة)</p>
-                        <p className="text-[10px] text-muted-foreground">سيتم تسجيله تلقائياً في النظام المالي</p>
-                      </div>
-                      <div className="text-left">
-                        <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(parseFloat(laserFormPrice) * parseInt(laserFormSessions))}</p>
-                        <p className="text-[10px] text-emerald-500">{formatCurrency(parseFloat(laserFormPrice))} / جلسة</p>
-                      </div>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">إجمالي ({laserFormSessions} جلسة)</p>
+                      <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(parseFloat(laserFormPrice) * parseInt(laserFormSessions))}</p>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-                <div className="flex items-center gap-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                  <Label className="text-xs font-bold text-emerald-700 dark:text-emerald-300">حالة الدفع:</Label>
-                  <div className="flex gap-2">
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLaserFormPaid(true)} className={cn('px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-sm', laserFormPaid ? 'bg-emerald-500 text-white shadow-md' : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>✅ مدفوع</motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLaserFormPaid(false)} className={cn('px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-sm', !laserFormPaid ? 'bg-amber-500 text-white shadow-md' : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>⏳ غير مدفوع</motion.button>
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800">
+                  <Label className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">الدفع:</Label>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setLaserFormPaid(true)} className={cn('px-3 py-1 rounded-lg text-[10px] font-bold transition-all', laserFormPaid ? 'bg-emerald-500 text-white shadow-sm' : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>✅ مدفوع</button>
+                    <button onClick={() => setLaserFormPaid(false)} className={cn('px-3 py-1 rounded-lg text-[10px] font-bold transition-all', !laserFormPaid ? 'bg-amber-500 text-white shadow-sm' : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>⏳ غير مدفوع</button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ═══ Section 5: ملاحظات ═══ */}
-            <div className="rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 overflow-hidden">
-              <div className="bg-gradient-to-l from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 px-4 py-2.5 border-b border-indigo-200 dark:border-indigo-800">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-indigo-700 dark:text-indigo-300"><FileText size={16} /> ملاحظات إضافية</h3>
+            {/* ═══ Section 5: ملاحظات - COMPACT ═══ */}
+            <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 overflow-hidden">
+              <div className="bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 border-b border-indigo-200 dark:border-indigo-800">
+                <h3 className="text-xs font-bold flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300"><FileText size={13} /> ملاحظات</h3>
               </div>
-              <div className="p-4">
-                <Textarea value={laserFormNotes} onChange={e => setLaserFormNotes(e.target.value)} placeholder="ملاحظات عن الحالة أو التعليمات الخاصة..." className="input-luxury rounded-xl min-h-[70px] text-sm border-2 border-indigo-200 dark:border-indigo-800 focus:border-indigo-400" />
+              <div className="p-3">
+                <Textarea value={laserFormNotes} onChange={e => setLaserFormNotes(e.target.value)} placeholder="ملاحظات عن الحالة..." className="rounded-lg min-h-[50px] text-xs border border-indigo-200 dark:border-indigo-800 focus:border-indigo-400" />
               </div>
             </div>
           </div>
