@@ -45,7 +45,7 @@ interface Service { id: string; name: string; category?: string; price: number; 
 interface Note { id: string; patientId?: string; userId?: string; content: string; important: boolean; section?: string; createdAt: string; }
 interface Alert { id: string; patientId: string; type: string; message: string; active: boolean; }
 interface Reminder { id: string; patientId?: string; title: string; description?: string; date: string; type: string; status: string; }
-interface LaserRecord { id: string; patientId: string; bodyArea: string; skinType?: string; hairColor?: string; totalSessions: number; status: string; notes?: string; }
+interface LaserRecord { id: string; patientId: string; bodyArea: string; skinType?: string; hairColor?: string; hairDensity?: string; totalSessions: number; price: number; totalPrice: number; paid: boolean; machineName?: string; energy?: number; pulse?: string; status: string; notes?: string; createdAt?: string; }
 interface LaserSession { id: string; laserRecordId: string; sessionNumber: number; energy?: number; pulse?: string; painLevel?: number; reaction?: string; notes?: string; date: string; }
 interface LaserPackage { id: string; name: string; sessionsCount: number; price: number; bodyArea?: string; active: boolean; }
 interface LaserSetting { id: string; machineName: string; bodyArea: string; defaultEnergy?: number; defaultPulse?: string; }
@@ -300,8 +300,8 @@ export default function Home() {
   const [editingNoteIdMore, setEditingNoteIdMore] = useState<string | null>(null)
   const [editingNoteContentMore, setEditingNoteContentMore] = useState('')
 
-  // ─── Password encoding (obfuscated, not plaintext) ─────────────────────
-  const _ps = [49,51,48,48].map(c => String.fromCharCode(c)).join('')
+  // ─── Password is verified server-side via /auth/login API ─────────────
+  // No password stored on client - all verification is server-side
 
   // ─── Effects ──────────────────────────────────────────────────────────
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
@@ -362,16 +362,15 @@ export default function Home() {
   // ─── CRUD ─────────────────────────────────────────────────────────────
   const handleLogin = async () => {
     if (!loginRole) { toast.error('اختر الدور أولاً'); return }
-    if (loginPassword !== _ps) { toast.error('كلمة السر غير صحيحة'); return }
+    if (!loginPassword) { toast.error('أدخل كلمة المرور'); return }
     setLoginLoading(true)
-    setUserRole(loginRole)
     try {
-      const email = loginRole === 'doctor' ? 'doctor@elmoghazi.com' : 'secretary@elmoghazi.com'
-      const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password: _ps }) })
+      const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ role: loginRole, password: loginPassword }) })
+      setUserRole(loginRole)
       login(res.user)
       toast.success(loginRole === 'doctor' ? 'مرحباً دكتور 🩺' : 'مرحباً 👩‍💼')
       if (loginRole === 'secretary') setActiveTab('patients')
-    } catch (e: any) { toast.error(e.message || 'خطأ في تسجيل الدخول') }
+    } catch (e: any) { toast.error(e.message === 'Invalid password' ? 'كلمة السر غير صحيحة' : e.message || 'خطأ في تسجيل الدخول') }
     setLoginLoading(false)
   }
   const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
@@ -714,7 +713,7 @@ export default function Home() {
 
   // ─── Role-based access control ────────────────────────────────────────
   const isDoctor = userRole === 'doctor'
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'laser', 'finance', 'more', 'settings'] : ['patients', 'sessions']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
@@ -723,14 +722,8 @@ export default function Home() {
     if (tab === 'patients') setSelectedPatient(null)
   }
   const verifyPassword = () => {
-    if (passwordInput === _ps) {
-      setActiveTab(pendingTab)
-      if (pendingTab === 'patients') setSelectedPatient(null)
-      setPasswordDialogOpen(false)
-      toast.success('تم التحقق بنجاح')
-    } else {
-      toast.error('كلمة السر غير صحيحة')
-    }
+    // Password verification is now server-side only
+    toast.error('يرجى تسجيل الخروج وإعادة الدخول')
   }
 
   // ─── Doctor financial calculations ────────────────────────────────────
@@ -1273,11 +1266,29 @@ export default function Home() {
                     <div className="flex items-center justify-between"><h3 className="font-bold flex items-center gap-2"><Zap size={16} className="text-cyan-500" /> سجلات الليزر</h3></div>
                     {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">💎</motion.div><p className="text-muted-foreground">لا توجد سجلات ليزر</p></Card>}
                     {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => {
-                      const patientSessions = sessions.filter(s => s.patientId === selectedPatient.id)
-                      const completedCount = patientSessions.filter(s => s.status === 'completed').length
+                      const laserSessCount = l.laserSessions?.length || 0
+                      const completedCount = laserSessCount
                       const progressPercent = l.totalSessions > 0 ? Math.min((completedCount / l.totalSessions) * 100, 100) : 0
                       const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea)
-                      return <Card key={l.id} className="section-card p-3 border-2 border-transparent hover:border-cyan-200 dark:hover:border-cyan-800 transition-all"><div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl text-lg shadow-sm', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>{areaInfo?.emoji || '💎'}</div><div className="flex-1"><div className="flex items-center gap-2"><span className="font-bold text-sm">{areaInfo?.label || l.bodyArea}</span><Badge style={{ backgroundColor: statusColors[l.status as keyof typeof statusColors] + '20', color: statusColors[l.status as keyof typeof statusColors] }} className="text-[9px]">{l.status === 'active' ? 'نشط' : l.status === 'completed' ? 'مكتمل' : l.status}</Badge></div>{l.skinType && <span className="text-xs text-muted-foreground">بشرة {l.skinType}</span>}{l.hairColor && <span className="text-xs text-muted-foreground"> | شعر {l.hairColor}</span>}<div className="mt-1"><div className="flex items-center justify-between text-[9px] mb-0.5"><span>{completedCount} من {l.totalSessions} جلسة</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1.5" /></div></div></div></Card>
+                      return <Card key={l.id} className="section-card p-3 border-2 border-transparent hover:border-cyan-200 dark:hover:border-cyan-800 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={cn('p-2.5 rounded-xl text-lg shadow-sm', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>{areaInfo?.emoji || '💎'}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm">{areaInfo?.label || l.bodyArea}</span>
+                              <Badge style={{ backgroundColor: statusColors[l.status as keyof typeof statusColors] + '20', color: statusColors[l.status as keyof typeof statusColors] }} className="text-[9px]">{l.status === 'active' ? 'نشط' : l.status === 'completed' ? 'مكتمل' : l.status}</Badge>
+                              {l.paid ? <span className="text-[9px] text-emerald-600 font-bold">✅ مدفوع</span> : l.price > 0 && <span className="text-[9px] text-amber-600 font-bold">⏳ غير مدفوع</span>}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {l.skinType && <span>بشرة {l.skinType}</span>}
+                              {l.hairColor && <span>| شعر {l.hairColor}</span>}
+                              {l.machineName && <span>| {l.machineName}</span>}
+                            </div>
+                            {l.price > 0 && <p className="text-xs font-bold text-emerald-600 mt-0.5">{formatCurrency(l.price)}/جلسة - إجمالي: {formatCurrency(l.totalPrice || l.price * l.totalSessions)}</p>}
+                            <div className="mt-1"><div className="flex items-center justify-between text-[9px] mb-0.5"><span>{completedCount} من {l.totalSessions} جلسة</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1.5" /></div>
+                          </div>
+                        </div>
+                      </Card>
                     })}
                   </TabsContent>
 
@@ -1409,17 +1420,17 @@ export default function Home() {
                     {laserRecords.map(r => {
                       const p = patients.find(pt => pt.id === r.patientId)
                       const areaInfo = BODY_AREAS.find(a => a.id === r.bodyArea || a.label === r.bodyArea)
-                      const patientSessions = sessions.filter(s => s.patientId === r.patientId)
-                      const completedCount = patientSessions.filter(s => s.status === 'completed').length
-                      const progressPercent = r.totalSessions > 0 ? Math.min((completedCount / r.totalSessions) * 100, 100) : 0
+                      const laserSessCount = r.laserSessions?.length || (r as any)._count?.laserSessions || 0
+                      const progressPercent = r.totalSessions > 0 ? Math.min((laserSessCount / r.totalSessions) * 100, 100) : 0
                       return (
                         <Card key={r.id} className="section-card p-4">
                           <div className="flex items-center gap-3">
                             <div className={cn('p-2.5 rounded-xl text-xl', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>{areaInfo?.emoji || '💎'}</div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2"><p className="font-bold text-sm">{p?.name || 'مريض'}</p><Badge style={{ backgroundColor: statusColors[r.status as keyof typeof statusColors] + '20', color: statusColors[r.status as keyof typeof statusColors] }} className="text-[10px]">{r.status === 'active' ? 'نشط' : r.status === 'completed' ? 'مكتمل' : r.status}</Badge></div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{areaInfo?.label || r.bodyArea}</span>{r.skinType && <span>| بشرة {r.skinType}</span>}{r.hairColor && <span>| شعر {r.hairColor}</span>}</div>
-                              <div className="mt-2"><div className="flex items-center justify-between text-[10px] mb-1"><span>{completedCount} من {r.totalSessions} جلسة</span><span className="font-medium">{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-2" /></div>
+                              <div className="flex items-center gap-2"><p className="font-bold text-sm">{p?.name || 'مريض'}</p><Badge style={{ backgroundColor: statusColors[r.status as keyof typeof statusColors] + '20', color: statusColors[r.status as keyof typeof statusColors] }} className="text-[10px]">{r.status === 'active' ? 'نشط' : r.status === 'completed' ? 'مكتمل' : r.status}</Badge>{r.paid ? <span className="text-[9px] text-emerald-600 font-bold">✅</span> : r.price > 0 && <span className="text-[9px] text-amber-600 font-bold">⏳</span>}</div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{areaInfo?.label || r.bodyArea}</span>{r.skinType && <span>| بشرة {r.skinType}</span>}{r.hairColor && <span>| شعر {r.hairColor}</span>}{r.machineName && <span>| {r.machineName}</span>}</div>
+                              {r.price > 0 && <p className="text-xs font-bold text-emerald-600 mt-0.5">{formatCurrency(r.price)}/جلسة - إجمالي: {formatCurrency(r.totalPrice || r.price * r.totalSessions)}</p>}
+                              <div className="mt-2"><div className="flex items-center justify-between text-[10px] mb-1"><span>{laserSessCount} من {r.totalSessions} جلسة</span><span className="font-medium">{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-2" /></div>
                             </div>
                             <div className="flex flex-col gap-1">
                               <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => deleteItem('/laser/records', r.id, setLaserRecords)}><Trash2 size={10} /></Button>
@@ -2525,9 +2536,28 @@ export default function Home() {
               const sessionPrice = parseFloat(laserFormPrice) || 0
               let newRecordId: string | null = null
 
-              // 1. Create the laser record
+              // 1. Create the laser record with full price & machine data
+              const totalPrice = sessionPrice * (parseInt(laserFormSessions) || 6)
               try {
-                const recordRes = await apiFetch<any>('/laser/records', { method: 'POST', body: JSON.stringify({ patientId: laserFormPatientId, bodyArea: areaLabel, skinType: laserFormSkinType || undefined, hairColor: laserFormHairColor || undefined, hairDensity: laserFormHairDensity || undefined, totalSessions: parseInt(laserFormSessions) || 6, status: 'active', notes: laserFormNotes || undefined }) })
+                const recordRes = await apiFetch<any>('/laser/records', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    patientId: laserFormPatientId,
+                    bodyArea: areaLabel,
+                    skinType: laserFormSkinType || undefined,
+                    hairColor: laserFormHairColor || undefined,
+                    hairDensity: laserFormHairDensity || undefined,
+                    totalSessions: parseInt(laserFormSessions) || 6,
+                    price: sessionPrice,
+                    totalPrice: totalPrice,
+                    paid: laserFormPaid,
+                    machineName: laserFormMachine || undefined,
+                    energy: parseFloat(laserFormEnergy) || undefined,
+                    pulse: laserFormPulse || undefined,
+                    status: 'active',
+                    notes: laserFormNotes || undefined
+                  })
+                })
                 const newRecord = recordRes?.record || recordRes?.data || recordRes
                 if (newRecord?.id) { setLaserRecords(prev => [newRecord, ...prev]); newRecordId = newRecord.id }
               } catch (e: any) {

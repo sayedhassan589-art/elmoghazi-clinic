@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          patient: { select: { id: true, name: true, fileNumber: true } },
+          patient: { select: { id: true, name: true, fileNumber: true, phone: true, age: true, gender: true } },
           laserSessions: { orderBy: { sessionNumber: 'desc' } },
           _count: { select: { laserSessions: true } },
         },
@@ -48,23 +48,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'patientId and bodyArea are required' }, { status: 400 })
     }
 
-    // Build data object with only defined values
+    // Build data object with all fields including new price fields
     const data: Record<string, unknown> = {
       patientId: body.patientId,
       bodyArea: body.bodyArea,
       totalSessions: body.totalSessions || 0,
+      price: body.price || 0,
+      totalPrice: body.totalPrice || 0,
+      paid: body.paid || false,
       status: body.status || 'active',
     }
     // Only add optional fields if they have values
     if (body.skinType) data.skinType = body.skinType
     if (body.hairColor) data.hairColor = body.hairColor
     if (body.hairDensity) data.hairDensity = body.hairDensity
+    if (body.machineName) data.machineName = body.machineName
+    if (body.energy) data.energy = body.energy
+    if (body.pulse) data.pulse = body.pulse
     if (body.notes) data.notes = body.notes
 
     const record = await db.laserRecord.create({
       data: data as any,
       include: {
-        patient: { select: { id: true, name: true, fileNumber: true } },
+        patient: { select: { id: true, name: true, fileNumber: true, phone: true, age: true, gender: true } },
       },
     })
 

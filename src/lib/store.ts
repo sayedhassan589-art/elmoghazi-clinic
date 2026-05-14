@@ -7,7 +7,7 @@ export interface AuthUser {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'ASSISTANT'
+  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'ASSISTANT' | 'doctor' | 'secretary'
 }
 
 export type ClinicTheme = 'emerald' | 'royal' | 'rosegold' | 'purple' | 'sunset' | 'teal' | 'ruby' | 'forest' | 'midnight' | 'champagne'

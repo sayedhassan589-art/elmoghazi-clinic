@@ -8,7 +8,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const record = await db.laserRecord.findUnique({
       where: { id },
       include: {
-        patient: { select: { id: true, name: true, fileNumber: true } },
+        patient: { select: { id: true, name: true, fileNumber: true, phone: true, age: true, gender: true } },
         laserSessions: { orderBy: { sessionNumber: 'asc' } },
         laserNotes: { orderBy: { createdAt: 'desc' } },
       },
@@ -43,11 +43,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         hairColor: body.hairColor ?? undefined,
         hairDensity: body.hairDensity ?? undefined,
         totalSessions: body.totalSessions ?? undefined,
+        price: body.price ?? undefined,
+        totalPrice: body.totalPrice ?? undefined,
+        paid: body.paid ?? undefined,
+        machineName: body.machineName ?? undefined,
+        energy: body.energy ?? undefined,
+        pulse: body.pulse ?? undefined,
         status: body.status ?? undefined,
         notes: body.notes ?? undefined,
       },
       include: {
-        patient: { select: { id: true, name: true, fileNumber: true } },
+        patient: { select: { id: true, name: true, fileNumber: true, phone: true, age: true, gender: true } },
         laserSessions: { orderBy: { sessionNumber: 'asc' } },
       },
     })
