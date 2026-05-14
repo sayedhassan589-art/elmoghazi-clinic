@@ -299,6 +299,37 @@ export default function Home() {
   const [newNoteImportant, setNewNoteImportant] = useState(false)
   const [editingNoteIdMore, setEditingNoteIdMore] = useState<string | null>(null)
   const [editingNoteContentMore, setEditingNoteContentMore] = useState('')
+  const [editingNoteSectionMore, setEditingNoteSectionMore] = useState('general')
+
+  // Inventory enhanced states
+  const [inventorySearch, setInventorySearch] = useState('')
+  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'low' | 'normal'>('all')
+  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('all')
+  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null)
+  const [editInventoryForm, setEditInventoryForm] = useState({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' })
+  const [showStockTransaction, setShowStockTransaction] = useState(false)
+  const [stockTransactionItemId, setStockTransactionItemId] = useState('')
+  const [stockTransactionType, setStockTransactionType] = useState<'in' | 'out'>('in')
+  const [stockTransactionQty, setStockTransactionQty] = useState('')
+  const [stockTransactionNotes, setStockTransactionNotes] = useState('')
+  const [deleteInventoryConfirmId, setDeleteInventoryConfirmId] = useState<string | null>(null)
+
+  // Booking system states
+  const [showAddBooking, setShowAddBooking] = useState(false)
+  const [bookingFormPatientSearch, setBookingFormPatientSearch] = useState('')
+  const [bookingFormPatientId, setBookingFormPatientId] = useState('')
+  const [bookingFormDate, setBookingFormDate] = useState('')
+  const [bookingFormTime, setBookingFormTime] = useState('')
+  const [bookingFormType, setBookingFormType] = useState('checkup')
+  const [bookingFormStatus, setBookingFormStatus] = useState('scheduled')
+  const [bookingFormNotes, setBookingFormNotes] = useState('')
+  const [bookingFilterStatus, setBookingFilterStatus] = useState('all')
+  const [bookingFilterDate, setBookingFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null)
+
+  // Visits enhanced states
+  const [visitFilterType, setVisitFilterType] = useState('all')
+  const [deleteVisitConfirmId, setDeleteVisitConfirmId] = useState<string | null>(null)
 
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
@@ -358,6 +389,13 @@ export default function Home() {
     const q = laserFormPatientSearch.toLowerCase()
     return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
   }, [laserFormPatientSearch, patients])
+
+  // Booking patient search
+  const bookingPatientSuggestions = useMemo(() => {
+    if (!bookingFormPatientSearch) return []
+    const q = bookingFormPatientSearch.toLowerCase()
+    return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
+  }, [bookingFormPatientSearch, patients])
 
   // ─── CRUD ─────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -577,6 +615,7 @@ export default function Home() {
       'الإعدادات': { tab: 'more', subTab: 'settings' }, 'النسخ': { tab: 'more', subTab: 'backup' },
       'التذكيرات': { tab: 'more', subTab: 'reminders' }, 'المخزون': { tab: 'more', subTab: 'inventory' },
       'الأدوية': { tab: 'more', subTab: 'medications' }, 'الزيارات': { tab: 'more', subTab: 'visits' },
+      'الحجز': { tab: 'more', subTab: 'bookings' }, 'المواعيد': { tab: 'more', subTab: 'bookings' },
       'قوالب العلاج': { tab: 'more', subTab: 'templates' }, 'قائمة الانتظار': { tab: 'more', subTab: 'waiting' },
     }
     const lowerMsg = msg.trim()
@@ -629,7 +668,7 @@ export default function Home() {
   const handleSmartPatientSubmit = async () => {
     if (!newPatientName.trim()) return toast.error('الاسم مطلوب')
     // Create patient
-    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, phone2: newPatientPhone2, age: parseInt(newPatientAge) || null, gender: newPatientGender || null, address: newPatientAddress, notes: newPatientNotes }, setPatients)
+    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, age: parseInt(newPatientAge) || null, gender: newPatientGender || null, address: newPatientAddress, notes: newPatientNotes }, setPatients)
     if (!patient) return
 
     const patientId = patient.id
@@ -665,7 +704,7 @@ export default function Home() {
     }
 
     // Reset form
-    setNewPatientName(''); setNewPatientPhone(''); setNewPatientPhone2(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setShowAddPatient(false)
+    setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setShowAddPatient(false)
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
@@ -1613,12 +1652,13 @@ export default function Home() {
                 <div className="section-header-animated rounded-2xl bg-pink-50 dark:bg-pink-950/30">
                   <div className="relative z-10 flex items-center gap-3"><motion.div animate={{ rotate: [0, 180, 360] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">📋</motion.div><div><h1 className="text-2xl font-bold">المزيد</h1><p className="text-muted-foreground text-sm">خدمات وأدوات إضافية</p></div></div>
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                   {[
                     { id: 'services', label: 'الخدمات', emoji: '⚙️', gradient: 'from-teal-500 to-teal-700' },
                     { id: 'visits', label: 'الزيارات', emoji: '🩺', gradient: 'from-violet-500 to-violet-700' },
                     { id: 'doctors', label: 'الأطباء المشاركون', emoji: '👨‍⚕️', gradient: 'from-emerald-500 to-emerald-700' },
                     { id: 'inventory', label: 'المخزون', emoji: '📦', gradient: 'from-amber-500 to-amber-700' },
+                    { id: 'bookings', label: 'الحجز', emoji: '📅', gradient: 'from-sky-500 to-sky-700' },
                     { id: 'medications', label: 'الأدوية', emoji: '💊', gradient: 'from-green-500 to-green-700' },
                     { id: 'reminders', label: 'التذكيرات', emoji: '⏰', gradient: 'from-rose-500 to-rose-700' },
                     { id: 'templates', label: 'قوالب العلاج', emoji: '📋', gradient: 'from-lime-500 to-lime-700' },
@@ -1639,14 +1679,72 @@ export default function Home() {
                 {moreSubTab === 'services' && (<div className="space-y-3">
                   <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Tag size={18} className="text-teal-500" /> الخدمات</h3><div className="flex items-center gap-2"><Badge variant="outline">{services.length} خدمة</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button></div></div>
                   {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
-                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></div></div><div className="flex items-center gap-2">{editingServiceId === s.id ? (<div className="flex items-center gap-1"><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-20 h-7 text-xs rounded-lg" /><Button size="sm" className="h-7 rounded-lg text-[10px]" onClick={async () => { const newPrice = parseFloat(editingServicePrice) || 0; try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, price: newPrice } : sv)); toast.success('تم تحديث السعر') } catch { toast.error('خطأ') } setEditingServiceId(null) }}>حفظ</Button><Button variant="ghost" size="sm" className="h-7 rounded-lg" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><Badge variant="outline" className="font-bold cursor-pointer" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}>{s.price} ج.م</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
+                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></div></div><div className="flex items-center gap-2">{editingServiceId === s.id ? (<div className="flex items-center gap-1 bg-white dark:bg-muted/50 p-1.5 rounded-lg border-2 border-teal-300 dark:border-teal-700 shadow-md"><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-24 h-8 text-sm rounded-lg font-bold" autoFocus onKeyDown={e => { if (e.key === 'Enter') { const newPrice = parseFloat(editingServicePrice); if (isNaN(newPrice)) { toast.error('أدخل سعر صحيح'); return }; (async () => { try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, price: newPrice } : sv)); toast.success('تم تحديث السعر ✓'); setEditingServiceId(null) } catch (e: any) { toast.error(e?.message || 'خطأ في تحديث السعر'); setEditingServiceId(null) } })() } if (e.key === 'Escape') setEditingServiceId(null) }} /><Button size="sm" className="h-8 rounded-lg text-xs bg-teal-600 text-white" onClick={async () => { const newPrice = parseFloat(editingServicePrice); if (isNaN(newPrice)) { toast.error('أدخل سعر صحيح'); return } try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, price: newPrice } : sv)); toast.success('تم تحديث السعر ✓'); setEditingServiceId(null) } catch (e: any) { toast.error(e?.message || 'خطأ في تحديث السعر'); setEditingServiceId(null) } }}>✓</Button><Button variant="ghost" size="sm" className="h-8 rounded-lg" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><motion.button whileTap={{ scale: 0.95 }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-dashed border-teal-300 dark:border-teal-700 hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-all cursor-pointer" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}><span className="font-bold text-sm text-teal-700 dark:text-teal-300">{s.price}</span><span className="text-xs text-muted-foreground">ج.م</span><Edit3 size={10} className="text-teal-400" /></motion.button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingServiceId(s.id); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
                 </div>)}
 
-                {/* Visits Sub-tab - Enhanced */}
-                {moreSubTab === 'visits' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Stethoscope size={18} className="text-violet-500" /> الزيارات</h3><Badge variant="outline">{visits.length} زيارة</Badge></div>
-                  {visits.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">🩺</p><p className="text-muted-foreground">لا توجد زيارات بعد</p></Card>}
-                  <div className="space-y-2">{visits.slice(0, 30).map(v => { const p = patients.find(pt => pt.id === v.patientId); const vt = VISIT_TYPES.find(t => t.id === v.type); return <Card key={v.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-2"><span className="font-medium text-sm">{p?.name || 'مريض'}</span><Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge></div>{v.diagnosis && <p className="text-xs text-muted-foreground">{v.diagnosis}</p>}</div></div><span className="text-xs text-muted-foreground">{formatDate(v.date)}</span></div></Card> })}</div>
+                {/* Visits Sub-tab - ENHANCED */}
+                {moreSubTab === 'visits' && (<div className="space-y-4">
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Stethoscope size={18} className="text-violet-500" /> الزيارات</h3><div className="flex items-center gap-2"><Badge variant="outline">{visits.length} زيارة</Badge></div></div>
+                  
+                  {/* Filter by visit type */}
+                  <div className="flex gap-2 flex-wrap">
+                    {[{ id: 'all', label: 'الكل', emoji: '📋' }, ...VISIT_TYPES.slice(0, 3)].map(vt => (
+                      <motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setVisitFilterType(vt.id)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all', visitFilterType === vt.id ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20 shadow-md' : 'border-transparent bg-muted/50 hover:bg-muted')}>
+                        <span>{vt.id === 'all' ? '📋' : vt.emoji}</span><span>{vt.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  {visits.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">🩺</motion.div><p className="text-muted-foreground">لا توجد زيارات بعد</p></Card>}
+                  <div className="space-y-3">{(() => {
+                    const filtered = visits.filter(v => visitFilterType === 'all' || v.type === visitFilterType).slice(0, 50)
+                    return filtered.map((v, idx) => {
+                      const p = patients.find(pt => pt.id === v.patientId)
+                      const vt = VISIT_TYPES.find(t => t.id === v.type)
+                      const isEditing = editingVisitId === v.id
+                      return (
+                        <motion.div key={v.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
+                          <Card className="section-card p-4 border-2 border-violet-100 dark:border-violet-900 hover:shadow-lg transition-all">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <motion.div animate={{ y: [0, -2, 0] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }} className={cn('p-2 rounded-xl text-white text-lg', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</motion.div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold text-sm">{p?.name || 'مريض'}</span>
+                                    <Badge className={cn('text-white text-[9px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge>
+                                  </div>
+                                  {isEditing ? (
+                                    <div className="space-y-2 mt-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
+                                      <div><Label className="text-xs font-bold">نوع الزيارة</Label><div className="flex gap-1.5 mt-1">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setEditVisitForm(prev => ({ ...prev, type: vt.id }))} className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-white text-[10px] font-bold transition-all', vt.bg, editVisitForm.type === vt.id ? 'ring-2 ring-white shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div></div>
+                                      <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={editVisitForm.notes} onChange={e => setEditVisitForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="ملاحظات الزيارة..." className="input-luxury rounded-xl h-16 text-xs mt-1" /></div>
+                                      <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white text-xs" onClick={() => editVisitWithFinance(v, editVisitForm.type, editVisitForm.notes, p?.name || '')}>حفظ</Button><Button variant="ghost" size="sm" className="rounded-xl text-xs" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {v.diagnosis && <p className="text-xs text-muted-foreground mb-1">🔍 {v.diagnosis}</p>}
+                                      {v.notes && <p className="text-xs text-muted-foreground">📝 {v.notes}</p>}
+                                      <span className="text-[10px] text-muted-foreground">{formatDate(v.date)}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              {!isEditing && (
+                                <div className="flex flex-col gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingVisitId(v.id); setEditVisitForm({ type: v.type, notes: v.notes || '', price: '' }) }}><Edit3 size={12} className="text-violet-500" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteVisitConfirmId(v.id)}><Trash2 size={12} className="text-red-500" /></Button>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        </motion.div>
+                      )
+                    })
+                  })()}</div>
+
+                  {/* Delete Visit Confirm */}
+                  <AlertDialog open={!!deleteVisitConfirmId} onOpenChange={() => setDeleteVisitConfirmId(null)}>
+                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف الزيارة</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذه الزيارة والمعاملة المالية المرتبطة بها؟</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (deleteVisitConfirmId) { const v = visits.find(vv => vv.id === deleteVisitConfirmId); const p = v ? patients.find(pt => pt.id === v.patientId) : null; if (v && p) await deleteVisitWithFinance(v, p.name); else if (v) { await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); setVisits(prev => prev.filter(vv => vv.id !== deleteVisitConfirmId)); toast.success('تم حذف الزيارة') } setDeleteVisitConfirmId(null) } }}>حذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                  </AlertDialog>
                 </div>)}
 
                 {/* Partner Doctors Sub-tab - Complete System */}
@@ -1683,11 +1781,223 @@ export default function Home() {
                   ))}
                 </div>)}
 
-                {/* Inventory Sub-tab - Enhanced with stock alerts */}
-                {moreSubTab === 'inventory' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> المخزون</h3><div className="flex items-center gap-2">{lowStockItems.length > 0 && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">{lowStockItems.length} منخفض</Badge>}<Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={() => setShowAddInventory(true)}><Plus size={14} className="ml-1" /> عنصر</Button></div></div>
-                  {inventoryItems.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">📦</p><p className="text-muted-foreground">لا توجد عناصر في المخزون</p></Card>}
-                  <div className="space-y-2">{inventoryItems.map(i => { const isLow = i.quantity <= i.minQuantity; return <Card key={i.id} className={cn('section-card p-3', isLow && 'border-red-300 dark:border-red-800 bg-red-50/30 dark:bg-red-900/10')}><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', isLow ? 'bg-red-100 dark:bg-red-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30')}>{isLow ? <AlertTriangle className="text-red-600" size={14} /> : <Package className="text-emerald-600" size={14} />}</div><div><p className="font-medium text-sm">{i.name}</p><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{i.category || 'عام'}</span><span className={cn('text-xs font-bold', isLow ? 'text-red-600' : 'text-emerald-600')}>الكمية: {i.quantity} / الحد: {i.minQuantity}</span></div></div></div><div className="flex items-center gap-2">{isLow && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">⚠️ منخفض</Badge>}<span className="text-xs text-muted-foreground">{formatCurrency(i.unitPrice)}</span></div></div></Card> })}</div>
+                {/* Inventory Sub-tab - PROFESSIONAL */}
+                {moreSubTab === 'inventory' && (<div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> المخزون</h3><div className="flex items-center gap-2">{lowStockItems.length > 0 && <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }}><Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">{lowStockItems.length} منخفض</Badge></motion.div>}<Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={() => { setEditingInventoryId(null); setEditInventoryForm({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' }); setShowAddInventory(true) }}><Plus size={14} className="ml-1" /> عنصر</Button></div></div>
+                  
+                  {/* Dashboard Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
+                      <Card className="border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-3 text-center">
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">📦</motion.div>
+                        <p className="text-xl font-black text-amber-700 dark:text-amber-300">{inventoryItems.length}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">إجمالي العناصر</p>
+                      </Card>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                      <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 p-3 text-center">
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="text-2xl mb-1">💰</motion.div>
+                        <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{formatCurrency(inventoryItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">إجمالي القيمة</p>
+                      </Card>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                      <Card className={cn('border-2 p-3 text-center', lowStockItems.length > 0 ? 'border-red-300 dark:border-red-800 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20' : 'border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20')}>
+                        <motion.div animate={lowStockItems.length > 0 ? { scale: [1, 1.2, 1] } : {}} transition={{ duration: 1, repeat: lowStockItems.length > 0 ? Infinity : 0 }} className="text-2xl mb-1">{lowStockItems.length > 0 ? '⚠️' : '✅'}</motion.div>
+                        <p className={cn('text-xl font-black', lowStockItems.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300')}>{lowStockItems.length}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">مخزون منخفض</p>
+                      </Card>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                      <Card className="border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 p-3 text-center">
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1 }} className="text-2xl mb-1">🏷️</motion.div>
+                        <p className="text-xl font-black text-violet-700 dark:text-violet-300">{new Set(inventoryItems.map(i => i.category || 'عام')).size}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">الفئات</p>
+                      </Card>
+                    </motion.div>
+                  </div>
+
+                  {/* Search & Filter Bar */}
+                  <div className="flex gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[150px] relative"><Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500" /><Input value={inventorySearch} onChange={e => setInventorySearch(e.target.value)} placeholder="بحث بالاسم..." className="input-luxury rounded-xl h-9 pr-9 text-sm border-amber-200 dark:border-amber-800" /></div>
+                    <Select value={inventoryFilter} onValueChange={v => setInventoryFilter(v as any)}><SelectTrigger className="rounded-xl h-9 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">الكل</SelectItem><SelectItem value="low">⚠️ منخفض</SelectItem><SelectItem value="normal">✅ طبيعي</SelectItem></SelectContent></Select>
+                    <Select value={inventoryCategoryFilter} onValueChange={setInventoryCategoryFilter}><SelectTrigger className="rounded-xl h-9 w-28 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الفئات</SelectItem>{[...new Set(inventoryItems.map(i => i.category || 'عام'))].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                  </div>
+
+                  {/* Items List */}
+                  {inventoryItems.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📦</motion.div><p className="text-muted-foreground">لا توجد عناصر في المخزون</p><p className="text-xs text-muted-foreground mt-1">أضف عناصر للبدء في إدارة المخزون</p></Card>}
+                  <div className="space-y-3">{(() => {
+                    const filtered = inventoryItems.filter(i => {
+                      if (inventorySearch && !i.name.toLowerCase().includes(inventorySearch.toLowerCase())) return false
+                      if (inventoryFilter === 'low' && i.quantity > i.minQuantity) return false
+                      if (inventoryFilter === 'normal' && i.quantity <= i.minQuantity) return false
+                      if (inventoryCategoryFilter !== 'all' && (i.category || 'عام') !== inventoryCategoryFilter) return false
+                      return true
+                    })
+                    if (filtered.length === 0) return <Card className="p-6 text-center"><p className="text-muted-foreground text-sm">لا توجد نتائج</p></Card>
+                    return filtered.map((item, idx) => {
+                      const isLow = item.quantity <= item.minQuantity
+                      const isCritical = item.quantity === 0
+                      const stockPercent = item.minQuantity > 0 ? Math.min((item.quantity / (item.minQuantity * 2)) * 100, 100) : 100
+                      const stockColor = isCritical ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
+                      const borderColor = isCritical ? 'border-red-400 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20' : isLow ? 'border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-950/10' : 'border-emerald-200 dark:border-emerald-800'
+                      return (
+                        <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
+                          <Card className={cn('section-card p-4 border-2 transition-all hover:shadow-lg', borderColor)}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <motion.div animate={isLow ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1.5, repeat: isLow ? Infinity : 0 }} className={cn('p-2.5 rounded-xl', isCritical ? 'bg-red-100 dark:bg-red-900/30' : isLow ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30')}>
+                                  {isCritical ? <AlertTriangle className="text-red-600" size={20} /> : isLow ? <AlertTriangle className="text-amber-600" size={20} /> : <Package className="text-emerald-600" size={20} />}
+                                </motion.div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-bold text-sm">{item.name}</p>
+                                    {item.category && <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 text-[9px]">{item.category}</Badge>}
+                                    {isCritical && <Badge className="bg-red-500 text-white text-[9px] animate-pulse">🚫 نفد</Badge>}
+                                    {isLow && !isCritical && <Badge className="bg-amber-500 text-white text-[9px]">⚠️ منخفض</Badge>}
+                                  </div>
+                                  {/* Quantity Progress Bar */}
+                                  <div className="flex items-center gap-2 mb-1.5">
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">{item.quantity} / {item.minQuantity}</span>
+                                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${stockPercent}%` }} transition={{ duration: 0.8, delay: idx * 0.05 }} className={cn('h-full rounded-full', stockColor)} /></div>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span>سعر الوحدة: {formatCurrency(item.unitPrice)}</span>
+                                    <span>القيمة: <span className="font-bold text-amber-600">{formatCurrency(item.quantity * item.unitPrice)}</span></span>
+                                  </div>
+                                  {item.notes && <p className="text-[10px] text-muted-foreground mt-1">📝 {item.notes}</p>}
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setStockTransactionItemId(item.id); setStockTransactionType('in'); setStockTransactionQty(''); setStockTransactionNotes(''); setShowStockTransaction(true) }}><FileUp size={12} className="text-emerald-500" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setStockTransactionItemId(item.id); setStockTransactionType('out'); setStockTransactionQty(''); setStockTransactionNotes(''); setShowStockTransaction(true) }}><FileDown size={12} className="text-orange-500" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingInventoryId(item.id); setEditInventoryForm({ name: item.name, category: item.category || '', quantity: String(item.quantity), minQuantity: String(item.minQuantity), unitPrice: String(item.unitPrice), notes: item.notes || '' }); setShowAddInventory(true) }}><Edit3 size={12} className="text-amber-500" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteInventoryConfirmId(item.id)}><Trash2 size={12} className="text-red-500" /></Button>
+                              </div>
+                            </div>
+                          </Card>
+                        </motion.div>
+                      )
+                    })
+                  })()}</div>
+
+                  {/* Delete Inventory Confirm */}
+                  <AlertDialog open={!!deleteInventoryConfirmId} onOpenChange={() => setDeleteInventoryConfirmId(null)}>
+                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>حذف العنصر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذا العنصر من المخزون؟</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (deleteInventoryConfirmId) { await deleteItem('/inventory/items', deleteInventoryConfirmId, setInventoryItems); setDeleteInventoryConfirmId(null) } }}>حذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                  </AlertDialog>
+                </div>)}
+
+                {/* Bookings Sub-tab - PROFESSIONAL */}
+                {moreSubTab === 'bookings' && (<div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}><CalendarCheck size={18} className="text-sky-500" /></motion.div> نظام الحجز</h3><div className="flex items-center gap-2"><Badge variant="outline">{appointments.length} حجز</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-sky-500 to-sky-600 text-white" onClick={() => { setEditingBookingId(null); setBookingFormPatientSearch(''); setBookingFormPatientId(''); setBookingFormDate(''); setBookingFormTime(''); setBookingFormType('checkup'); setBookingFormStatus('scheduled'); setBookingFormNotes(''); setShowAddBooking(true) }}><Plus size={14} className="ml-1" /> حجز جديد</Button></div></div>
+                  
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                      <Card className="border-2 border-sky-200 dark:border-sky-800 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 p-3 text-center">
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">📅</motion.div>
+                        <p className="text-xl font-black text-sky-700 dark:text-sky-300">{appointments.filter(a => a.date?.startsWith(todayStr)).length}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">حجز اليوم</p>
+                      </Card>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                      <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 p-3 text-center">
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="text-2xl mb-1">📆</motion.div>
+                        <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{(() => { const now = new Date(); const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); return appointments.filter(a => new Date(a.date) >= weekStart && new Date(a.date) <= now).length })()}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">هذا الأسبوع</p>
+                      </Card>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                      <Card className="border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 p-3 text-center">
+                        <motion.div animate={appointments.filter(a => a.status === 'scheduled').length > 0 ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: appointments.filter(a => a.status === 'scheduled').length > 0 ? Infinity : 0 }} className="text-2xl mb-1">⏳</motion.div>
+                        <p className="text-xl font-black text-amber-700 dark:text-amber-300">{appointments.filter(a => a.status === 'scheduled').length}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">قيد الانتظار</p>
+                      </Card>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                      <Card className="border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 p-3 text-center">
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1 }} className="text-2xl mb-1">✅</motion.div>
+                        <p className="text-xl font-black text-violet-700 dark:text-violet-300">{appointments.filter(a => a.status === 'confirmed').length}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold">مؤكد</p>
+                      </Card>
+                    </motion.div>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Select value={bookingFilterStatus} onValueChange={setBookingFilterStatus}><SelectTrigger className="rounded-xl h-9 w-32 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem><SelectItem value="scheduled">⏳ مجدول</SelectItem><SelectItem value="confirmed">✅ مؤكد</SelectItem><SelectItem value="completed">🏁 مكتمل</SelectItem><SelectItem value="cancelled">❌ ملغي</SelectItem></SelectContent></Select>
+                    <Select value={bookingFilterDate} onValueChange={v => setBookingFilterDate(v as any)}><SelectTrigger className="rounded-xl h-9 w-32 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الأوقات</SelectItem><SelectItem value="today">📅 اليوم</SelectItem><SelectItem value="week">📆 هذا الأسبوع</SelectItem><SelectItem value="month">🗓️ هذا الشهر</SelectItem></SelectContent></Select>
+                  </div>
+
+                  {/* Appointments List */}
+                  {appointments.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📅</motion.div><p className="text-muted-foreground">لا توجد حجوزات بعد</p><p className="text-xs text-muted-foreground mt-1">أضف حجز جديد للبدء</p></Card>}
+                  <div className="space-y-3">{(() => {
+                    const filtered = appointments.filter(a => {
+                      if (bookingFilterStatus !== 'all' && a.status !== bookingFilterStatus) return false
+                      if (bookingFilterDate !== 'all') {
+                        const aDate = new Date(a.date)
+                        const now = new Date()
+                        if (bookingFilterDate === 'today' && !a.date?.startsWith(todayStr)) return false
+                        if (bookingFilterDate === 'week') { const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); if (aDate < weekStart) return false }
+                        if (bookingFilterDate === 'month' && (aDate.getMonth() !== now.getMonth() || aDate.getFullYear() !== now.getFullYear())) return false
+                      }
+                      return true
+                    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+                    if (filtered.length === 0) return <Card className="p-6 text-center"><p className="text-muted-foreground text-sm">لا توجد حجوزات مطابقة</p></Card>
+
+                    const statusConfig: Record<string, { emoji: string; color: string; bg: string; border: string }> = {
+                      scheduled: { emoji: '⏳', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-100 dark:bg-amber-900/30', border: 'border-amber-300 dark:border-amber-700' },
+                      confirmed: { emoji: '✅', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-100 dark:bg-emerald-900/30', border: 'border-emerald-300 dark:border-emerald-700' },
+                      completed: { emoji: '🏁', color: 'text-sky-700 dark:text-sky-300', bg: 'bg-sky-100 dark:bg-sky-900/30', border: 'border-sky-300 dark:border-sky-700' },
+                      cancelled: { emoji: '❌', color: 'text-red-700 dark:text-red-300', bg: 'bg-red-100 dark:bg-red-900/30', border: 'border-red-300 dark:border-red-700' },
+                    }
+                    const typeConfig: Record<string, { label: string; color: string }> = { checkup: { label: 'كشف', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' }, revisit: { label: 'إعادة', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, session: { label: 'جلسة', color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' }, consultation: { label: 'استشارة', color: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' } }
+
+                    return filtered.map((apt, idx) => {
+                      const p = patients.find(pt => pt.id === apt.patientId)
+                      const sc = statusConfig[apt.status] || statusConfig.scheduled
+                      const tc = typeConfig[apt.type] || typeConfig.consultation
+                      const aptDate = new Date(apt.date)
+                      const isPast = aptDate < new Date() && apt.status === 'scheduled'
+                      const isToday = apt.date?.startsWith(todayStr)
+
+                      return (
+                        <motion.div key={apt.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
+                          <Card className={cn('section-card p-4 border-2 transition-all hover:shadow-lg', sc.border, isPast && 'bg-amber-50/30 dark:bg-amber-950/10', isToday && 'bg-sky-50/30 dark:bg-sky-950/10')}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <motion.div animate={apt.status === 'scheduled' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1.5, repeat: apt.status === 'scheduled' ? Infinity : 0 }} className={cn('p-2.5 rounded-xl text-lg', sc.bg)}>
+                                  {sc.emoji}
+                                </motion.div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold text-sm">{p?.name || 'بدون مريض'}</span>
+                                    <Badge className={cn('text-[9px]', tc.color)}>{tc.label}</Badge>
+                                    <Badge className={cn('text-[9px]', sc.bg, sc.color)}>{sc.emoji} {apt.status === 'scheduled' ? 'مجدول' : apt.status === 'confirmed' ? 'مؤكد' : apt.status === 'completed' ? 'مكتمل' : 'ملغي'}</Badge>
+                                    {isToday && <Badge className="bg-sky-500 text-white text-[9px]">اليوم</Badge>}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1"><Calendar size={10} />{formatDate(apt.date)}</span>
+                                    {apt.duration && <span className="flex items-center gap-1"><Clock size={10} />{apt.duration} دقيقة</span>}
+                                    {p?.phone && <span className="flex items-center gap-1"><Phone size={10} dir="ltr">{p.phone}</Phone></span>}
+                                  </div>
+                                  {apt.notes && <p className="text-xs text-muted-foreground mt-1">📝 {apt.notes}</p>}
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                {p?.phone && <motion.button whileTap={{ scale: 0.85 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all" onClick={() => { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/2${p.phone?.replace(/[^0-9]/g, '')}?text=${msg}`, '_blank') }}><Send size={14} className="text-green-600" /></motion.button>}
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingBookingId(apt.id); setBookingFormPatientSearch(p?.name || ''); setBookingFormPatientId(apt.patientId || ''); setBookingFormDate(apt.date?.split('T')[0] || ''); setBookingFormTime(aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })); setBookingFormType(apt.type); setBookingFormStatus(apt.status); setBookingFormNotes(apt.notes || ''); setShowAddBooking(true) }}><Edit3 size={12} className="text-sky-500" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/appointments', apt.id, setAppointments)}><Trash2 size={12} className="text-red-500" /></Button>
+                              </div>
+                            </div>
+                          </Card>
+                        </motion.div>
+                      )
+                    })
+                  })()}</div>
                 </div>)}
 
                 {/* Medications Sub-tab - Enhanced */}
@@ -1978,16 +2288,16 @@ export default function Home() {
                   <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><FileText size={18} className="text-fuchsia-500" /> الملاحظات</h3><Badge variant="outline">{notes.length} ملاحظة</Badge></div>
                   {/* Search & Filter */}
                   <div className="flex gap-2">
-                    <div className="flex-1 relative"><Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={noteSearch} onChange={e => setNoteSearch(e.target.value)} placeholder="بحث في الملاحظات..." className="input-luxury rounded-xl h-10 pr-9" /></div>
+                    <div className="flex-1 relative"><Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-fuchsia-500" /><Input value={noteSearch} onChange={e => setNoteSearch(e.target.value)} placeholder="بحث في الملاحظات..." className="input-luxury rounded-xl h-10 pr-9 border-fuchsia-200 dark:border-fuchsia-800" /></div>
                     <Select value={noteFilter} onValueChange={v => setNoteFilter(v as any)}><SelectTrigger className="rounded-xl h-10 w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">الكل</SelectItem><SelectItem value="important">⭐ مهمة</SelectItem><SelectItem value="dashboard">🏠 الرئيسية</SelectItem><SelectItem value="patients">👥 المرضى</SelectItem><SelectItem value="laser">💎 الليزر</SelectItem><SelectItem value="finance">💰 المالية</SelectItem><SelectItem value="general">📌 عام</SelectItem></SelectContent></Select>
                   </div>
                   {/* Add Note */}
-                  <Card className="card-luxury border-2 border-fuchsia-200 dark:border-fuchsia-800">
+                  <Card className="card-luxury border-2 border-fuchsia-300 dark:border-fuchsia-700 bg-gradient-to-br from-fuchsia-50/50 to-violet-50/50 dark:from-fuchsia-950/20 dark:to-violet-950/20">
                     <CardContent className="p-4 space-y-3">
                       <div className="flex gap-2">
-                        <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة جديدة..." className="input-luxury rounded-xl h-10 flex-1" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: 'general', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
-                        <Select value={noteFilter === 'all' ? 'general' : noteFilter} onValueChange={v => {}}><SelectTrigger className="rounded-xl h-10 w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="general">📌 عام</SelectItem><SelectItem value="dashboard">🏠 رئيسية</SelectItem><SelectItem value="patients">👥 مرضى</SelectItem><SelectItem value="laser">💎 ليزر</SelectItem><SelectItem value="finance">💰 مالية</SelectItem></SelectContent></Select>
-                        <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-4 py-2 rounded-xl bg-gradient-to-l from-fuchsia-500 to-violet-500 text-white font-bold shadow-lg" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: 'general', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={18} /></motion.button>
+                        <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة جديدة..." className="input-luxury rounded-xl h-10 flex-1 border-fuchsia-200 dark:border-fuchsia-800 focus:border-fuchsia-500" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: newNoteSection, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
+                        <Select value={newNoteSection} onValueChange={setNewNoteSection}><SelectTrigger className="rounded-xl h-10 w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="general">📌 عام</SelectItem><SelectItem value="dashboard">🏠 رئيسية</SelectItem><SelectItem value="patients">👥 مرضى</SelectItem><SelectItem value="laser">💎 ليزر</SelectItem><SelectItem value="finance">💰 مالية</SelectItem></SelectContent></Select>
+                        <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-4 py-2 rounded-xl bg-gradient-to-l from-fuchsia-500 to-violet-500 text-white font-bold shadow-lg" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: newNoteSection, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={18} /></motion.button>
                       </div>
                     </CardContent>
                   </Card>
@@ -2000,14 +2310,14 @@ export default function Home() {
                       return true;
                     });
                     const noteColors = [
-                      'from-rose-100 to-pink-100 dark:from-rose-900/20 dark:to-pink-900/20 border-rose-300 dark:border-rose-700',
-                      'from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-300 dark:border-blue-700',
-                      'from-emerald-100 to-teal-100 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-300 dark:border-emerald-700',
-                      'from-amber-100 to-yellow-100 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-300 dark:border-amber-700',
-                      'from-violet-100 to-purple-100 dark:from-violet-900/20 dark:to-purple-900/20 border-violet-300 dark:border-violet-700',
-                      'from-cyan-100 to-sky-100 dark:from-cyan-900/20 dark:to-sky-900/20 border-cyan-300 dark:border-cyan-700',
-                      'from-fuchsia-100 to-pink-100 dark:from-fuchsia-900/20 dark:to-pink-900/20 border-fuchsia-300 dark:border-fuchsia-700',
-                      'from-lime-100 to-green-100 dark:from-lime-900/20 dark:to-green-900/20 border-lime-300 dark:border-lime-700',
+                      'from-rose-200/80 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/20 border-rose-400 dark:border-rose-600',
+                      'from-blue-200/80 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/20 border-blue-400 dark:border-blue-600',
+                      'from-emerald-200/80 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/20 border-emerald-400 dark:border-emerald-600',
+                      'from-amber-200/80 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/20 border-amber-400 dark:border-amber-600',
+                      'from-violet-200/80 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/20 border-violet-400 dark:border-violet-600',
+                      'from-cyan-200/80 to-sky-100 dark:from-cyan-900/30 dark:to-sky-900/20 border-cyan-400 dark:border-cyan-600',
+                      'from-fuchsia-200/80 to-pink-100 dark:from-fuchsia-900/30 dark:to-pink-900/20 border-fuchsia-400 dark:border-fuchsia-600',
+                      'from-lime-200/80 to-green-100 dark:from-lime-900/30 dark:to-green-900/20 border-lime-400 dark:border-lime-600',
                     ];
                     const noteEmojis = ['📝', '💡', '📌', '🔔', '⭐', '💬', '🎯', '✨'];
                     const sectionConfig: Record<string, { emoji: string; color: string }> = { dashboard: { emoji: '🏠', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, patients: { emoji: '👥', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' }, laser: { emoji: '💎', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' }, finance: { emoji: '💰', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' }, general: { emoji: '📌', color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300' } };
@@ -2015,25 +2325,32 @@ export default function Home() {
                     return filteredNotes.map((n, i) => {
                       const sec = sectionConfig[n.section || 'general'] || sectionConfig.general;
                       return (
-                        <motion.div key={n.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }} className={cn('relative p-4 rounded-2xl border-2 bg-gradient-to-l transition-all hover:shadow-lg group', noteColors[i % noteColors.length])}>
+                        <motion.div key={n.id} initial={{ opacity: 0, x: -10, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ delay: i * 0.03, type: 'spring', stiffness: 200 }} className={cn('relative p-4 rounded-2xl border-2 bg-gradient-to-l transition-all hover:shadow-xl', noteColors[i % noteColors.length])}>
+                          {n.important && <motion.div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-l from-amber-400 to-yellow-300" animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }} />}
                           <div className="flex items-start gap-3">
-                            <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }} className="text-2xl mt-0.5">{noteEmojis[i % noteEmojis.length]}</motion.div>
+                            <motion.div animate={{ y: [0, -3, 0], rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, delay: i * 0.2 }} className="text-2xl mt-0.5">{noteEmojis[i % noteEmojis.length]}</motion.div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                {n.important && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}>⭐</motion.span>}
+                                <motion.div animate={n.important ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.8, repeat: n.important ? Infinity : 0, repeatDelay: 1 }}>
+                                  {n.important ? <span className="text-lg">⭐</span> : null}
+                                </motion.div>
                                 <Badge className={cn('text-[9px]', sec.color)}>{sec.emoji} {n.section || 'عام'}</Badge>
                                 <span className="text-[10px] text-muted-foreground">{formatDate(n.createdAt)}</span>
                               </div>
                               {editingNoteId === n.id ? (
-                                <div className="flex gap-2 mt-1"><Input value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="input-luxury rounded-xl h-8 text-sm" /><Button size="sm" className="rounded-xl h-8 bg-fuchsia-600 text-white text-[10px]" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent } : nn)); setEditingNoteId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingNoteId(null)}>✕</Button></div>
+                                <div className="space-y-2 mt-2 p-3 rounded-xl bg-white/80 dark:bg-black/20 border border-fuchsia-300 dark:border-fuchsia-700">
+                                  <Input value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="input-luxury rounded-xl h-9 text-sm" autoFocus onKeyDown={e => { if (e.key === 'Enter') { apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent, section: editingNoteSectionMore }) }).then(() => { setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent, section: editingNoteSectionMore } : nn)); setEditingNoteId(null); toast.success('تم التعديل ✓') }).catch(() => toast.error('خطأ')) } }} />
+                                  <Select value={editingNoteSectionMore} onValueChange={setEditingNoteSectionMore}><SelectTrigger className="rounded-xl h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="general">📌 عام</SelectItem><SelectItem value="dashboard">🏠 رئيسية</SelectItem><SelectItem value="patients">👥 مرضى</SelectItem><SelectItem value="laser">💎 ليزر</SelectItem><SelectItem value="finance">💰 مالية</SelectItem></SelectContent></Select>
+                                  <div className="flex gap-2"><Button size="sm" className="rounded-xl h-8 bg-fuchsia-600 text-white text-[10px]" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent, section: editingNoteSectionMore }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent, section: editingNoteSectionMore } : nn)); setEditingNoteId(null); toast.success('تم التعديل ✓') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="h-8" onClick={() => setEditingNoteId(null)}>✕</Button></div>
+                                </div>
                               ) : (
                                 <p className="text-sm font-medium leading-relaxed">{n.content}</p>
                               )}
                             </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ important: !n.important }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, important: !nn.important } : nn)); toast.success(n.important ? 'تم إزالة الأهمية' : 'تم التمييز كمهم ⭐') } catch { toast.error('خطأ') } }}><Star size={12} className={n.important ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} /></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}><Edit3 size={12} className="text-fuchsia-500" /></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={12} className="text-red-500" /></Button>
+                            <div className="flex gap-1">
+                              <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }} className={cn('h-8 w-8 rounded-lg flex items-center justify-center transition-all', n.important ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/50 hover:bg-amber-50 dark:hover:bg-amber-900/20')} onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ important: !n.important }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, important: !nn.important } : nn)); toast.success(n.important ? 'تم إزالة الأهمية' : 'تم التمييز كمهم ⭐') } catch { toast.error('خطأ') } }}><Star size={14} className={n.important ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} /></motion.button>
+                              <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content); setEditingNoteSectionMore(n.section || 'general') }}><Edit3 size={14} className="text-fuchsia-500" /></motion.button>
+                              <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={14} className="text-red-500" /></motion.button>
                             </div>
                           </div>
                         </motion.div>
@@ -2137,7 +2454,7 @@ export default function Home() {
             { label: 'سجل ليزر', emoji: '💎', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800', action: () => { setAiChatOpen(false); setShowAddLaserRecord(true) } },
             { label: 'معاملة', emoji: '💰', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800', action: () => { setAiChatOpen(false); setShowAddTransaction(true) } },
             { label: 'بحث', emoji: '🔍', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800', action: () => { setAiChatOpen(false); setSmartSearchOpen(true) } },
-            { label: 'المواعيد', emoji: '📅', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('appointments') } },
+            { label: 'المواعيد', emoji: '📅', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('bookings') } },
             { label: 'التقارير', emoji: '📊', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('reports') } },
             { label: 'المرضى', emoji: '👥', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800', action: () => { setAiChatOpen(false); setActiveTab('patients') } },
             { label: 'الرئيسية', emoji: '🏠', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', action: () => { setAiChatOpen(false); setActiveTab('dashboard') } },
@@ -2187,21 +2504,21 @@ export default function Home() {
             {/* ─── 2. VISIT TYPE SELECTION - WITH COMBOS ─── */}
             <div>
               <Label className="text-sm font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1 mb-2"><Stethoscope size={14} /> نوع الزيارة</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {/* First row: كشف / إعادة / جلسة */}
                 {VISIT_TYPES.slice(0, 3).map(vt => (
-                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-4 shadow-lg scale-[1.03]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
-                    <span className="text-xl">{vt.emoji}</span>
-                    <span className="text-xs font-bold">{vt.label}</span>
+                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-0.5 p-2 rounded-lg border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-2 shadow-lg scale-[1.02]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
+                    <span className="text-sm">{vt.emoji}</span>
+                    <span className="text-[10px] font-bold">{vt.label}</span>
                   </motion.button>
                 ))}
               </div>
               {/* Second row: Combo types - كشف+جلسة / إعادة+جلسة */}
-              <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-1.5 mt-1.5">
                 {VISIT_TYPES.slice(3).map(vt => (
-                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-4 shadow-lg scale-[1.03]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
-                    <span className="text-lg">{vt.emoji}</span>
-                    <span className="text-xs font-bold">{vt.label}</span>
+                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-2 shadow-lg scale-[1.02]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
+                    <span className="text-xs">{vt.emoji}</span>
+                    <span className="text-[9px] font-bold">{vt.label}</span>
                   </motion.button>
                 ))}
               </div>
@@ -2237,11 +2554,7 @@ export default function Home() {
             </div>
 
             {/* ─── 4. PERSONAL INFO ROW ─── */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-sm font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1"><Phone size={14} /> هاتف آخر</Label>
-                <Input value={newPatientPhone2} onChange={e => setNewPatientPhone2(e.target.value)} placeholder="رقم إضافي" className="input-luxury rounded-xl h-11 mt-1 border-teal-200 dark:border-teal-800 focus:border-teal-500 bg-teal-50/30 dark:bg-teal-950/10" />
-              </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1"><Hash size={14} /> العمر</Label>
                 <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="العمر" className="input-luxury rounded-xl h-11 mt-1 border-amber-200 dark:border-amber-800 focus:border-amber-500 bg-amber-50/30 dark:bg-amber-950/10" />
@@ -2357,19 +2670,23 @@ export default function Home() {
                     <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="ابحث عن العميل..." className="input-luxury rounded-xl h-12 pr-10 text-base border-2 border-cyan-200 dark:border-cyan-800 focus:border-cyan-500" />
                   </div>
                   {laserPatientSuggestions.length > 0 && !laserFormPatientId && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-card border-2 border-cyan-300 dark:border-cyan-700 rounded-2xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
+                      <div className="sticky top-0 z-10 p-2 bg-gradient-to-l from-cyan-50 to-sky-50 dark:from-cyan-950/50 dark:to-sky-950/50 border-b border-cyan-200 dark:border-cyan-800">
+                        <p className="text-xs font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1"><Search size={12} /> مرضى موجودين ({laserPatientSuggestions.length})</p>
+                      </div>
                       {laserPatientSuggestions.map(p => (
-                        <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right text-sm border-b last:border-0 transition-colors">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center font-bold text-white text-lg shadow-md">{p.name?.charAt(0)}</div>
-                          <div>
-                            <p className="font-bold">{p.name}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 text-right text-sm border-b border-cyan-100 dark:border-cyan-900/30 last:border-0 transition-all hover:shadow-md">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center font-bold text-white text-xl shadow-lg">{p.name?.charAt(0)}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-base">{p.name}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                               <Badge variant="outline" className="text-[9px]">#{p.fileNumber}</Badge>
                               {p.phone && <span className="flex items-center gap-1"><Phone size={10} />{p.phone}</span>}
                               {p.age && <span>{p.age} سنة</span>}
                               {p.gender && <Badge className={cn('text-[9px]', p.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300')}>{p.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>}
                             </div>
                           </div>
+                          <ChevronDown size={16} className="text-cyan-400 rotate-[-90deg]" />
                         </button>
                       ))}
                     </div>
@@ -2603,8 +2920,45 @@ export default function Home() {
       {/* Add Transaction */}
       <Dialog open={showAddTransaction} onOpenChange={setShowAddTransaction}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>معاملة مالية</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>النوع</Label><Select><SelectTrigger className="rounded-xl"><SelectValue placeholder="النوع" /></SelectTrigger><SelectContent><SelectItem value="income">إيراد</SelectItem><SelectItem value="expense">مصروف</SelectItem></SelectContent></Select></div><div><Label>الفئة</Label><Input id="tCat" placeholder="الفئة" className="input-luxury rounded-xl" /></div><div><Label>المبلغ *</Label><Input id="tAmt" type="number" placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>الوصف</Label><Textarea id="tDesc" placeholder="وصف المعاملة" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/finance/transactions', { type: 'income', category: (document.getElementById('tCat') as HTMLInputElement)?.value || 'عام', amount: parseFloat((document.getElementById('tAmt') as HTMLInputElement)?.value) || 0, description: (document.getElementById('tDesc') as HTMLTextAreaElement)?.value, date: new Date().toISOString() }, setTransactions); setShowAddTransaction(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
-      {/* Add Appointment */}
-      <Dialog open={showAddAppointment} onOpenChange={setShowAddAppointment}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>موعد جديد</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>المريض</Label><Select><SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر المريض" /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div><div><Label>النوع</Label><Input id="apType" placeholder="نوع الموعد" className="input-luxury rounded-xl" /></div><div><Label>المدة</Label><Input id="apDur" type="number" placeholder="30" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/appointments', { patientId: patients[0]?.id, type: (document.getElementById('apType') as HTMLInputElement)?.value || 'استشارة', duration: parseInt((document.getElementById('apDur') as HTMLInputElement)?.value) || 30, status: 'scheduled', date: new Date().toISOString() }, setAppointments); setShowAddAppointment(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+      {/* Add/Edit Booking - Professional */}
+      <Dialog open={showAddBooking} onOpenChange={setShowAddBooking}><DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarCheck size={18} className="text-sky-500" /> {editingBookingId ? 'تعديل الحجز' : 'حجز جديد'}</DialogTitle><DialogDescription>{editingBookingId ? 'تعديل بيانات الحجز' : 'حجز موعد جديد للعيادة'}</DialogDescription></DialogHeader>
+        <div className="space-y-4">
+          {/* Patient Search */}
+          <div className="relative">
+            <Label className="text-xs font-bold text-sky-700 dark:text-sky-300">بحث المريض</Label>
+            <div className="relative mt-1"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-sky-500" size={16} /><Input value={bookingFormPatientSearch} onChange={e => { setBookingFormPatientSearch(e.target.value); if (bookingFormPatientId) setBookingFormPatientId('') }} placeholder="ابحث عن المريض..." className="input-luxury rounded-xl h-11 pr-9 border-sky-200 dark:border-sky-800" /></div>
+            {bookingPatientSuggestions.length > 0 && !bookingFormPatientId && (
+              <div className="absolute top-full left-0 right-0 z-[100] mt-1 bg-card border-2 border-sky-300 dark:border-sky-700 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto">
+                {bookingPatientSuggestions.map(p => (
+                  <button key={p.id} onClick={() => { setBookingFormPatientId(p.id); setBookingFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-sky-50 dark:hover:bg-sky-950/30 text-right text-sm border-b border-sky-100 dark:border-sky-900/30 last:border-0 transition-all">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center font-bold text-white">{p.name?.charAt(0)}</div>
+                    <div><p className="font-bold text-sm">{p.name}</p><div className="flex items-center gap-1 text-xs text-muted-foreground"><Badge variant="outline" className="text-[8px]">#{p.fileNumber}</Badge>{p.phone && <span>{p.phone}</span>}</div></div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {bookingFormPatientId && (() => { const sp = patients.find(p => p.id === bookingFormPatientId); return sp ? <div className="mt-2 p-2 rounded-xl bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800 flex items-center gap-2"><span className="font-bold text-sm">{sp.name}</span>{sp.phone && <span className="text-xs text-muted-foreground" dir="ltr">{sp.phone}</span>}<Button variant="ghost" size="sm" className="h-6 text-xs mr-auto" onClick={() => { setBookingFormPatientId(''); setBookingFormPatientSearch('') }}>✕</Button></div> : null })()}
+          </div>
+          {/* Date & Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-xs font-bold">التاريخ *</Label><Input type="date" value={bookingFormDate} onChange={e => setBookingFormDate(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-sky-200 dark:border-sky-800" /></div>
+            <div><Label className="text-xs font-bold">الوقت</Label><Input type="time" value={bookingFormTime} onChange={e => setBookingFormTime(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-sky-200 dark:border-sky-800" /></div>
+          </div>
+          {/* Visit Type */}
+          <div><Label className="text-xs font-bold">نوع الزيارة</Label><div className="flex gap-1.5 mt-1">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setBookingFormType(vt.id)} className={cn('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-white text-[10px] font-bold transition-all', vt.bg, bookingFormType === vt.id ? 'ring-2 ring-white shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div></div>
+          {/* Status */}
+          <div><Label className="text-xs font-bold">الحالة</Label><div className="flex gap-1.5 mt-1 flex-wrap">{[{ id: 'scheduled', label: '⏳ مجدول', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700' }, { id: 'confirmed', label: '✅ مؤكد', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700' }, { id: 'completed', label: '🏁 مكتمل', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-700' }, { id: 'cancelled', label: '❌ ملغي', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700' }].map(s => (<motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => setBookingFormStatus(s.id)} className={cn('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border-2 transition-all', s.color, bookingFormStatus === s.id ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}>{s.label}</motion.button>))}</div></div>
+          {/* Notes */}
+          <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={bookingFormNotes} onChange={e => setBookingFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1 min-h-[60px] border-sky-200 dark:border-sky-800" /></div>
+        </div>
+        <DialogFooter>
+          {bookingFormPatientId && bookingFormDate && (
+            <motion.button whileTap={{ scale: 0.95 }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-100 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 text-xs font-bold hover:bg-green-200 transition-all" onClick={() => { const p = patients.find(pt => pt.id === bookingFormPatientId); if (p?.phone) { const timeStr = bookingFormTime ? bookingFormTime : 'غير محدد'; const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${bookingFormDate} الساعة ${timeStr}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/2${p.phone?.replace(/[^0-9]/g, '')}?text=${msg}`, '_blank') } else { toast.error('لا يوجد هاتف للمريض') } }}><Send size={14} /> واتساب</motion.button>
+          )}
+          <Button className="btn-luxury rounded-xl bg-gradient-to-l from-sky-500 to-sky-600 text-white" onClick={async () => { if (!bookingFormDate) return toast.error('التاريخ مطلوب'); const dateStr = bookingFormTime ? `${bookingFormDate}T${bookingFormTime}:00` : bookingFormDate; if (editingBookingId) { try { await apiFetch(`/appointments/${editingBookingId}`, { method: 'PUT', body: JSON.stringify({ patientId: bookingFormPatientId || null, date: dateStr, type: bookingFormType, status: bookingFormStatus, notes: bookingFormNotes || null }) }); setAppointments(prev => prev.map(a => a.id === editingBookingId ? { ...a, patientId: bookingFormPatientId || undefined, date: dateStr, type: bookingFormType, status: bookingFormStatus, notes: bookingFormNotes } : a)); toast.success('تم تعديل الحجز ✓') } catch { toast.error('خطأ في التعديل') } } else { await addItem('/appointments', { patientId: bookingFormPatientId || null, date: dateStr, duration: 30, type: bookingFormType, status: bookingFormStatus, notes: bookingFormNotes || null }, setAppointments) } setShowAddBooking(false); setEditingBookingId(null) }}>حفظ</Button>
+        </DialogFooter>
+      </DialogContent></Dialog>
 
       {/* Add Laser Package */}
       <Dialog open={showAddLaserPackage} onOpenChange={setShowAddLaserPackage}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>باقة ليزر جديدة</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>اسم الباقة *</Label><Input id="lpName" placeholder="اسم الباقة" className="input-luxury rounded-xl" /></div><div className="grid grid-cols-2 gap-3"><div><Label>عدد الجلسات</Label><Input id="lpSess" type="number" placeholder="6" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input id="lpPrice" type="number" placeholder="0" className="input-luxury rounded-xl" /></div></div><div><Label>منطقة الجسم</Label><Select><SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر المنطقة" /></SelectTrigger><SelectContent>{BODY_AREAS.map(a => <SelectItem key={a.id} value={a.label}>{a.emoji} {a.label}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/laser/packages', { name: (document.getElementById('lpName') as HTMLInputElement)?.value, sessionsCount: parseInt((document.getElementById('lpSess') as HTMLInputElement)?.value) || 6, price: parseFloat((document.getElementById('lpPrice') as HTMLInputElement)?.value) || 0, active: true }, setLaserPackages); setShowAddLaserPackage(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
@@ -2615,8 +2969,11 @@ export default function Home() {
       {/* Add Reminder - ENHANCED */}
       <Dialog open={showAddReminder} onOpenChange={setShowAddReminder}><DialogContent className="max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><Bell size={18} className="text-rose-500" /> تذكير جديد</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>العنوان *</Label><Input id="remTitle" placeholder="عنوان التذكير" className="input-luxury rounded-xl" /></div><div><Label>النوع</Label><div className="grid grid-cols-4 gap-2 mt-1">{[{ id: 'urgent', label: 'عاجل', emoji: '🔴', bg: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' }, { id: 'important', label: 'مهم', emoji: '🟡', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' }, { id: 'followup', label: 'متابعة', emoji: '🔵', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' }, { id: 'general', label: 'عام', emoji: '🟢', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' }].map(t => (<motion.button key={t.id} whileTap={{ scale: 0.9 }} onClick={() => setReminderType(t.id)} className={cn('flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', t.bg, reminderType === t.id ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span className="text-lg">{t.emoji}</span>{t.label}</motion.button>))}</div></div><div className="grid grid-cols-2 gap-2"><div><Label>التاريخ</Label><Input id="remDate" type="date" className="input-luxury rounded-xl" /></div><div><Label>الوقت</Label><Input id="remTime" type="time" className="input-luxury rounded-xl" /></div></div><div><Label>المريض (اختياري)</Label><Select value={reminderPatientId} onValueChange={setReminderPatientId}><SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر المريض" /></SelectTrigger><SelectContent><SelectItem value="none">بدون مريض</SelectItem>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { const title = (document.getElementById('remTitle') as HTMLInputElement)?.value; const date = (document.getElementById('remDate') as HTMLInputElement)?.value; const time = (document.getElementById('remTime') as HTMLInputElement)?.value; const dateStr = date ? (time ? `${date}T${time}:00` : date) : new Date().toISOString(); addItem('/reminders', { title, date: dateStr, type: reminderType, patientId: reminderPatientId === 'none' ? undefined : reminderPatientId || undefined, status: 'pending' }, setReminders); setShowAddReminder(false); setReminderType('general'); setReminderPatientId(''); toast.success('تم إضافة التذكير') }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
-      {/* Add Inventory */}
-      <Dialog open={showAddInventory} onOpenChange={setShowAddInventory}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>عنصر مخزون</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input id="invName" placeholder="اسم العنصر" className="input-luxury rounded-xl" /></div><div className="grid grid-cols-3 gap-3"><div><Label>الكمية</Label><Input id="invQty" type="number" placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>الحد الأدنى</Label><Input id="invMin" type="number" placeholder="5" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input id="invPrice" type="number" placeholder="0" className="input-luxury rounded-xl" /></div></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/inventory/items', { name: (document.getElementById('invName') as HTMLInputElement)?.value, quantity: parseInt((document.getElementById('invQty') as HTMLInputElement)?.value) || 0, minQuantity: parseInt((document.getElementById('invMin') as HTMLInputElement)?.value) || 5, unitPrice: parseFloat((document.getElementById('invPrice') as HTMLInputElement)?.value) || 0 }, setInventoryItems); setShowAddInventory(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+      {/* Add/Edit Inventory - Enhanced */}
+      <Dialog open={showAddInventory} onOpenChange={setShowAddInventory}><DialogContent className="max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><Package size={18} className="text-amber-500" /> {editingInventoryId ? 'تعديل عنصر المخزون' : 'عنصر مخزون جديد'}</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input value={editInventoryForm.name} onChange={e => setEditInventoryForm(prev => ({ ...prev, name: e.target.value }))} placeholder="اسم العنصر" className="input-luxury rounded-xl" /></div><div><Label>الفئة</Label><Select value={editInventoryForm.category || 'عام'} onValueChange={v => setEditInventoryForm(prev => ({ ...prev, category: v }))}><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="عام">📌 عام</SelectItem><SelectItem value="أدوية">💊 أدوية</SelectItem><SelectItem value="مستلزمات طبية">🏥 مستلزمات طبية</SelectItem><SelectItem value="مستلزمات ليزر">💎 مستلزمات ليزر</SelectItem><SelectItem value="كريمات">🧴 كريمات</SelectItem><SelectItem value="أدوات">🔧 أدوات</SelectItem></SelectContent></Select></div><div className="grid grid-cols-3 gap-3"><div><Label>الكمية</Label><Input type="number" value={editInventoryForm.quantity} onChange={e => setEditInventoryForm(prev => ({ ...prev, quantity: e.target.value }))} placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>الحد الأدنى</Label><Input type="number" value={editInventoryForm.minQuantity} onChange={e => setEditInventoryForm(prev => ({ ...prev, minQuantity: e.target.value }))} placeholder="5" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input type="number" value={editInventoryForm.unitPrice} onChange={e => setEditInventoryForm(prev => ({ ...prev, unitPrice: e.target.value }))} placeholder="0" className="input-luxury rounded-xl" /></div></div><div><Label>ملاحظات</Label><Input value={editInventoryForm.notes} onChange={e => setEditInventoryForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={async () => { if (!editInventoryForm.name.trim()) return toast.error('الاسم مطلوب'); if (editingInventoryId) { try { await apiFetch(`/inventory/items/${editingInventoryId}`, { method: 'PUT', body: JSON.stringify({ name: editInventoryForm.name, category: editInventoryForm.category || null, quantity: parseInt(editInventoryForm.quantity) || 0, minQuantity: parseInt(editInventoryForm.minQuantity) || 5, unitPrice: parseFloat(editInventoryForm.unitPrice) || 0, notes: editInventoryForm.notes || null }) }); setInventoryItems(prev => prev.map(i => i.id === editingInventoryId ? { ...i, name: editInventoryForm.name, category: editInventoryForm.category, quantity: parseInt(editInventoryForm.quantity) || 0, minQuantity: parseInt(editInventoryForm.minQuantity) || 5, unitPrice: parseFloat(editInventoryForm.unitPrice) || 0, notes: editInventoryForm.notes } : i)); toast.success('تم تعديل العنصر') } catch { toast.error('خطأ في التعديل') } } else { await addItem('/inventory/items', { name: editInventoryForm.name, category: editInventoryForm.category || null, quantity: parseInt(editInventoryForm.quantity) || 0, minQuantity: parseInt(editInventoryForm.minQuantity) || 5, unitPrice: parseFloat(editInventoryForm.unitPrice) || 0, notes: editInventoryForm.notes || null }, setInventoryItems) } setShowAddInventory(false); setEditingInventoryId(null); setEditInventoryForm({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' }) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+
+      {/* Stock Transaction Dialog */}
+      <Dialog open={showStockTransaction} onOpenChange={setShowStockTransaction}><DialogContent className="max-w-sm"><DialogHeader><DialogTitle className="flex items-center gap-2">{stockTransactionType === 'in' ? <FileUp size={18} className="text-emerald-500" /> : <FileDown size={18} className="text-orange-500" />} {stockTransactionType === 'in' ? 'توريد مخزون' : 'صرف مخزون'}</DialogTitle></DialogHeader><div className="space-y-3"><div className="flex gap-2">{[{ type: 'in' as const, label: 'توريد', emoji: '📥', color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' }, { type: 'out' as const, label: 'صرف', emoji: '📤', color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300' }].map(t => (<motion.button key={t.type} whileTap={{ scale: 0.95 }} onClick={() => setStockTransactionType(t.type)} className={cn('flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', t.color, stockTransactionType === t.type ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{t.emoji}</span>{t.label}</motion.button>))}</div><div><Label>الكمية *</Label><Input type="number" value={stockTransactionQty} onChange={e => setStockTransactionQty(e.target.value)} placeholder="الكمية" className="input-luxury rounded-xl" /></div><div><Label>ملاحظات</Label><Input value={stockTransactionNotes} onChange={e => setStockTransactionNotes(e.target.value)} placeholder="سبب التوريد/الصرف..." className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className={cn('btn-luxury rounded-xl text-white', stockTransactionType === 'in' ? 'bg-gradient-to-l from-emerald-500 to-emerald-600' : 'bg-gradient-to-l from-orange-500 to-orange-600')} onClick={async () => { const qty = parseInt(stockTransactionQty); if (!qty || qty <= 0) return toast.error('أدخل كمية صحيحة'); try { await apiFetch('/inventory/transactions', { method: 'POST', body: JSON.stringify({ itemId: stockTransactionItemId, type: stockTransactionType, quantity: qty, notes: stockTransactionNotes || null, date: new Date().toISOString() }) }); const item = inventoryItems.find(i => i.id === stockTransactionItemId); if (item) { const newQty = stockTransactionType === 'in' ? item.quantity + qty : Math.max(0, item.quantity - qty); setInventoryItems(prev => prev.map(i => i.id === stockTransactionItemId ? { ...i, quantity: newQty } : i)) } toast.success(stockTransactionType === 'in' ? `تم توريد ${qty} وحدة` : `تم صرف ${qty} وحدة`); setShowStockTransaction(false) } catch { toast.error('خطأ في العملية') } }}>تأكيد</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Add/Edit Partner Doctor Dialog */}
       <Dialog open={showAddDoctor} onOpenChange={setShowAddDoctor}><DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
