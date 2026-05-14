@@ -189,8 +189,8 @@ export default function Home() {
   const [aiLoading, setAiLoading] = useState(false)
 
   // Login
-  const [loginEmail, setLoginEmail] = useState('doctor@elmoghazi.com')
-  const [loginPassword, setLoginPassword] = useState('2137')
+  const [loginRole, setLoginRole] = useState<'doctor' | 'secretary' | null>(null)
+  const [loginPassword, setLoginPassword] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -245,7 +245,7 @@ export default function Home() {
 
   // Role & Password system
   const [userRole, setUserRole] = useState<'doctor' | 'secretary'>('doctor')
-  const [sectionPasswords, setSectionPasswords] = useState<Record<string, string>>({ finance: '2137', settings: '2137', more: '2137' })
+  const [sectionPasswords, setSectionPasswords] = useState<Record<string, string>>({})
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState('')
   const [passwordInput, setPasswordInput] = useState('')
@@ -352,8 +352,17 @@ export default function Home() {
 
   // ─── CRUD ─────────────────────────────────────────────────────────────
   const handleLogin = async () => {
+    if (!loginRole) { toast.error('اختر الدور أولاً'); return }
+    if (loginPassword !== '1300') { toast.error('كلمة السر غير صحيحة'); return }
     setLoginLoading(true)
-    try { const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ email: loginEmail, password: loginPassword }) }); login(res.user); toast.success('مرحباً بك') } catch (e: any) { toast.error(e.message || 'خطأ في تسجيل الدخول') }
+    setUserRole(loginRole)
+    try {
+      const email = loginRole === 'doctor' ? 'doctor@elmoghazi.com' : 'secretary@elmoghazi.com'
+      const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password: '1300' }) })
+      login(res.user)
+      toast.success(loginRole === 'doctor' ? 'مرحباً دكتور 🩺' : 'مرحباً 👩‍💼')
+      if (loginRole === 'secretary') setActiveTab('patients')
+    } catch (e: any) { toast.error(e.message || 'خطأ في تسجيل الدخول') }
     setLoginLoading(false)
   }
   const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
@@ -696,20 +705,16 @@ export default function Home() {
 
   // ─── Role-based access control ────────────────────────────────────────
   const isDoctor = userRole === 'doctor'
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'laser', 'finance', 'more', 'settings'] : ['patients']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
-      setPasswordTarget(tab); setPasswordInput(''); setPasswordDialogOpen(true); setPendingTab(tab); return
-    }
-    // Check section password
-    if (sectionPasswords[tab] && !isDoctor) {
-      setPasswordTarget(tab); setPasswordInput(''); setPasswordDialogOpen(true); setPendingTab(tab); return
+      toast.error('هذا القسم غير متاح للسكرتيرة'); return
     }
     setActiveTab(tab)
     if (tab === 'patients') setSelectedPatient(null)
   }
   const verifyPassword = () => {
-    if (passwordInput === sectionPasswords[pendingTab] || passwordInput === '2137') {
+    if (passwordInput === '1300') {
       setActiveTab(pendingTab)
       if (pendingTab === 'patients') setSelectedPatient(null)
       setPasswordDialogOpen(false)
@@ -732,13 +737,14 @@ export default function Home() {
   }, [doctors, checkupRevenue, revisitRevenue, sessionRevenue])
 
   // ─── Bottom Nav ───────────────────────────────────────────────────────
-  const bottomNavItems = [
+  const allNavItems = [
     { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} /> },
     { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} /> },
     { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} /> },
     { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} /> },
     { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} /> },
   ]
+  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => i.id === 'patients')
 
   // ─── LOGIN ────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
@@ -753,10 +759,34 @@ export default function Home() {
               <p className="text-emerald-200/80 mt-1">عيادة المغازى للجلدية والتجميل</p>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
-              <div><Label className="text-emerald-200">البريد الإلكتروني</Label><Input value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12" /></div>
-              <div><Label className="text-emerald-200">كلمة المرور</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12" onKeyDown={e => e.key === 'Enter' && handleLogin()} /></div>
+              {!loginRole ? (
+                <div className="space-y-3">
+                  <p className="text-emerald-200 text-center text-sm font-bold mb-2">اختر دورك للدخول</p>
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('doctor')} className="w-full p-4 rounded-2xl border-2 border-amber-400/30 bg-gradient-to-l from-amber-900/30 to-emerald-900/30 hover:from-amber-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg"><Stethoscope className="text-white" size={28} /></div>
+                    <div className="text-right"><p className="text-white font-bold text-lg">طبيب</p><p className="text-emerald-200/60 text-xs">دخول كامل لجميع الأقسام</p></div>
+                  </motion.button>
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg"><Users size={28} className="text-white" /></div>
+                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والجلسات فقط</p></div>
+                  </motion.button>
+                </div>
+              ) : (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-900/30 border border-emerald-600/20">
+                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', loginRole === 'doctor' ? 'bg-gradient-to-br from-amber-500 to-amber-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-700')}>
+                      {loginRole === 'doctor' ? <Stethoscope className="text-white" size={18} /> : <Users size={18} className="text-white" />}
+                    </div>
+                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والجلسات فقط'}</p></div>
+                    <button onClick={() => { setLoginRole(null); setLoginPassword('') }} className="mr-auto text-emerald-200/60 hover:text-white text-xs">تغيير</button>
+                  </div>
+                  <div><Label className="text-emerald-200">كلمة المرور</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="أدخل كلمة السر..." className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12 text-center text-lg" onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus /></div>
+                </motion.div>
+              )}
             </CardContent>
-            <CardFooter><Button onClick={handleLogin} disabled={loginLoading} className="w-full bg-gradient-to-l from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-6 text-lg btn-luxury rounded-xl shadow-lg">{loginLoading ? <RefreshCw className="animate-spin ml-2" size={20} /> : <Sparkles className="ml-2" size={20} />}تسجيل الدخول</Button></CardFooter>
+            {loginRole && (
+              <CardFooter><Button onClick={handleLogin} disabled={loginLoading || !loginPassword} className="w-full bg-gradient-to-l from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-6 text-lg btn-luxury rounded-xl shadow-lg">{loginLoading ? <RefreshCw className="animate-spin ml-2" size={20} /> : <Sparkles className="ml-2" size={20} />}دخول</Button></CardFooter>
+            )}
           </Card>
         </motion.div>
       </div>
@@ -980,7 +1010,7 @@ export default function Home() {
                     <div className="flex items-center gap-2 mt-3">
                       <span className="text-xs text-muted-foreground font-bold">لون الحالة:</span>
                       {['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#f97316', '#06b6d4', '#84cc16', '#6366f1'].map(c => (
-                        <button key={c} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ colorTag: c }) }); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? { ...p, colorTag: c } : p)); setSelectedPatient({ ...selectedPatient, colorTag: c }) } catch { toast.error('خطأ') } }} className={cn('w-6 h-6 rounded-full border-2 transition-all hover:scale-125', selectedPatient.colorTag === c ? 'border-foreground scale-125 shadow-lg ring-2 ring-foreground/30' : 'border-transparent')} style={{ backgroundColor: c }} />
+                        <button key={c} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ colorTag: c }) }); const updatedPatient = { ...selectedPatient, colorTag: c }; setSelectedPatient(updatedPatient); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? updatedPatient : p)); toast.success('تم تغيير اللون') } catch { toast.error('خطأ في تغيير اللون') } }} className={cn('w-7 h-7 rounded-full border-2 transition-all hover:scale-125 cursor-pointer', selectedPatient.colorTag === c ? 'border-foreground scale-125 shadow-lg ring-2 ring-foreground/30' : 'border-transparent')} style={{ backgroundColor: c }} />
                       ))}
                     </div>
                   </div>
@@ -1265,10 +1295,10 @@ export default function Home() {
                   <TabsContent value="notes" className="space-y-3 mt-3">
                     <h3 className="font-bold flex items-center gap-2"><FileText size={16} className="text-purple-500" /> ملاحظات المريض</h3>
                     <div className="flex gap-2">
-                      <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-10" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, patientId: selectedPatient.id, section: 'patient', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
-                      <Button className="rounded-xl" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, patientId: selectedPatient.id, section: 'patient', createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={16} /></Button>
+                      <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-10" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim() && selectedPatient) { addItem('/notes', { content: quickNote, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes); setQuickNote('') } }} />
+                      <Button className="rounded-xl" onClick={() => { if (quickNote.trim() && selectedPatient) { addItem('/notes', { content: quickNote, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes); setQuickNote('') } }}><Plus size={16} /></Button>
                     </div>
-                    {notes.filter(n => n.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📝</motion.div><p className="text-muted-foreground">لا توجد ملاحظات</p></Card>}
+                    {notes.filter(n => n.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📝</motion.div><p className="text-muted-foreground">لا توجد ملاحظات - أضف ملاحظة جديدة</p></Card>}
                     <div className="space-y-2">{notes.filter(n => n.patientId === selectedPatient.id).map(n => (
                       <Card key={n.id} className="section-card p-3">
                         <div className="flex items-start gap-2">
@@ -1280,7 +1310,7 @@ export default function Home() {
                           </div>
                           {editingNoteId !== n.id && <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}><Edit3 size={10} className="text-blue-500" /></Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={10} className="text-red-500" /></Button>
+                            <AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><Trash2 size={10} className="text-red-500" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>حذف الملاحظة</AlertDialogTitle><AlertDialogDescription>هل تريد حذف هذه الملاحظة؟</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => deleteItem('/notes', n.id, setNotes)}>حذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                           </div>}
                         </div>
                       </Card>
@@ -1961,7 +1991,7 @@ export default function Home() {
                     </div>
                   </CardContent></Card>
 
-                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Lock size={20} className="text-red-500" /> كلمات سر الأقسام</CardTitle><CardDescription>حماية الأقسام بكلمة سر - الافتراضية: 2137</CardDescription></CardHeader><CardContent className="space-y-3">
+                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Lock size={20} className="text-red-500" /> كلمات سر الأقسام</CardTitle><CardDescription>حماية الأقسام بكلمة سر</CardDescription></CardHeader><CardContent className="space-y-3">
                     {[
                       { key: 'finance', label: 'القسم المالي', emoji: '💰' },
                       { key: 'settings', label: 'الإعدادات', emoji: '🎨' },
@@ -1969,10 +1999,10 @@ export default function Home() {
                       { key: 'dashboard', label: 'لوحة التحكم', emoji: '🏠' },
                     ].map(s => (
                       <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
-                        <div className="flex items-center gap-2"><span className="text-lg">{s.emoji}</span><div><p className="text-sm font-medium">{s.label}</p><p className="text-[9px] text-muted-foreground">{sectionPasswords[s.key] ? 'محمي بكلمة سر' : 'غير محمي'}</p></div></div>
+                        <div className="flex items-center gap-2"><span className="text-lg">{s.emoji}</span><div><p className="text-sm font-medium">{s.label}</p><p className="text-[9px] text-muted-foreground">{(sectionPasswords as Record<string,string>)[s.key] ? 'محمي بكلمة سر' : 'غير محمي'}</p></div></div>
                         <div className="flex items-center gap-2">
-                          <Input type="password" value={sectionPasswords[s.key] || ''} onChange={e => setSectionPasswords(prev => ({ ...prev, [s.key]: e.target.value }))} placeholder="كلمة السر" className="w-28 h-8 text-xs rounded-lg" />
-                          {sectionPasswords[s.key] && <Button variant="ghost" size="sm" className="h-8 text-[10px] text-red-500" onClick={() => setSectionPasswords(prev => ({ ...prev, [s.key]: '' }))}>إلغاء</Button>}
+                          <Input type="password" value={(sectionPasswords as Record<string,string>)[s.key] || ''} onChange={e => setSectionPasswords(prev => ({ ...prev, [s.key]: e.target.value }))} placeholder="كلمة السر" className="w-28 h-8 text-xs rounded-lg" />
+                          {(sectionPasswords as Record<string,string>)[s.key] && <Button variant="ghost" size="sm" className="h-8 text-[10px] text-red-500" onClick={() => setSectionPasswords(prev => ({ ...prev, [s.key]: '' }))}>إلغاء</Button>}
                         </div>
                       </div>
                     ))}
@@ -2341,7 +2371,6 @@ export default function Home() {
         <DialogHeader><DialogTitle className="flex items-center gap-2"><Lock size={20} className="text-red-500" /> كلمة السر مطلوبة</DialogTitle><DialogDescription>هذا القسم محمي بكلمة سر</DialogDescription></DialogHeader>
         <div className="space-y-3">
           <Input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} placeholder="أدخل كلمة السر..." className="input-luxury rounded-xl h-12 text-center text-lg font-bold" onKeyDown={e => e.key === 'Enter' && verifyPassword()} autoFocus />
-          <p className="text-[10px] text-muted-foreground text-center">كلمة السر الافتراضية: 2137</p>
         </div>
         <DialogFooter className="gap-2"><Button variant="ghost" onClick={() => setPasswordDialogOpen(false)}>إلغاء</Button><Button className="btn-luxury rounded-xl" onClick={verifyPassword}>دخول</Button></DialogFooter>
       </DialogContent></Dialog>

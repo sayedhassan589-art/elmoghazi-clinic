@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       data: {
         name: 'Dr. Elmoghazi',
         email: 'doctor@elmoghazi.com',
-        password: '2137',
+        password: '1300',
         role: 'doctor',
         active: true,
       },
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       data: {
         name: 'Sarah Ahmed',
         email: 'secretary@elmoghazi.com',
-        password: '2137',
+        password: '1300',
         role: 'secretary',
         active: true,
       },
