@@ -231,6 +231,7 @@ export default function Home() {
 
   // Patient edit/delete
   const [editingPatient, setEditingPatient] = useState(false)
+  const [deletePatientConfirmOpen, setDeletePatientConfirmOpen] = useState(false)
   const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', phone2: '', age: '', gender: '', address: '', bloodType: '', medicalHistory: '', notes: '' })
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
   const [editVisitForm, setEditVisitForm] = useState({ type: '', notes: '', price: '' })
@@ -2128,11 +2129,6 @@ export default function Home() {
               <div>
                 <Label className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Phone size={14} /> الهاتف</Label>
                 <Input value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10" />
-                <div className="flex gap-1.5 mt-1.5">
-                  {['010', '011', '012', '015'].map(prefix => (
-                    <motion.button key={prefix} whileTap={{ scale: 0.9 }} onClick={() => setNewPatientPhone(newPatientPhone + prefix)} className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800">{prefix}</motion.button>
-                  ))}
-                </div>
               </div>
               <div>
                 <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
@@ -2149,11 +2145,6 @@ export default function Home() {
               <div>
                 <Label className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1"><Hash size={14} /> العمر</Label>
                 <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="العمر" className="input-luxury rounded-xl h-11 mt-1 border-amber-200 dark:border-amber-800 focus:border-amber-500 bg-amber-50/30 dark:bg-amber-950/10" />
-                <div className="flex gap-1 mt-1.5 flex-wrap">
-                  {['20', '25', '30', '35', '40', '45'].map(age => (
-                    <motion.button key={age} whileTap={{ scale: 0.9 }} onClick={() => setNewPatientAge(age)} className="px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800">{age}</motion.button>
-                  ))}
-                </div>
               </div>
               <div>
                 <Label className="text-sm font-bold text-pink-600 dark:text-pink-400">الجنس</Label>
