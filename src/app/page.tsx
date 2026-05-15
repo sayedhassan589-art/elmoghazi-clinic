@@ -17,7 +17,11 @@ import {
   Scissors, Syringe, Layers, Wand2, ThermometerSun, Lock,
   CircleDot, Armchair, ScanFace, Hand, Circle,
   MousePointerClick, Target, ZapOff, BarChart2, Receipt,
-  CalendarCheck, UsersRound, ClipboardCheck, AlertCircle
+  CalendarCheck, UsersRound, ClipboardCheck, AlertCircle,
+  Wallet, TrendingDown, StickyNote, Coffee, Home as HomeIcon,
+  GraduationCap, Shirt, Flame, Gift, Award, Building2, Car,
+  Utensils, Gamepad2, HeartPulse, PiggyBank, CheckCircle2,
+  Lightbulb, Sparkle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -385,6 +389,26 @@ export default function Home() {
   const [visitFilterType, setVisitFilterType] = useState('all')
   const [deleteVisitConfirmId, setDeleteVisitConfirmId] = useState<string | null>(null)
 
+  // Personal Section States
+  const [personalSubTab, setPersonalSubTab] = useState<'finance' | 'reminders' | 'notes'>('finance')
+  const [personalTransactions, setPersonalTransactions] = useState<Transaction[]>([])
+  const [personalReminders, setPersonalReminders] = useState<Reminder[]>([])
+  const [personalNotes, setPersonalNotes] = useState<Note[]>([])
+  const [personalSearchQuery, setPersonalSearchQuery] = useState('')
+  const [showAddPersonalTxn, setShowAddPersonalTxn] = useState(false)
+  const [personalTxnForm, setPersonalTxnForm] = useState({ type: 'income' as 'income'|'expense', category: '', amount: '', description: '', date: '' })
+  const [editingPersonalTxnId, setEditingPersonalTxnId] = useState<string | null>(null)
+  const [showAddPersonalReminder, setShowAddPersonalReminder] = useState(false)
+  const [personalReminderForm, setPersonalReminderForm] = useState({ title: '', description: '', date: '', type: 'شخصي' })
+  const [editingPersonalReminderId, setEditingPersonalReminderId] = useState<string | null>(null)
+  const [showAddPersonalNote, setShowAddPersonalNote] = useState(false)
+  const [personalNoteForm, setPersonalNoteForm] = useState({ content: '', important: false })
+  const [editingPersonalNoteId, setEditingPersonalNoteId] = useState<string | null>(null)
+  const [editingPersonalNoteContent, setEditingPersonalNoteContent] = useState('')
+  const [personalTxnFilter, setPersonalTxnFilter] = useState<'all' | 'income' | 'expense'>('all')
+  const [personalTxnCategoryFilter, setPersonalTxnCategoryFilter] = useState('all')
+  const [celebratingPersonalId, setCelebratingPersonalId] = useState<string | null>(null)
+
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
 
@@ -408,9 +432,13 @@ export default function Home() {
         apiFetch('/waiting?limit=50'), apiFetch('/inventory/items?limit=100'), apiFetch('/medications?limit=200'),
         apiFetch('/prescriptions?limit=100'), apiFetch('/backups?limit=20'), apiFetch('/notifications?limit=50'),
         apiFetch('/doctors?limit=50'),
+        apiFetch('/finance/transactions?category=personal&limit=200'),
+        apiFetch('/notes?section=personal&limit=200'),
+        apiFetch('/reminders?type=personal&limit=200'),
       ])
       const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
       setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
+      setPersonalTransactions(u(results[19])); setPersonalNotes(u(results[20])); setPersonalReminders(u(results[21]))
     } catch (e) { console.error(e) }
     setLoading(false)
   }, [])
@@ -450,6 +478,188 @@ export default function Home() {
     const q = bookingFormPatientSearch.toLowerCase()
     return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
   }, [bookingFormPatientSearch, patients])
+
+  // ─── Personal Section Computed ──────────────────────────────────
+  const PERSONAL_INCOME_CATS = ['راتب', 'استثمار', 'مكافأة', 'هدية', 'أخرى']
+  const PERSONAL_EXPENSE_CATS = ['طعام', 'مواصلات', 'سكن', 'ترفيه', 'صحة', 'تعليم', 'ملابس', 'فواتير', 'أخرى']
+  const PERSONAL_REMINDER_TYPES = ['شخصي', 'عمل', 'عائلي', 'صحي', 'مالي', 'مهم', 'أخرى']
+
+  const personalTotalIncome = useMemo(() => personalTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+  const personalTotalExpense = useMemo(() => personalTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+  const personalNetBalance = personalTotalIncome - personalTotalExpense
+
+  const personalMonthlyChart = useMemo(() => {
+    const months: Record<string, { month: string; income: number; expense: number }> = {}
+    personalTransactions.forEach(t => {
+      const d = new Date(t.date)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = `${d.getMonth() + 1}/${d.getFullYear()}`
+      if (!months[key]) months[key] = { month: label, income: 0, expense: 0 }
+      if (t.type === 'income') months[key].income += t.amount || 0
+      else months[key].expense += t.amount || 0
+    })
+    return Object.values(months).sort((a, b) => a.month.localeCompare(b.month)).slice(-6)
+  }, [personalTransactions])
+
+  const filteredPersonalTxns = useMemo(() => {
+    return personalTransactions.filter(t => {
+      if (personalTxnFilter !== 'all' && t.type !== personalTxnFilter) return false
+      if (personalTxnCategoryFilter !== 'all' && t.category !== personalTxnCategoryFilter) return false
+      return true
+    })
+  }, [personalTransactions, personalTxnFilter, personalTxnCategoryFilter])
+
+  const personalSearchResults = useMemo(() => {
+    if (!personalSearchQuery.trim()) return []
+    const q = personalSearchQuery.toLowerCase()
+    const results: { type: string; id: string; label: string; sub: string; icon: React.ReactNode }[] = []
+    personalTransactions.filter(t => (t.description || '').toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q)).forEach(t => {
+      results.push({ type: 'transaction', id: t.id, label: t.description || t.category, sub: `${formatCurrency(t.amount)} • ${t.type === 'income' ? 'إيراد' : 'مصروف'}`, icon: t.type === 'income' ? <TrendingUp size={14} className="text-emerald-500" /> : <TrendingDown size={14} className="text-rose-500" /> })
+    })
+    personalReminders.filter(r => (r.title || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q)).forEach(r => {
+      results.push({ type: 'reminder', id: r.id, label: r.title, sub: `${r.type} • ${formatDate(r.date)}`, icon: <Bell size={14} className="text-amber-500" /> })
+    })
+    personalNotes.filter(n => (n.content || '').toLowerCase().includes(q)).forEach(n => {
+      results.push({ type: 'note', id: n.id, label: n.content.slice(0, 50), sub: n.important ? 'مهم' : 'عادي', icon: <StickyNote size={14} className="text-sky-500" /> })
+    })
+    return results
+  }, [personalSearchQuery, personalTransactions, personalReminders, personalNotes])
+
+  // Personal CRUD handlers
+  const addPersonalTransaction = async () => {
+    if (!personalTxnForm.amount || !personalTxnForm.category) return toast.error('المبلغ والفئة مطلوبان')
+    const amount = parseFloat(personalTxnForm.amount)
+    if (isNaN(amount) || amount <= 0) return toast.error('أدخل مبلغ صحيح')
+    try {
+      const res = await apiFetch<any>('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: personalTxnForm.type, category: 'personal', amount, description: personalTxnForm.description || personalTxnForm.category, date: personalTxnForm.date || new Date().toISOString() }) })
+      const item = res?.data || res?.transaction || res
+      if (item?.id) {
+        setPersonalTransactions(prev => [item, ...prev])
+        toast.success('تم إضافة المعاملة')
+      }
+      setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' })
+      setShowAddPersonalTxn(false)
+      setEditingPersonalTxnId(null)
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const editPersonalTransaction = async () => {
+    if (!editingPersonalTxnId || !personalTxnForm.amount) return
+    const amount = parseFloat(personalTxnForm.amount)
+    if (isNaN(amount) || amount <= 0) return toast.error('أدخل مبلغ صحيح')
+    try {
+      await apiFetch(`/finance/transactions/${editingPersonalTxnId}`, { method: 'PUT', body: JSON.stringify({ type: personalTxnForm.type, amount, description: personalTxnForm.description || personalTxnForm.category, date: personalTxnForm.date || undefined }) })
+      setPersonalTransactions(prev => prev.map(t => t.id === editingPersonalTxnId ? { ...t, type: personalTxnForm.type, amount, description: personalTxnForm.description || personalTxnForm.category, date: personalTxnForm.date || t.date } : t))
+      toast.success('تم تعديل المعاملة')
+      setEditingPersonalTxnId(null)
+      setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' })
+      setShowAddPersonalTxn(false)
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const deletePersonalTransaction = async (id: string) => {
+    try {
+      await apiFetch(`/finance/transactions/${id}`, { method: 'DELETE' })
+      setPersonalTransactions(prev => prev.filter(t => t.id !== id))
+      toast.success('تم حذف المعاملة')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const startEditPersonalTxn = (txn: Transaction) => {
+    setEditingPersonalTxnId(txn.id)
+    setPersonalTxnForm({ type: txn.type as 'income' | 'expense', category: txn.category, amount: String(txn.amount), description: txn.description || '', date: txn.date?.split('T')[0] || '' })
+    setShowAddPersonalTxn(true)
+  }
+
+  const addPersonalReminder = async () => {
+    if (!personalReminderForm.title) return toast.error('العنوان مطلوب')
+    try {
+      const res = await apiFetch<any>('/reminders', { method: 'POST', body: JSON.stringify({ title: personalReminderForm.title, description: personalReminderForm.description || undefined, date: personalReminderForm.date || new Date().toISOString(), type: 'personal', status: 'pending' }) })
+      const item = res?.data || res?.reminder || res
+      if (item?.id) {
+        setPersonalReminders(prev => [item, ...prev])
+        toast.success('تم إضافة التذكير')
+      }
+      setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' })
+      setShowAddPersonalReminder(false)
+      setEditingPersonalReminderId(null)
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const editPersonalReminder = async () => {
+    if (!editingPersonalReminderId || !personalReminderForm.title) return
+    try {
+      await apiFetch(`/reminders/${editingPersonalReminderId}`, { method: 'PUT', body: JSON.stringify({ title: personalReminderForm.title, description: personalReminderForm.description || undefined, date: personalReminderForm.date || undefined }) })
+      setPersonalReminders(prev => prev.map(r => r.id === editingPersonalReminderId ? { ...r, title: personalReminderForm.title, description: personalReminderForm.description || r.description, date: personalReminderForm.date || r.date } : r))
+      toast.success('تم تعديل التذكير')
+      setEditingPersonalReminderId(null)
+      setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' })
+      setShowAddPersonalReminder(false)
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const deletePersonalReminder = async (id: string) => {
+    try {
+      await apiFetch(`/reminders/${id}`, { method: 'DELETE' })
+      setPersonalReminders(prev => prev.filter(r => r.id !== id))
+      toast.success('تم حذف التذكير')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const togglePersonalReminderDone = async (reminder: Reminder) => {
+    try {
+      const newStatus = reminder.status === 'done' ? 'pending' : 'done'
+      await apiFetch(`/reminders/${reminder.id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) })
+      setPersonalReminders(prev => prev.map(r => r.id === reminder.id ? { ...r, status: newStatus } : r))
+      if (newStatus === 'done') { setCelebratingPersonalId(reminder.id); setTimeout(() => setCelebratingPersonalId(null), 1500) }
+      toast.success(newStatus === 'done' ? 'تم إنجاز التذكير 🎉' : 'تم إلغاء الإنجاز')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const startEditPersonalReminder = (r: Reminder) => {
+    setEditingPersonalReminderId(r.id)
+    setPersonalReminderForm({ title: r.title, description: r.description || '', date: r.date?.split('T')[0] || '', type: 'شخصي' })
+    setShowAddPersonalReminder(true)
+  }
+
+  const addPersonalNote = async () => {
+    if (!personalNoteForm.content) return toast.error('المحتوى مطلوب')
+    try {
+      const res = await apiFetch<any>('/notes', { method: 'POST', body: JSON.stringify({ content: personalNoteForm.content, important: personalNoteForm.important, section: 'personal' }) })
+      const item = res?.data || res?.note || res
+      if (item?.id) {
+        setPersonalNotes(prev => [item, ...prev])
+        toast.success('تم إضافة الملاحظة')
+      }
+      setPersonalNoteForm({ content: '', important: false })
+      setShowAddPersonalNote(false)
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const editPersonalNote = async (id: string, content: string, important: boolean) => {
+    try {
+      await apiFetch(`/notes/${id}`, { method: 'PUT', body: JSON.stringify({ content, important }) })
+      setPersonalNotes(prev => prev.map(n => n.id === id ? { ...n, content, important } : n))
+      toast.success('تم تعديل الملاحظة')
+      setEditingPersonalNoteId(null)
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const deletePersonalNote = async (id: string) => {
+    try {
+      await apiFetch(`/notes/${id}`, { method: 'DELETE' })
+      setPersonalNotes(prev => prev.filter(n => n.id !== id))
+      toast.success('تم حذف الملاحظة')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
+
+  const togglePersonalNoteImportance = async (note: Note) => {
+    try {
+      await apiFetch(`/notes/${note.id}`, { method: 'PUT', body: JSON.stringify({ important: !note.important }) })
+      setPersonalNotes(prev => prev.map(n => n.id === note.id ? { ...n, important: !n.important } : n))
+      toast.success(note.important ? 'تم إلغاء الأهمية' : 'تم وضع علامة مهم ⭐')
+    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
 
   // ─── CRUD ─────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -1516,6 +1726,7 @@ export default function Home() {
                     { id: 'reports', label: 'التقارير', emoji: '📊', gradient: 'from-cyan-500 to-cyan-700' },
                     { id: 'backup', label: 'النسخ', emoji: '💾', gradient: 'from-slate-500 to-slate-700' },
                     { id: 'notes', label: 'الملاحظات', emoji: '📝', gradient: 'from-fuchsia-500 to-fuchsia-700' },
+                    { id: 'personal', label: 'شخصى', emoji: '🌟', gradient: 'from-orange-400 to-amber-500' },
                     { id: 'settings', label: 'الإعدادات', emoji: '🎨', gradient: 'from-indigo-500 to-indigo-700' },
                   ].map(s => (
                     <motion.button key={s.id} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => setMoreSubTab(s.id)} className={cn('flex flex-col items-center gap-1 p-3 rounded-xl transition-all border', moreSubTab === s.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-transparent hover:bg-muted/50')}>
@@ -2267,6 +2478,269 @@ export default function Home() {
                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50"><div><p className="text-sm font-medium">الوضع الداكن</p></div><Switch checked={darkMode} onCheckedChange={setDarkMode} /></div>
                   </CardContent></Card>
                 </div>)}
+
+                {/* ═══ Personal Section - شخصى ═══ */}
+                {moreSubTab === 'personal' && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                  {/* Header */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-orange-400 via-rose-400 to-amber-500 p-5 text-white shadow-lg">
+                    <div className="absolute top-0 left-0 w-full h-full opacity-10">
+                      {[...Array(5)].map((_, i) => <div key={i} className="absolute rounded-full bg-white" style={{ width: `${30 + i * 15}px`, height: `${30 + i * 15}px`, top: `${10 + i * 15}%`, left: `${5 + i * 18}%`, opacity: 0.15 }} />)}
+                    </div>
+                    <div className="relative z-10 flex items-center gap-3">
+                      <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🌟</motion.div>
+                      <div>
+                        <h1 className="text-2xl font-bold">قسم شخصى</h1>
+                        <p className="text-white/80 text-sm">إدارة ماليتك وتذكيراتك وملاحظاتك الشخصية</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Smart Search */}
+                  <div className="relative">
+                    <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400" />
+                    <Input value={personalSearchQuery} onChange={e => setPersonalSearchQuery(e.target.value)} placeholder="بحث ذكي في البيانات الشخصية..." className="pr-9 rounded-xl border-orange-200 dark:border-orange-900/30 focus-visible:ring-orange-400" />
+                    {personalSearchQuery && personalSearchResults.length > 0 && (
+                      <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-orange-100 dark:border-orange-900/30 max-h-64 overflow-y-auto">
+                        {personalSearchResults.map((r, i) => (
+                          <div key={`${r.type}-${r.id}-${i}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors border-b last:border-0 border-orange-50 dark:border-orange-950/10">
+                            <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/30">{r.icon}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{r.label}</p>
+                              <p className="text-xs text-muted-foreground truncate">{r.sub}</p>
+                            </div>
+                            <Badge variant="outline" className="text-[9px]">{r.type === 'transaction' ? 'معاملة' : r.type === 'reminder' ? 'تذكير' : 'ملاحظة'}</Badge>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Sub-tabs */}
+                  <div className="flex gap-2 bg-muted/50 p-1.5 rounded-xl">
+                    {[
+                      { id: 'finance' as const, label: 'المالية', icon: <Wallet size={16} /> },
+                      { id: 'reminders' as const, label: 'التذكيرات', icon: <Bell size={16} /> },
+                      { id: 'notes' as const, label: 'الملاحظات', icon: <StickyNote size={16} /> },
+                    ].map(tab => (
+                      <motion.button key={tab.id} whileTap={{ scale: 0.95 }} onClick={() => setPersonalSubTab(tab.id)} className={cn('flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all', personalSubTab === tab.id ? 'bg-gradient-to-l from-orange-500 to-amber-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
+                        {tab.icon}
+                        {tab.label}
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  {/* Finance Sub-tab */}
+                  {personalSubTab === 'finance' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-3 text-white shadow-md">
+                        <div className="flex items-center gap-1.5 mb-1"><TrendingUp size={14} className="text-white/80" /><span className="text-[10px] text-white/80">إيرادات</span></div>
+                        <p className="font-bold text-lg">{formatCurrency(personalTotalIncome)}</p>
+                      </motion.div>
+                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="rounded-xl bg-gradient-to-br from-rose-500 to-red-600 p-3 text-white shadow-md">
+                        <div className="flex items-center gap-1.5 mb-1"><TrendingDown size={14} className="text-white/80" /><span className="text-[10px] text-white/80">مصروفات</span></div>
+                        <p className="font-bold text-lg">{formatCurrency(personalTotalExpense)}</p>
+                      </motion.div>
+                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className={cn('rounded-xl p-3 text-white shadow-md', personalNetBalance >= 0 ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-red-500 to-rose-700')}>
+                        <div className="flex items-center gap-1.5 mb-1"><PiggyBank size={14} className="text-white/80" /><span className="text-[10px] text-white/80">الرصيد</span></div>
+                        <p className="font-bold text-lg">{formatCurrency(personalNetBalance)}</p>
+                      </motion.div>
+                    </div>
+
+                    {/* Monthly Chart */}
+                    {personalMonthlyChart.length > 0 && (
+                      <Card className="card-luxury overflow-hidden">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 size={16} className="text-orange-500" /> مقارنة شهرية</CardTitle></CardHeader>
+                        <CardContent className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={personalMonthlyChart} barGap={4}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                              <YAxis tick={{ fontSize: 10 }} />
+                              <RechartsTooltip />
+                              <Bar dataKey="income" fill="#10b981" name="إيرادات" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="expense" fill="#f43f5e" name="مصروفات" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Filters */}
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+                        {(['all', 'income', 'expense'] as const).map(f => (
+                          <button key={f} onClick={() => setPersonalTxnFilter(f)} className={cn('px-3 py-1 rounded-md text-xs font-medium transition-all', personalTxnFilter === f ? 'bg-orange-500 text-white shadow' : 'text-muted-foreground hover:bg-muted')}>
+                            {f === 'all' ? 'الكل' : f === 'income' ? 'إيرادات' : 'مصروفات'}
+                          </button>
+                        ))}
+                      </div>
+                      <Select value={personalTxnCategoryFilter} onValueChange={setPersonalTxnCategoryFilter}>
+                        <SelectTrigger className="w-32 h-8 text-xs rounded-lg"><SelectValue placeholder="كل الفئات" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">كل الفئات</SelectItem>
+                          {[...PERSONAL_INCOME_CATS, ...PERSONAL_EXPENSE_CATS].filter((v, i, a) => a.indexOf(v) === i).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button className="mr-auto bg-gradient-to-l from-orange-500 to-amber-500 text-white rounded-xl" onClick={() => { setEditingPersonalTxnId(null); setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' }); setShowAddPersonalTxn(true) }}>
+                        <Plus size={14} className="ml-1" /> معاملة
+                      </Button>
+                    </div>
+
+                    {/* Transaction List */}
+                    {filteredPersonalTxns.length === 0 && (
+                      <Card className="card-luxury p-8 text-center">
+                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">💰</motion.div>
+                        <p className="text-muted-foreground">لا توجد معاملات شخصية بعد</p>
+                        <p className="text-xs text-muted-foreground mt-1">أضف أول معاملة لتتبع ماليتك الشخصية</p>
+                      </Card>
+                    )}
+                    <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                      {filteredPersonalTxns.map((txn, i) => (
+                        <motion.div key={txn.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="flex items-center justify-between p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-orange-100 dark:border-orange-900/30 hover:shadow-md transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className={cn('p-2 rounded-lg', txn.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30')}>
+                              {txn.type === 'income' ? <TrendingUp size={16} className="text-emerald-600" /> : <TrendingDown size={16} className="text-rose-600" />}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{txn.description || txn.category}</p>
+                              <p className="text-xs text-muted-foreground">{formatDate(txn.date)} • {txn.category}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={cn('font-bold text-sm', txn.type === 'income' ? 'text-emerald-600' : 'text-rose-600')}>
+                              {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount)}
+                            </span>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditPersonalTxn(txn)}>
+                              <Edit3 size={12} className="text-orange-500" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deletePersonalTransaction(txn.id)}>
+                              <Trash2 size={12} className="text-red-500" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  )}
+
+                  {/* Reminders Sub-tab */}
+                  {personalSubTab === 'reminders' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-lg flex items-center gap-2"><Bell size={18} className="text-amber-500" /> التذكيرات الشخصية</h3>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{personalReminders.length} تذكير</Badge>
+                        <Button className="bg-gradient-to-l from-amber-500 to-violet-500 text-white rounded-xl" onClick={() => { setEditingPersonalReminderId(null); setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' }); setShowAddPersonalReminder(true) }}>
+                          <Plus size={14} className="ml-1" /> تذكير
+                        </Button>
+                      </div>
+                    </div>
+                    {personalReminders.length === 0 && (
+                      <Card className="card-luxury p-8 text-center">
+                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⏰</motion.div>
+                        <p className="text-muted-foreground">لا توجد تذكيرات شخصية بعد</p>
+                      </Card>
+                    )}
+                    <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                      {personalReminders.map((reminder, i) => (
+                        <motion.div key={reminder.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }} className={cn('relative p-3 rounded-xl border-r-4 bg-white/50 dark:bg-white/5 border border-orange-100 dark:border-orange-900/30 hover:shadow-md transition-all', reminder.status === 'done' ? 'border-r-emerald-500 opacity-60' : 'border-r-amber-500', celebratingPersonalId === reminder.id && 'ring-2 ring-amber-400 ring-offset-2')}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                {reminder.status === 'done' ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Clock size={14} className="text-amber-500" />}
+                                <p className={cn('font-medium text-sm', reminder.status === 'done' && 'line-through text-muted-foreground')}>{reminder.title}</p>
+                              </div>
+                              {reminder.description && <p className="text-xs text-muted-foreground mb-1">{reminder.description}</p>}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Calendar size={10} /> {formatDate(reminder.date)}
+                                <Badge variant="outline" className="text-[9px]">{reminder.type}</Badge>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePersonalReminderDone(reminder)}>
+                                {reminder.status === 'done' ? <CheckCircle2 size={14} className="text-emerald-500" /> : <CheckCircle size={14} className="text-muted-foreground" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditPersonalReminder(reminder)}>
+                                <Edit3 size={12} className="text-amber-500" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deletePersonalReminder(reminder.id)}>
+                                <Trash2 size={12} className="text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                          {celebratingPersonalId === reminder.id && (
+                            <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} className="absolute top-1 left-1 text-lg">🎉</motion.div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  )}
+
+                  {/* Notes Sub-tab */}
+                  {personalSubTab === 'notes' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-lg flex items-center gap-2"><StickyNote size={18} className="text-sky-500" /> الملاحظات الشخصية</h3>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{personalNotes.length} ملاحظة</Badge>
+                        <Button className="bg-gradient-to-l from-sky-500 to-violet-500 text-white rounded-xl" onClick={() => { setPersonalNoteForm({ content: '', important: false }); setShowAddPersonalNote(true) }}>
+                          <Plus size={14} className="ml-1" /> ملاحظة
+                        </Button>
+                      </div>
+                    </div>
+                    {personalNotes.length === 0 && (
+                      <Card className="card-luxury p-8 text-center">
+                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📝</motion.div>
+                        <p className="text-muted-foreground">لا توجد ملاحظات شخصية بعد</p>
+                      </Card>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto custom-scrollbar">
+                      {personalNotes.map((note, i) => (
+                        <motion.div key={note.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.03 }} className={cn('relative p-3 rounded-xl border bg-white/50 dark:bg-white/5 hover:shadow-md transition-all', note.important ? 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/10' : 'border-sky-100 dark:border-sky-900/30')}>
+                          {note.important && (
+                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute top-2 left-2">
+                              <Star size={14} className="text-amber-500 fill-amber-500" />
+                            </motion.div>
+                          )}
+                          {editingPersonalNoteId === note.id ? (
+                            <div className="space-y-2">
+                              <Textarea value={editingPersonalNoteContent} onChange={e => setEditingPersonalNoteContent(e.target.value)} className="min-h-16 text-sm rounded-xl" autoFocus />
+                              <div className="flex gap-2">
+                                <Button size="sm" className="bg-sky-500 text-white rounded-lg text-xs" onClick={() => editPersonalNote(note.id, editingPersonalNoteContent, note.important)}>حفظ</Button>
+                                <Button size="sm" variant="ghost" className="text-xs" onClick={() => setEditingPersonalNoteId(null)}>إلغاء</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-sm whitespace-pre-wrap mb-2 pl-6">{note.content}</p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] text-muted-foreground">{formatDate(note.createdAt)}</p>
+                                <div className="flex items-center gap-1">
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => togglePersonalNoteImportance(note)}>
+                                    {note.important ? <Star size={12} className="text-amber-500 fill-amber-500" /> : <StarOff size={12} className="text-muted-foreground" />}
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingPersonalNoteId(note.id); setEditingPersonalNoteContent(note.content) }}>
+                                    <Edit3 size={12} className="text-sky-500" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deletePersonalNote(note.id)}>
+                                    <Trash2 size={12} className="text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  )}
+                </motion.div>
+                )}
+
               </div>
             )}
 
@@ -3062,6 +3536,81 @@ export default function Home() {
               setShowAddBooking(false)
               toast.success('تم إضافة الحجز')
             }}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add/Edit Personal Transaction Dialog ─── */}
+      <Dialog open={showAddPersonalTxn} onOpenChange={(open) => { setShowAddPersonalTxn(open); if (!open) { setEditingPersonalTxnId(null); setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' }) } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet size={20} className="text-orange-500" /> {editingPersonalTxnId ? 'تعديل معاملة' : 'معاملة شخصية جديدة'}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {/* Type toggle */}
+            <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
+              <button onClick={() => setPersonalTxnForm(prev => ({ ...prev, type: 'income' }))} className={cn('flex-1 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1.5', personalTxnForm.type === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-muted-foreground')}>
+                <TrendingUp size={14} /> إيراد
+              </button>
+              <button onClick={() => setPersonalTxnForm(prev => ({ ...prev, type: 'expense' }))} className={cn('flex-1 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1.5', personalTxnForm.type === 'expense' ? 'bg-rose-500 text-white shadow' : 'text-muted-foreground')}>
+                <TrendingDown size={14} /> مصروف
+              </button>
+            </div>
+            {/* Category */}
+            <div><Label className="text-xs font-bold">الفئة *</Label>
+              <Select value={personalTxnForm.category} onValueChange={v => setPersonalTxnForm(prev => ({ ...prev, category: v }))}>
+                <SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue placeholder="اختر الفئة..." /></SelectTrigger>
+                <SelectContent>
+                  {(personalTxnForm.type === 'income' ? PERSONAL_INCOME_CATS : PERSONAL_EXPENSE_CATS).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Amount */}
+            <div><Label className="text-xs font-bold">المبلغ (ج.م) *</Label><Input type="number" value={personalTxnForm.amount} onChange={e => setPersonalTxnForm(prev => ({ ...prev, amount: e.target.value }))} placeholder="0" className="input-luxury rounded-xl h-10 mt-1" /></div>
+            {/* Description */}
+            <div><Label className="text-xs font-bold">الوصف</Label><Input value={personalTxnForm.description} onChange={e => setPersonalTxnForm(prev => ({ ...prev, description: e.target.value }))} placeholder="وصف المعاملة..." className="input-luxury rounded-xl h-10 mt-1" /></div>
+            {/* Date */}
+            <div><Label className="text-xs font-bold">التاريخ</Label><Input type="date" value={personalTxnForm.date} onChange={e => setPersonalTxnForm(prev => ({ ...prev, date: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setShowAddPersonalTxn(false); setEditingPersonalTxnId(null); setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' }) }}>إلغاء</Button>
+            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-orange-500 to-amber-500 text-white" onClick={editingPersonalTxnId ? editPersonalTransaction : addPersonalTransaction}>
+              {editingPersonalTxnId ? 'تحديث' : 'إضافة'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add/Edit Personal Reminder Dialog ─── */}
+      <Dialog open={showAddPersonalReminder} onOpenChange={(open) => { setShowAddPersonalReminder(open); if (!open) { setEditingPersonalReminderId(null); setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' }) } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Bell size={20} className="text-amber-500" /> {editingPersonalReminderId ? 'تعديل تذكير' : 'تذكير شخصي جديد'}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs font-bold">العنوان *</Label><Input value={personalReminderForm.title} onChange={e => setPersonalReminderForm(prev => ({ ...prev, title: e.target.value }))} placeholder="عنوان التذكير..." className="input-luxury rounded-xl h-10 mt-1" /></div>
+            <div><Label className="text-xs font-bold">الوصف</Label><Textarea value={personalReminderForm.description} onChange={e => setPersonalReminderForm(prev => ({ ...prev, description: e.target.value }))} placeholder="وصف التذكير..." className="input-luxury rounded-xl mt-1" rows={2} /></div>
+            <div><Label className="text-xs font-bold">التاريخ والوقت</Label><Input type="datetime-local" value={personalReminderForm.date} onChange={e => setPersonalReminderForm(prev => ({ ...prev, date: e.target.value }))} className="input-luxury rounded-xl h-10 mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setShowAddPersonalReminder(false); setEditingPersonalReminderId(null); setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' }) }}>إلغاء</Button>
+            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-violet-500 text-white" onClick={editingPersonalReminderId ? editPersonalReminder : addPersonalReminder}>
+              {editingPersonalReminderId ? 'تحديث' : 'إضافة'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add Personal Note Dialog ─── */}
+      <Dialog open={showAddPersonalNote} onOpenChange={setShowAddPersonalNote}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><StickyNote size={20} className="text-sky-500" /> ملاحظة شخصية جديدة</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs font-bold">المحتوى *</Label><Textarea value={personalNoteForm.content} onChange={e => setPersonalNoteForm(prev => ({ ...prev, content: e.target.value }))} placeholder="اكتب ملاحظتك هنا..." className="input-luxury rounded-xl mt-1" rows={4} autoFocus /></div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div><p className="text-sm font-medium">مهم</p><p className="text-xs text-muted-foreground">وضع علامة على الملاحظة كمهمة</p></div>
+              <Switch checked={personalNoteForm.important} onCheckedChange={v => setPersonalNoteForm(prev => ({ ...prev, important: v }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAddPersonalNote(false)}>إلغاء</Button>
+            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-sky-500 to-violet-500 text-white" onClick={addPersonalNote}>إضافة</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
