@@ -209,6 +209,17 @@ export default function Home() {
   const [showAddService, setShowAddService] = useState(false)
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [showAddAppointment, setShowAddAppointment] = useState(false)
+  // Transaction form
+  const [txnFormType, setTxnFormType] = useState<'income' | 'expense'>('income')
+  const [txnFormCategory, setTxnFormCategory] = useState('كشف')
+  const [txnFormAmount, setTxnFormAmount] = useState('')
+  const [txnFormDescription, setTxnFormDescription] = useState('')
+  const [txnFormDate, setTxnFormDate] = useState('')
+  // Service form
+  const [serviceFormName, setServiceFormName] = useState('')
+  const [serviceFormCategory, setServiceFormCategory] = useState('عام')
+  const [serviceFormPrice, setServiceFormPrice] = useState('')
+  const [serviceFormDuration, setServiceFormDuration] = useState('')
   const [showAddLaserRecord, setShowAddLaserRecord] = useState(false)
   const [showAddLaserPackage, setShowAddLaserPackage] = useState(false)
   const [showAddMedication, setShowAddMedication] = useState(false)
@@ -1682,7 +1693,7 @@ export default function Home() {
                 </CardContent></Card>
                 {/* Recent Transactions */}
                 <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={16} className="text-emerald-600" /> آخر المعاملات</CardTitle></CardHeader><CardContent className="space-y-2">
-                  {transactions.slice(0, 20).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><div className={cn('p-1.5 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={12} /></div><div><p className="text-xs font-medium">{t.description || t.category}</p><div className="flex items-center gap-2"><Badge variant="outline" className="text-[8px]">{t.category}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><span className={cn('text-sm font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></div>)}
+                  {transactions.slice(0, 30).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><div className={cn('p-1.5 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={12} /></div><div><p className="text-xs font-medium">{t.description || t.category}</p><div className="flex items-center gap-2"><Badge variant="outline" className="text-[8px]">{t.category}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><div className="flex items-center gap-1"><span className={cn('text-sm font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { await apiFetch(`/finance/transactions/${t.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(tx => tx.id !== t.id)); toast.success('تم حذف المعاملة') } catch { toast.error('خطأ في الحذف') } }}><Trash2 size={10} className="text-red-500" /></Button></div></div>)}
                   {transactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد معاملات بعد</p>}
                 </CardContent></Card>
                 {renderQuickNotes('finance')}
@@ -3108,6 +3119,156 @@ export default function Home() {
         </div>
         <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-lime-500 to-lime-600 text-white" onClick={async () => { if (!templatePatientId) return toast.error('اختر المريض'); const patient = patients.find(p => p.id === templatePatientId); const now = new Date().toISOString(); for (let i = 0; i < (selectedTemplate?.sessions || 0); i++) { await addItem('/sessions', { patientId: templatePatientId, status: 'scheduled', price: selectedTemplate?.estimatedPrice / selectedTemplate?.sessions || 0, paid: false, notes: `قالب: ${selectedTemplate?.name} - جلسة ${i + 1}`, date: now }, setSessions) } toast.success(`تم تطبيق قالب "${selectedTemplate?.name}" على ${patient?.name}`); setShowApplyTemplate(false); setTemplatePatientId(''); setSelectedTemplate(null) }}><Sparkles size={14} className="ml-1" /> تطبيق القالب</Button></DialogFooter>
       </DialogContent></Dialog>
+
+      {/* ─── Add Transaction Dialog ─── */}
+      <Dialog open={showAddTransaction} onOpenChange={setShowAddTransaction}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><DollarSign size={20} className="text-amber-500" /> إضافة معاملة مالية</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs font-bold">نوع المعاملة</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setTxnFormType('income')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', txnFormType === 'income' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}><TrendingUp size={16} /> إيراد</motion.button>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setTxnFormType('expense')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', txnFormType === 'expense' ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}><TrendingUp size={16} className="rotate-180" /> مصروف</motion.button>
+              </div>
+            </div>
+            <div><Label className="text-xs font-bold">الفئة</Label>
+              <Select value={txnFormCategory} onValueChange={setTxnFormCategory}>
+                <SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {txnFormType === 'income' ? (
+                    <>
+                      <SelectItem value="كشف">كشف</SelectItem>
+                      <SelectItem value="إعادة">إعادة</SelectItem>
+                      <SelectItem value="جلسات">جلسات</SelectItem>
+                      <SelectItem value="ليزر">ليزر</SelectItem>
+                      <SelectItem value="أخرى">أخرى</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="إيجار">إيجار</SelectItem>
+                      <SelectItem value="رواتب">رواتب</SelectItem>
+                      <SelectItem value="مستلزمات">مستلزمات</SelectItem>
+                      <SelectItem value="صيانة">صيانة</SelectItem>
+                      <SelectItem value="كهرباء">كهرباء</SelectItem>
+                      <SelectItem value="ماء">ماء</SelectItem>
+                      <SelectItem value="أخرى">أخرى</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs font-bold">المبلغ (ج.م) *</Label><Input type="number" value={txnFormAmount} onChange={e => setTxnFormAmount(e.target.value)} placeholder="المبلغ بالجنيه..." className="input-luxury rounded-xl h-10 mt-1 text-lg font-bold" /></div>
+            <div><Label className="text-xs font-bold">الوصف</Label><Input value={txnFormDescription} onChange={e => setTxnFormDescription(e.target.value)} placeholder="وصف المعاملة..." className="input-luxury rounded-xl h-10 mt-1" /></div>
+            <div><Label className="text-xs font-bold">التاريخ</Label><Input type="date" value={txnFormDate} onChange={e => setTxnFormDate(e.target.value)} className="input-luxury rounded-xl h-10 mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAddTransaction(false)}>إلغاء</Button>
+            <Button className={cn('btn-luxury rounded-xl text-white', txnFormType === 'income' ? 'bg-gradient-to-l from-emerald-500 to-emerald-600' : 'bg-gradient-to-l from-red-500 to-red-600')} onClick={async () => {
+              const amount = parseFloat(txnFormAmount)
+              if (!amount || amount <= 0) return toast.error('أدخل مبلغ صحيح')
+              const date = txnFormDate ? new Date(txnFormDate).toISOString() : new Date().toISOString()
+              await addItem('/finance/transactions', { type: txnFormType, category: txnFormCategory, amount, description: txnFormDescription || undefined, date }, setTransactions)
+              setTxnFormType('income'); setTxnFormCategory('كشف'); setTxnFormAmount(''); setTxnFormDescription(''); setTxnFormDate('')
+              setShowAddTransaction(false)
+              toast.success(txnFormType === 'income' ? 'تم إضافة الإيراد' : 'تم إضافة المصروف')
+            }}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add Service Dialog ─── */}
+      <Dialog open={showAddService} onOpenChange={setShowAddService}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Tag size={20} className="text-teal-500" /> خدمة جديدة</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs font-bold">اسم الخدمة *</Label><Input value={serviceFormName} onChange={e => setServiceFormName(e.target.value)} placeholder="اسم الخدمة..." className="input-luxury rounded-xl h-10 mt-1" /></div>
+            <div><Label className="text-xs font-bold">الفئة</Label>
+              <Select value={serviceFormCategory} onValueChange={setServiceFormCategory}>
+                <SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="عام">عام</SelectItem>
+                  <SelectItem value="جلدية">جلدية</SelectItem>
+                  <SelectItem value="تجميلية">تجميلية</SelectItem>
+                  <SelectItem value="ليزر">ليزر</SelectItem>
+                  <SelectItem value="حقن">حقن</SelectItem>
+                  <SelectItem value="عمليات">عمليات</SelectItem>
+                  <SelectItem value="أخرى">أخرى</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs font-bold">السعر (ج.م) *</Label><Input type="number" value={serviceFormPrice} onChange={e => setServiceFormPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-10 mt-1" /></div>
+              <div><Label className="text-xs font-bold">المدة (دقيقة)</Label><Input type="number" value={serviceFormDuration} onChange={e => setServiceFormDuration(e.target.value)} placeholder="30" className="input-luxury rounded-xl h-10 mt-1" /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAddService(false)}>إلغاء</Button>
+            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={async () => {
+              if (!serviceFormName.trim()) return toast.error('اسم الخدمة مطلوب')
+              const price = parseFloat(serviceFormPrice) || 0
+              await addItem('/services', { name: serviceFormName, category: serviceFormCategory || 'عام', price, duration: parseInt(serviceFormDuration) || undefined, active: true }, setServices)
+              setServiceFormName(''); setServiceFormCategory('عام'); setServiceFormPrice(''); setServiceFormDuration('')
+              setShowAddService(false)
+              toast.success('تم إضافة الخدمة')
+            }}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add Booking Dialog ─── */}
+      <Dialog open={showAddBooking} onOpenChange={setShowAddBooking}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarCheck size={20} className="text-sky-500" /> حجز جديد</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs font-bold">المريض</Label>
+              <Select value={bookingFormPatientId} onValueChange={v => { setBookingFormPatientId(v); const p = patients.find(pp => pp.id === v); if (p) setBookingFormPatientSearch(p.name) }}>
+                <SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue placeholder="اختر المريض..." /></SelectTrigger>
+                <SelectContent>
+                  {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.fileNumber})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs font-bold">التاريخ *</Label><Input type="date" value={bookingFormDate} onChange={e => setBookingFormDate(e.target.value)} className="input-luxury rounded-xl h-10 mt-1" /></div>
+              <div><Label className="text-xs font-bold">الوقت</Label><Input type="time" value={bookingFormTime} onChange={e => setBookingFormTime(e.target.value)} className="input-luxury rounded-xl h-10 mt-1" /></div>
+            </div>
+            <div><Label className="text-xs font-bold">نوع الحجز</Label>
+              <Select value={bookingFormType} onValueChange={setBookingFormType}>
+                <SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="checkup">كشف</SelectItem>
+                  <SelectItem value="revisit">إعادة</SelectItem>
+                  <SelectItem value="session">جلسة</SelectItem>
+                  <SelectItem value="consultation">استشارة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs font-bold">الحالة</Label>
+              <Select value={bookingFormStatus} onValueChange={setBookingFormStatus}>
+                <SelectTrigger className="rounded-xl h-10 mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">مجدول</SelectItem>
+                  <SelectItem value="confirmed">مؤكد</SelectItem>
+                  <SelectItem value="completed">مكتمل</SelectItem>
+                  <SelectItem value="cancelled">ملغي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs font-bold">ملاحظات</Label><Input value={bookingFormNotes} onChange={e => setBookingFormNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-10 mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAddBooking(false)}>إلغاء</Button>
+            <Button className="btn-luxury rounded-xl bg-gradient-to-l from-sky-500 to-sky-600 text-white" onClick={async () => {
+              if (!bookingFormDate) return toast.error('التاريخ مطلوب')
+              const dateStr = bookingFormTime ? `${bookingFormDate}T${bookingFormTime}:00` : bookingFormDate
+              await addItem('/appointments', { patientId: bookingFormPatientId || undefined, date: new Date(dateStr).toISOString(), duration: 30, type: bookingFormType, status: bookingFormStatus, notes: bookingFormNotes || undefined }, setAppointments)
+              setBookingFormPatientSearch(''); setBookingFormPatientId(''); setBookingFormDate(''); setBookingFormTime(''); setBookingFormType('checkup'); setBookingFormStatus('scheduled'); setBookingFormNotes('')
+              setShowAddBooking(false)
+              toast.success('تم إضافة الحجز')
+            }}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )
