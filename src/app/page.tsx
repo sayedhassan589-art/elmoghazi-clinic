@@ -2675,7 +2675,16 @@ export default function Home() {
       </Dialog>
 
       {/* ═══ LASER RECORD DIALOG - PROFESSIONAL DESIGN ═══ */}
-      <Dialog open={showAddLaserRecord} onOpenChange={setShowAddLaserRecord}>
+      <Dialog open={showAddLaserRecord} onOpenChange={(open) => {
+        setShowAddLaserRecord(open)
+        if (open) {
+          // Refresh patients list when dialog opens to avoid stale IDs
+          apiFetch<any>('/patients?limit=200').then(res => {
+            const pList = res?.patients || res?.data || (Array.isArray(res) ? res : [])
+            if (Array.isArray(pList) && pList.length > 0) setPatients(pList)
+          }).catch(() => {})
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0 gap-0">
           {/* Clean Header */}
           <div className="bg-gradient-to-l from-slate-800 via-slate-700 to-slate-800 p-5">
@@ -2927,6 +2936,26 @@ export default function Home() {
             <Button className="rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold h-11 px-8" onClick={async () => {
               if (!laserFormPatientId) return toast.error('اختر المريض أولاً')
               if (!laserFormArea) return toast.error('اختر منطقة الجسم')
+
+              // Verify patient exists in database before creating laser record
+              try {
+                const patientCheck = await apiFetch<any>(`/patients/${laserFormPatientId}`)
+                if (!patientCheck?.id && !patientCheck?.patient?.id) {
+                  toast.error('المريض غير موجود في قاعدة البيانات. قم بتحديث الصفحة وحاول مرة أخرى')
+                  // Refresh patient list
+                  const freshPatients = await apiFetch<any>('/patients?limit=200')
+                  const pList = freshPatients?.patients || freshPatients?.data || freshPatients || []
+                  if (Array.isArray(pList)) setPatients(pList)
+                  return
+                }
+              } catch {
+                toast.error('المريض غير موجود. قم بتحديث الصفحة وحاول مرة أخرى')
+                const freshPatients = await apiFetch<any>('/patients?limit=200')
+                const pList = freshPatients?.patients || freshPatients?.data || freshPatients || []
+                if (Array.isArray(pList)) setPatients(pList)
+                return
+              }
+
               const now = new Date().toISOString()
               const patientName = patients.find(p => p.id === laserFormPatientId)?.name || 'مريض'
               const areaLabel = BODY_AREAS.find(a => a.id === laserFormArea)?.label || laserFormArea
