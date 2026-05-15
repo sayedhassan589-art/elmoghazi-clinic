@@ -390,7 +390,8 @@ export default function Home() {
   const [deleteVisitConfirmId, setDeleteVisitConfirmId] = useState<string | null>(null)
 
   // Personal Section States
-  const [personalSubTab, setPersonalSubTab] = useState<'finance' | 'reminders' | 'notes'>('finance')
+  const [personalSubTab, setPersonalSubTab] = useState<'finance' | 'reminders' | 'notes' | 'reports'>('finance')
+  const [personalReportPeriod, setPersonalReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
   const [personalTransactions, setPersonalTransactions] = useState<Transaction[]>([])
   const [personalReminders, setPersonalReminders] = useState<Reminder[]>([])
   const [personalNotes, setPersonalNotes] = useState<Note[]>([])
@@ -512,18 +513,126 @@ export default function Home() {
   const personalSearchResults = useMemo(() => {
     if (!personalSearchQuery.trim()) return []
     const q = personalSearchQuery.toLowerCase()
-    const results: { type: string; id: string; label: string; sub: string; icon: React.ReactNode }[] = []
+    const results: { type: string; id: string; label: string; sub: string; icon: React.ReactNode; action?: () => void }[] = []
+    // Search personal transactions
     personalTransactions.filter(t => (t.description || '').toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q)).forEach(t => {
       results.push({ type: 'transaction', id: t.id, label: t.description || t.category, sub: `${formatCurrency(t.amount)} • ${t.type === 'income' ? 'إيراد' : 'مصروف'}`, icon: t.type === 'income' ? <TrendingUp size={14} className="text-emerald-500" /> : <TrendingDown size={14} className="text-rose-500" /> })
     })
+    // Search personal reminders
     personalReminders.filter(r => (r.title || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q)).forEach(r => {
       results.push({ type: 'reminder', id: r.id, label: r.title, sub: `${r.type} • ${formatDate(r.date)}`, icon: <Bell size={14} className="text-amber-500" /> })
     })
+    // Search personal notes
     personalNotes.filter(n => (n.content || '').toLowerCase().includes(q)).forEach(n => {
       results.push({ type: 'note', id: n.id, label: n.content.slice(0, 50), sub: n.important ? 'مهم' : 'عادي', icon: <StickyNote size={14} className="text-sky-500" /> })
     })
+    // Search patient names
+    patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5).forEach(p => {
+      results.push({ type: 'patient', id: p.id, label: p.name, sub: `${p.fileNumber} • ${p.phone || ''}`, icon: <Users size={14} className="text-blue-500" /> })
+    })
     return results
-  }, [personalSearchQuery, personalTransactions, personalReminders, personalNotes])
+  }, [personalSearchQuery, personalTransactions, personalReminders, personalNotes, patients])
+
+  // Personal reports computed values
+  const personalReportData = useMemo(() => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    const filterByPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
+      let startDate: Date
+      if (period === 'daily') {
+        startDate = today
+      } else if (period === 'weekly') {
+        startDate = new Date(today)
+        startDate.setDate(startDate.getDate() - 7)
+      } else {
+        startDate = new Date(today)
+        startDate.setMonth(startDate.getMonth() - 1)
+      }
+      return personalTransactions.filter(t => new Date(t.date) >= startDate)
+    }
+
+    const filtered = filterByPeriod(personalReportPeriod)
+    const income = filtered.filter(t => t.type === 'income')
+    const expense = filtered.filter(t => t.type === 'expense')
+    const totalIncome = income.reduce((s, t) => s + (t.amount || 0), 0)
+    const totalExpense = expense.reduce((s, t) => s + (t.amount || 0), 0)
+
+    // Category breakdown
+    const incomeByCategory: Record<string, number> = {}
+    income.forEach(t => { incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + (t.amount || 0) })
+    const expenseByCategory: Record<string, number> = {}
+    expense.forEach(t => { expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + (t.amount || 0) })
+
+    // Reminders stats
+    const periodReminders = personalReminders.filter(r => {
+      const d = new Date(r.date)
+      if (personalReportPeriod === 'daily') return d.toDateString() === now.toDateString()
+      if (personalReportPeriod === 'weekly') return d >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      return d >= new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    })
+    const doneReminders = periodReminders.filter(r => r.status === 'done').length
+    const pendingReminders = periodReminders.filter(r => r.status !== 'done').length
+
+    // Notes stats
+    const periodNotes = personalNotes.filter(n => {
+      const d = new Date(n.createdAt)
+      if (personalReportPeriod === 'daily') return d.toDateString() === now.toDateString()
+      if (personalReportPeriod === 'weekly') return d >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      return d >= new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    })
+    const importantNotes = periodNotes.filter(n => n.important).length
+
+    // Chart data for daily breakdown
+    let chartData: { label: string; income: number; expense: number }[] = []
+    if (personalReportPeriod === 'daily') {
+      // Last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today)
+        d.setDate(d.getDate() - i)
+        const dayStr = d.toDateString()
+        const dayIncome = income.filter(t => new Date(t.date).toDateString() === dayStr).reduce((s, t) => s + (t.amount || 0), 0)
+        const dayExpense = expense.filter(t => new Date(t.date).toDateString() === dayStr).reduce((s, t) => s + (t.amount || 0), 0)
+        chartData.push({ label: d.toLocaleDateString('ar-EG', { weekday: 'short' }), income: dayIncome, expense: dayExpense })
+      }
+    } else if (personalReportPeriod === 'weekly') {
+      // Last 4 weeks
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = new Date(today)
+        weekStart.setDate(weekStart.getDate() - (i + 1) * 7)
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekEnd.getDate() + 7)
+        const weekIncome = income.filter(t => { const d = new Date(t.date); return d >= weekStart && d < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+        const weekExpense = expense.filter(t => { const d = new Date(t.date); return d >= weekStart && d < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+        chartData.push({ label: `أسبوع ${4 - i}`, income: weekIncome, expense: weekExpense })
+      }
+    } else {
+      // Last 6 months
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const monthKey = `${d.getFullYear()}-${d.getMonth()}`
+        const monthIncome = income.filter(t => { const td = new Date(t.date); return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth() }).reduce((s, t) => s + (t.amount || 0), 0)
+        const monthExpense = expense.filter(t => { const td = new Date(t.date); return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth() }).reduce((s, t) => s + (t.amount || 0), 0)
+        chartData.push({ label: d.toLocaleDateString('ar-EG', { month: 'short' }), income: monthIncome, expense: monthExpense })
+      }
+    }
+
+    // Pie chart data for expense categories
+    const expensePieData = Object.entries(expenseByCategory).map(([cat, amount]) => ({ name: cat, value: amount })).sort((a, b) => b.value - a.value)
+    const incomePieData = Object.entries(incomeByCategory).map(([cat, amount]) => ({ name: cat, value: amount })).sort((a, b) => b.value - a.value)
+
+    // Top expenses
+    const topExpenses = [...expense].sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 5)
+
+    return {
+      totalIncome, totalExpense, netBalance: totalIncome - totalExpense,
+      incomeByCategory, expenseByCategory, expensePieData, incomePieData,
+      chartData, topExpenses,
+      transactionCount: filtered.length, incomeCount: income.length, expenseCount: expense.length,
+      doneReminders, pendingReminders, periodReminders: periodReminders.length,
+      periodNotes: periodNotes.length, importantNotes,
+    }
+  }, [personalTransactions, personalReminders, personalNotes, personalReportPeriod])
 
   // Personal CRUD handlers
   const addPersonalTransaction = async () => {
@@ -2509,7 +2618,7 @@ export default function Home() {
                               <p className="font-medium text-sm truncate">{r.label}</p>
                               <p className="text-xs text-muted-foreground truncate">{r.sub}</p>
                             </div>
-                            <Badge variant="outline" className="text-[9px]">{r.type === 'transaction' ? 'معاملة' : r.type === 'reminder' ? 'تذكير' : 'ملاحظة'}</Badge>
+                            <Badge variant="outline" className="text-[9px]">{r.type === 'transaction' ? 'معاملة' : r.type === 'reminder' ? 'تذكير' : r.type === 'patient' ? 'مريض' : 'ملاحظة'}</Badge>
                           </div>
                         ))}
                       </motion.div>
@@ -2522,8 +2631,9 @@ export default function Home() {
                       { id: 'finance' as const, label: 'المالية', icon: <Wallet size={16} /> },
                       { id: 'reminders' as const, label: 'التذكيرات', icon: <Bell size={16} /> },
                       { id: 'notes' as const, label: 'الملاحظات', icon: <StickyNote size={16} /> },
+                      { id: 'reports' as const, label: 'التقارير', icon: <BarChart3 size={16} /> },
                     ].map(tab => (
-                      <motion.button key={tab.id} whileTap={{ scale: 0.95 }} onClick={() => setPersonalSubTab(tab.id)} className={cn('flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all', personalSubTab === tab.id ? 'bg-gradient-to-l from-orange-500 to-amber-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
+                      <motion.button key={tab.id} whileTap={{ scale: 0.95 }} onClick={() => setPersonalSubTab(tab.id)} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all', personalSubTab === tab.id ? 'bg-gradient-to-l from-orange-500 to-amber-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
                         {tab.icon}
                         {tab.label}
                       </motion.button>
@@ -2736,6 +2846,203 @@ export default function Home() {
                         </motion.div>
                       ))}
                     </div>
+                  </motion.div>
+                  )}
+
+                  {/* Reports Sub-tab */}
+                  {personalSubTab === 'reports' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-lg flex items-center gap-2"><BarChart3 size={18} className="text-violet-500" /> تقارير شخصية</h3>
+                    </div>
+
+                    {/* Period Selector */}
+                    <div className="flex gap-2 bg-muted/50 p-1 rounded-xl">
+                      {([
+                        { id: 'daily' as const, label: 'يومي', emoji: '📅' },
+                        { id: 'weekly' as const, label: 'أسبوعي', emoji: '📆' },
+                        { id: 'monthly' as const, label: 'شهري', emoji: '🗓️' },
+                      ]).map(p => (
+                        <motion.button key={p.id} whileTap={{ scale: 0.95 }} onClick={() => setPersonalReportPeriod(p.id)} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all', personalReportPeriod === p.id ? 'bg-gradient-to-l from-violet-500 to-purple-600 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
+                          <span>{p.emoji}</span> {p.label}
+                        </motion.button>
+                      ))}
+                    </div>
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-3 text-white shadow-md">
+                        <div className="flex items-center gap-1.5 mb-1"><TrendingUp size={14} className="text-white/80" /><span className="text-[10px] text-white/80">إيرادات</span></div>
+                        <p className="font-bold text-lg">{formatCurrency(personalReportData.totalIncome)}</p>
+                        <p className="text-[9px] text-white/60 mt-0.5">{personalReportData.incomeCount} معاملة</p>
+                      </motion.div>
+                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="rounded-xl bg-gradient-to-br from-rose-500 to-red-600 p-3 text-white shadow-md">
+                        <div className="flex items-center gap-1.5 mb-1"><TrendingDown size={14} className="text-white/80" /><span className="text-[10px] text-white/80">مصروفات</span></div>
+                        <p className="font-bold text-lg">{formatCurrency(personalReportData.totalExpense)}</p>
+                        <p className="text-[9px] text-white/60 mt-0.5">{personalReportData.expenseCount} معاملة</p>
+                      </motion.div>
+                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className={cn('rounded-xl p-3 text-white shadow-md', personalReportData.netBalance >= 0 ? 'bg-gradient-to-br from-violet-500 to-purple-600' : 'bg-gradient-to-br from-red-600 to-rose-700')}>
+                        <div className="flex items-center gap-1.5 mb-1"><PiggyBank size={14} className="text-white/80" /><span className="text-[10px] text-white/80">الصافي</span></div>
+                        <p className="font-bold text-lg">{formatCurrency(personalReportData.netBalance)}</p>
+                        <p className="text-[9px] text-white/60 mt-0.5">{personalReportData.transactionCount} إجمالي</p>
+                      </motion.div>
+                    </div>
+
+                    {/* Bar Chart */}
+                    {personalReportData.chartData.length > 0 && (
+                      <Card className="card-luxury overflow-hidden">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 size={16} className="text-violet-500" /> مقارنة {personalReportPeriod === 'daily' ? 'يومية' : personalReportPeriod === 'weekly' ? 'أسبوعية' : 'شهرية'}</CardTitle></CardHeader>
+                        <CardContent className="h-52">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={personalReportData.chartData} barGap={4}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                              <YAxis tick={{ fontSize: 10 }} />
+                              <RechartsTooltip />
+                              <Bar dataKey="income" fill="#10b981" name="إيرادات" radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="expense" fill="#f43f5e" name="مصروفات" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Category Breakdown */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Income by Category */}
+                      <Card className="card-luxury">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><TrendingUp size={14} className="text-emerald-500" /> إيرادات حسب الفئة</CardTitle></CardHeader>
+                        <CardContent className="space-y-2">
+                          {Object.entries(personalReportData.incomeByCategory).length === 0 && <p className="text-xs text-muted-foreground text-center py-2">لا توجد إيرادات</p>}
+                          {Object.entries(personalReportData.incomeByCategory).sort(([,a],[,b]) => b - a).map(([cat, amount]) => {
+                            const pct = personalReportData.totalIncome > 0 ? Math.round((amount / personalReportData.totalIncome) * 100) : 0
+                            return (
+                              <div key={cat} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-medium">{cat}</span>
+                                  <span className="text-emerald-600 font-bold">{formatCurrency(amount)} ({pct}%)</span>
+                                </div>
+                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.5 }} className="h-full bg-emerald-500 rounded-full" />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </CardContent>
+                      </Card>
+                      {/* Expense by Category */}
+                      <Card className="card-luxury">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><TrendingDown size={14} className="text-rose-500" /> مصروفات حسب الفئة</CardTitle></CardHeader>
+                        <CardContent className="space-y-2">
+                          {Object.entries(personalReportData.expenseByCategory).length === 0 && <p className="text-xs text-muted-foreground text-center py-2">لا توجد مصروفات</p>}
+                          {Object.entries(personalReportData.expenseByCategory).sort(([,a],[,b]) => b - a).map(([cat, amount]) => {
+                            const pct = personalReportData.totalExpense > 0 ? Math.round((amount / personalReportData.totalExpense) * 100) : 0
+                            return (
+                              <div key={cat} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-medium">{cat}</span>
+                                  <span className="text-rose-600 font-bold">{formatCurrency(amount)} ({pct}%)</span>
+                                </div>
+                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.5 }} className="h-full bg-rose-500 rounded-full" />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Expense Pie Chart */}
+                    {personalReportData.expensePieData.length > 0 && (
+                      <Card className="card-luxury">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><PieChart size={14} className="text-rose-500" /> توزيع المصروفات</CardTitle></CardHeader>
+                        <CardContent className="h-52">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={personalReportData.expensePieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                {personalReportData.expensePieData.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+                              </Pie>
+                              <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Top Expenses */}
+                    {personalReportData.topExpenses.length > 0 && (
+                      <Card className="card-luxury">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Flame size={14} className="text-orange-500" /> أعلى المصروفات</CardTitle></CardHeader>
+                        <CardContent className="space-y-2">
+                          {personalReportData.topExpenses.map((t, i) => (
+                            <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg bg-rose-50 dark:bg-rose-900/10">
+                              <span className="w-6 h-6 flex items-center justify-center rounded-full bg-rose-200 dark:bg-rose-800 text-rose-700 dark:text-rose-200 text-xs font-bold">{i + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{t.description || t.category}</p>
+                                <p className="text-[10px] text-muted-foreground">{t.category} • {formatDate(t.date)}</p>
+                              </div>
+                              <span className="text-rose-600 font-bold text-sm">{formatCurrency(t.amount)}</span>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Reminders & Notes Summary */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Card className="card-luxury">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Bell size={14} className="text-amber-500" /> التذكيرات</CardTitle></CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50 dark:bg-amber-900/10">
+                            <span className="text-xs">إجمالي التذكيرات</span>
+                            <Badge className="bg-amber-100 text-amber-700 text-xs">{personalReportData.periodReminders}</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
+                            <span className="text-xs">مكتملة</span>
+                            <Badge className="bg-emerald-100 text-emerald-700 text-xs">{personalReportData.doneReminders}</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-orange-50 dark:bg-orange-900/10">
+                            <span className="text-xs">قيد الانتظار</span>
+                            <Badge className="bg-orange-100 text-orange-700 text-xs">{personalReportData.pendingReminders}</Badge>
+                          </div>
+                          {personalReportData.periodReminders > 0 && (
+                            <div className="mt-1">
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                                <span>نسبة الإنجاز</span>
+                                <span>{Math.round((personalReportData.doneReminders / personalReportData.periodReminders) * 100)}%</span>
+                              </div>
+                              <Progress value={Math.round((personalReportData.doneReminders / personalReportData.periodReminders) * 100)} className="h-2" />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                      <Card className="card-luxury">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><StickyNote size={14} className="text-sky-500" /> الملاحظات</CardTitle></CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-sky-50 dark:bg-sky-900/10">
+                            <span className="text-xs">إجمالي الملاحظات</span>
+                            <Badge className="bg-sky-100 text-sky-700 text-xs">{personalReportData.periodNotes}</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50 dark:bg-amber-900/10">
+                            <span className="text-xs">مهمة</span>
+                            <Badge className="bg-amber-100 text-amber-700 text-xs">{personalReportData.importantNotes}</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <span className="text-xs">عادية</span>
+                            <Badge variant="secondary" className="text-xs">{personalReportData.periodNotes - personalReportData.importantNotes}</Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {personalTransactions.length === 0 && (
+                      <Card className="card-luxury p-8 text-center">
+                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📊</motion.div>
+                        <p className="text-muted-foreground">لا توجد بيانات كافية للتقارير</p>
+                        <p className="text-xs text-muted-foreground mt-1">أضف معاملات شخصية لتظهر التقارير</p>
+                      </Card>
+                    )}
                   </motion.div>
                   )}
                 </motion.div>
