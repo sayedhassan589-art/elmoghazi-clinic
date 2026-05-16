@@ -205,7 +205,7 @@ export default function Home() {
   const [newPatientPhone2, setNewPatientPhone2] = useState('')
   const [newPatientAddress, setNewPatientAddress] = useState('')
   const [newPatientAge, setNewPatientAge] = useState('')
-  const [newPatientGender, setNewPatientGender] = useState('')
+  const [newPatientDiagnosis, setNewPatientDiagnosis] = useState('')
   const [newPatientNotes, setNewPatientNotes] = useState('')
   const [selectedVisitType, setSelectedVisitType] = useState<string>('')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
@@ -1041,7 +1041,7 @@ export default function Home() {
   const handleSmartPatientSubmit = async () => {
     if (!newPatientName.trim()) return toast.error('الاسم مطلوب')
     // Create patient
-    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, age: parseInt(newPatientAge) || null, gender: newPatientGender || null, address: newPatientAddress, notes: newPatientNotes }, setPatients)
+    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, age: parseInt(newPatientAge) || null, gender: newPatientDiagnosis || null, address: newPatientAddress, notes: newPatientNotes }, setPatients)
     if (!patient) return
 
     const patientId = patient.id
@@ -1067,7 +1067,7 @@ export default function Home() {
     // Create sessions for selected services - use custom price entered by user
     if (needsSession && selectedServiceIds.length > 0) {
       for (const serviceId of selectedServiceIds) {
-        await addItem('/sessions', { patientId, serviceId, status: 'scheduled', price: sPrice, paid: false, date: now }, setSessions)
+        await addItem('/sessions', { patientId, serviceId, status: 'completed', price: sPrice, paid: true, date: now }, setSessions)
       }
       // Auto-create income transaction for sessions
       if (sPrice > 0) {
@@ -1077,7 +1077,7 @@ export default function Home() {
     }
 
     // Reset form
-    setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientGender(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setShowAddPatient(false)
+    setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientDiagnosis(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setShowAddPatient(false)
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
@@ -1355,7 +1355,7 @@ export default function Home() {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12 border-2" style={{ borderColor: p.colorTag || (p.gender === 'female' ? '#ec4899' : '#3b82f6') }}><AvatarFallback className="bg-blue-500/10 text-blue-600 font-bold">{p.name?.charAt(0)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="font-bold truncate">{safeName(p.name)}</p>{p.starred && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}>⭐</motion.span>}{p.improved && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2, delay: 0.5 }}>💗</motion.span>}</div><div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Hash size={10} />{p.fileNumber}</span>{p.phone && <span className="flex items-center gap-1"><Phone size={10} />{p.phone}</span>}{p.age && <span>{p.age} سنة</span>}</div></div>
-                        <Badge className={cn('text-[10px]', p.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400')}>{p.gender === 'male' ? 'ذكر' : 'أنثى'}</Badge>
+                        {p.gender && <Badge className="text-[10px] bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">{p.gender}</Badge>}
                       </div>
                     </motion.div>
                   ))}
@@ -1384,7 +1384,7 @@ export default function Home() {
                           <span className="flex items-center gap-1 bg-blue-100/80 dark:bg-blue-900/30 px-2 py-0.5 rounded-lg font-semibold text-blue-700 dark:text-blue-300 text-xs"><Hash size={10} />{selectedPatient.fileNumber}</span>
                           {selectedPatient.phone && <span className="flex items-center gap-1 text-xs"><Phone size={10} />{selectedPatient.phone}</span>}
                           {selectedPatient.age && <span className="flex items-center gap-1 bg-amber-100/80 dark:bg-amber-900/30 px-2 py-0.5 rounded-lg text-amber-700 dark:text-amber-300 text-xs">{selectedPatient.age} سنة</span>}
-                          {selectedPatient.gender && <Badge className={cn('text-[9px] font-bold', selectedPatient.gender === 'male' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300')}>{selectedPatient.gender === 'male' ? '♂ ذكر' : '♀ أنثى'}</Badge>}
+                          {selectedPatient.gender && <Badge className="text-[9px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">🔬 {selectedPatient.gender}</Badge>}
                         </div>
                       </div>
                     </div>
@@ -1404,7 +1404,7 @@ export default function Home() {
                           <div><Label className="text-xs font-bold">الهاتف</Label><Input value={editPatientForm.phone} onChange={e => setEditPatientForm(prev => ({ ...prev, phone: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">هاتف آخر</Label><Input value={editPatientForm.phone2} onChange={e => setEditPatientForm(prev => ({ ...prev, phone2: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">العمر</Label><Input type="number" value={editPatientForm.age} onChange={e => setEditPatientForm(prev => ({ ...prev, age: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
-                          <div><Label className="text-xs font-bold">الجنس</Label><Select value={editPatientForm.gender} onValueChange={v => setEditPatientForm(prev => ({ ...prev, gender: v }))}><SelectTrigger className="rounded-xl h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent></Select></div>
+                          <div><Label className="text-xs font-bold">التشخيص</Label><Input value={editPatientForm.gender} onChange={e => setEditPatientForm(prev => ({ ...prev, gender: e.target.value }))} placeholder="أدخل التشخيص..." className="rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">فصيلة الدم</Label><Select value={editPatientForm.bloodType} onValueChange={v => setEditPatientForm(p => ({ ...p, bloodType: v }))}><SelectTrigger className="rounded-xl h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent>{['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
                           <div><Label className="text-xs font-bold">العنوان</Label><Input value={editPatientForm.address} onChange={e => setEditPatientForm(prev => ({ ...prev, address: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">التاريخ المرضي</Label><Input value={editPatientForm.medicalHistory} onChange={e => setEditPatientForm(prev => ({ ...prev, medicalHistory: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
@@ -1493,7 +1493,7 @@ export default function Home() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20 space-y-2">
                         {services.length > 0 && <div><Label className="text-[10px] font-bold">الخدمة</Label><Select value={profileSessionServiceId} onValueChange={setProfileSessionServiceId}><SelectTrigger className="rounded-xl h-9 mt-0.5 text-xs"><SelectValue placeholder="اختر الخدمة..." /></SelectTrigger><SelectContent>{services.filter(s => s.active).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>}
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileSessionPrice} onChange={e => setProfileSessionPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileSessionNotes} onChange={e => setProfileSessionNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const now = new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'scheduled', price: sPrice, paid: false, notes: profileSessionNotes || undefined, date: now }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: now }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const now = new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: now }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: now }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد جلسات</p>}
@@ -1748,7 +1748,7 @@ export default function Home() {
                       <Select value={laserFinancePatientId} onValueChange={setLaserFinancePatientId}><SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختار المريض..." /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.fileNumber})</SelectItem>)}</SelectContent></Select>
                       <div><Label className="text-xs font-bold flex items-center gap-1"><DollarSign size={12} /> قيمة الجلسة (ج.م)</Label><Input type="number" value={laserFinancePrice} onChange={e => setLaserFinancePrice(e.target.value)} placeholder="السعر بالجنيه..." className="input-luxury rounded-xl h-10 mt-1 text-lg font-bold" /></div>
                       <Input value={laserFinanceNotes} onChange={e => setLaserFinanceNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-10" />
-                      <Button className="btn-luxury rounded-xl w-full bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={async () => { if (!laserFinancePatientId || !laserFinancePrice) return toast.error('اختار المريض وحدد السعر'); const now = new Date().toISOString(); const price = parseFloat(laserFinancePrice) || 0; const pName = patients.find(p => p.id === laserFinancePatientId)?.name || 'مريض'; await addItem('/sessions', { patientId: laserFinancePatientId, status: 'scheduled', price, paid: false, notes: laserFinanceNotes || undefined, date: now }, setSessions); if (price > 0) { await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: price, description: `جلسة ليزر - ${pName}`, date: now }, setTransactions); } setLaserFinancePatientId(''); setLaserFinancePrice(''); setLaserFinanceNotes(''); toast.success('تم تسجيل جلسة الليزر') }}>تسجيل الجلسة</Button>
+                      <Button className="btn-luxury rounded-xl w-full bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={async () => { if (!laserFinancePatientId || !laserFinancePrice) return toast.error('اختار المريض وحدد السعر'); const now = new Date().toISOString(); const price = parseFloat(laserFinancePrice) || 0; const pName = patients.find(p => p.id === laserFinancePatientId)?.name || 'مريض'; await addItem('/sessions', { patientId: laserFinancePatientId, status: 'completed', price, paid: true, notes: laserFinanceNotes || undefined, date: now }, setSessions); if (price > 0) { await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: price, description: `جلسة ليزر - ${pName}`, date: now }, setTransactions); } setLaserFinancePatientId(''); setLaserFinancePrice(''); setLaserFinanceNotes(''); toast.success('تم تسجيل جلسة الليزر') }}>تسجيل الجلسة</Button>
                     </CardContent></Card>
                     {/* Unpaid Dues */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
@@ -2399,8 +2399,9 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const d = new Date(p.createdAt); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).length}</p></div>
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
                       <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
-                      <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20"><p className="text-xs text-muted-foreground">ذكور</p><p className="text-lg font-bold text-sky-600">{maleCount}</p></div>
-                      <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20"><p className="text-xs text-muted-foreground">إناث</p><p className="text-lg font-bold text-rose-600">{femaleCount}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">🩺 كشف</p><p className="text-lg font-bold text-emerald-600">{visits.filter(v => v.type === 'checkup').length}</p><p className="text-[10px] text-emerald-500 font-bold">{formatCurrency(visits.filter(v => v.type === 'checkup').reduce((sum, v) => { const t = transactions.find(tx => tx.description?.includes(patients.find(p => p.id === v.patientId)?.name || '') && tx.category === 'كشف'); return sum + (t?.amount || 0) }, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">🔄 إعادة</p><p className="text-lg font-bold text-blue-600">{visits.filter(v => v.type === 'revisit').length}</p><p className="text-[10px] text-blue-500 font-bold">{formatCurrency(visits.filter(v => v.type === 'revisit').reduce((sum, v) => { const t = transactions.find(tx => tx.description?.includes(patients.find(p => p.id === v.patientId)?.name || '') && tx.category === 'إعادة'); return sum + (t?.amount || 0) }, 0))}</p></div>
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">⚡ جلسات</p><p className="text-lg font-bold text-violet-600">{sessions.filter(s => s.status === 'completed').length}</p><p className="text-[10px] text-violet-500 font-bold">{formatCurrency(sessions.filter(s => s.status === 'completed').reduce((sum, s) => sum + (s.price || 0), 0))}</p></div>
                     </div>
                   </CardContent></Card>
 
@@ -3195,7 +3196,7 @@ export default function Home() {
             {/* ─── 4. PERSONAL INFO ROW ─── */}
             <div className="grid grid-cols-2 gap-3">
               <Input value={newPatientAge} onChange={e => setNewPatientAge(e.target.value)} type="number" placeholder="🎂 العمر" className="input-luxury rounded-xl h-11 border-amber-200 dark:border-amber-800 focus:border-amber-500 bg-amber-50/30 dark:bg-amber-950/10" />
-              <Select value={newPatientGender} onValueChange={setNewPatientGender}><SelectTrigger className="rounded-xl h-11 border-pink-200 dark:border-pink-800 bg-pink-50/30 dark:bg-pink-950/10"><SelectValue placeholder="⚧ الجنس" /></SelectTrigger><SelectContent><SelectItem value="male">♂ ذكر</SelectItem><SelectItem value="female">♀ أنثى</SelectItem></SelectContent></Select>
+              <Input value={newPatientDiagnosis} onChange={e => setNewPatientDiagnosis(e.target.value)} placeholder="🔬 التشخيص" className="rounded-xl h-11 border-pink-200 dark:border-pink-800 bg-pink-50/30 dark:bg-pink-950/10" />
             </div>
 
             {/* ─── 5. VISIT PRICE (for كشف/إعادة) ─── */}
@@ -3351,7 +3352,7 @@ export default function Home() {
                           <p className="text-white font-bold text-sm">{sp.name}</p>
                           <div className="flex items-center gap-1.5 text-teal-100 text-[10px] flex-wrap">
                             <span>#{sp.fileNumber}</span>
-                            {sp.gender && <span>{sp.gender === 'male' ? 'ذكر' : 'أنثى'}</span>}
+                            {sp.gender && <span>{sp.gender}</span>}
                             {sp.age && <span>{sp.age} سنة</span>}
                             {sp.phone && <span dir="ltr">{sp.phone}</span>}
                           </div>
@@ -3694,7 +3695,7 @@ export default function Home() {
           </Card>
           <div><Label className="text-xs font-bold">اختر المريض *</Label><Select value={templatePatientId} onValueChange={setTemplatePatientId}><SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر المريض" /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.fileNumber})</SelectItem>)}</SelectContent></Select></div>
         </div>
-        <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-lime-500 to-lime-600 text-white" onClick={async () => { if (!templatePatientId) return toast.error('اختر المريض'); const patient = patients.find(p => p.id === templatePatientId); const now = new Date().toISOString(); for (let i = 0; i < (selectedTemplate?.sessions || 0); i++) { await addItem('/sessions', { patientId: templatePatientId, status: 'scheduled', price: selectedTemplate?.estimatedPrice / selectedTemplate?.sessions || 0, paid: false, notes: `قالب: ${selectedTemplate?.name} - جلسة ${i + 1}`, date: now }, setSessions) } toast.success(`تم تطبيق قالب "${selectedTemplate?.name}" على ${patient?.name}`); setShowApplyTemplate(false); setTemplatePatientId(''); setSelectedTemplate(null) }}><Sparkles size={14} className="ml-1" /> تطبيق القالب</Button></DialogFooter>
+        <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-lime-500 to-lime-600 text-white" onClick={async () => { if (!templatePatientId) return toast.error('اختر المريض'); const patient = patients.find(p => p.id === templatePatientId); const now = new Date().toISOString(); for (let i = 0; i < (selectedTemplate?.sessions || 0); i++) { await addItem('/sessions', { patientId: templatePatientId, status: 'completed', price: selectedTemplate?.estimatedPrice / selectedTemplate?.sessions || 0, paid: true, notes: `قالب: ${selectedTemplate?.name} - جلسة ${i + 1}`, date: now }, setSessions) } toast.success(`تم تطبيق قالب "${selectedTemplate?.name}" على ${patient?.name}`); setShowApplyTemplate(false); setTemplatePatientId(''); setSelectedTemplate(null) }}><Sparkles size={14} className="ml-1" /> تطبيق القالب</Button></DialogFooter>
       </DialogContent></Dialog>
 
       {/* ─── Add Transaction Dialog ─── */}
