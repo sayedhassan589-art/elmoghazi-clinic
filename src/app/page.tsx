@@ -82,6 +82,13 @@ const getLocalDateStr = (date?: Date | string) => {
   const d = date ? new Date(date) : new Date()
   return d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) // en-CA gives YYYY-MM-DD format
 }
+
+// Helper: get Cairo timezone date parts (year, month, day) — avoids UTC offset on Vercel
+const getCairoDateParts = (date?: Date | string) => {
+  const d = date ? new Date(date) : new Date()
+  const parts = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }).split('-').map(Number)
+  return { year: parts[0], month: parts[1], day: parts[2], dateStr: parts.join('-') }
+}
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
   if (!res.ok) { const e = await res.text().catch(() => ''); throw new Error(e || `Error ${res.status}`) }
@@ -551,21 +558,23 @@ export default function Home() {
 
   // Personal reports computed values
   const personalReportData = useMemo(() => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const cairoNow = getCairoDateParts()
+    const todayStr = cairoNow.dateStr
 
     const filterByPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
-      let startDate: Date
-      if (period === 'daily') {
-        startDate = today
-      } else if (period === 'weekly') {
-        startDate = new Date(today)
-        startDate.setDate(startDate.getDate() - 7)
-      } else {
-        startDate = new Date(today)
-        startDate.setMonth(startDate.getMonth() - 1)
-      }
-      return personalTransactions.filter(t => new Date(t.date) >= startDate)
+      return personalTransactions.filter(t => {
+        const tCairo = getCairoDateParts(t.date)
+        const tDateStr = tCairo.dateStr
+        if (period === 'daily') return tDateStr === todayStr
+        if (period === 'weekly') {
+          const todayDate = new Date(todayStr + 'T00:00:00')
+          const tDate = new Date(tDateStr + 'T00:00:00')
+          const diffDays = (todayDate.getTime() - tDate.getTime()) / (24 * 60 * 60 * 1000)
+          return diffDays >= 0 && diffDays < 7
+        }
+        // monthly
+        return tCairo.year === cairoNow.year && tCairo.month === cairoNow.month
+      })
     }
 
     const filtered = filterByPeriod(personalReportPeriod)
@@ -582,53 +591,66 @@ export default function Home() {
 
     // Reminders stats
     const periodReminders = personalReminders.filter(r => {
-      const d = new Date(r.date)
-      if (personalReportPeriod === 'daily') return d.toDateString() === now.toDateString()
-      if (personalReportPeriod === 'weekly') return d >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-      return d >= new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const rCairo = getCairoDateParts(r.date)
+      if (personalReportPeriod === 'daily') return rCairo.dateStr === todayStr
+      if (personalReportPeriod === 'weekly') {
+        const todayDate = new Date(todayStr + 'T00:00:00')
+        const rDate = new Date(rCairo.dateStr + 'T00:00:00')
+        const diffDays = (todayDate.getTime() - rDate.getTime()) / (24 * 60 * 60 * 1000)
+        return diffDays >= 0 && diffDays < 7
+      }
+      return rCairo.year === cairoNow.year && rCairo.month === cairoNow.month
     })
     const doneReminders = periodReminders.filter(r => r.status === 'done').length
     const pendingReminders = periodReminders.filter(r => r.status !== 'done').length
 
     // Notes stats
     const periodNotes = personalNotes.filter(n => {
-      const d = new Date(n.createdAt)
-      if (personalReportPeriod === 'daily') return d.toDateString() === now.toDateString()
-      if (personalReportPeriod === 'weekly') return d >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-      return d >= new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const nCairo = getCairoDateParts(n.createdAt)
+      if (personalReportPeriod === 'daily') return nCairo.dateStr === todayStr
+      if (personalReportPeriod === 'weekly') {
+        const todayDate = new Date(todayStr + 'T00:00:00')
+        const nDate = new Date(nCairo.dateStr + 'T00:00:00')
+        const diffDays = (todayDate.getTime() - nDate.getTime()) / (24 * 60 * 60 * 1000)
+        return diffDays >= 0 && diffDays < 7
+      }
+      return nCairo.year === cairoNow.year && nCairo.month === cairoNow.month
     })
     const importantNotes = periodNotes.filter(n => n.important).length
 
-    // Chart data for daily breakdown
+    // Chart data for daily breakdown (Cairo timezone)
     let chartData: { label: string; income: number; expense: number }[] = []
     if (personalReportPeriod === 'daily') {
       // Last 7 days
       for (let i = 6; i >= 0; i--) {
-        const d = new Date(today)
+        const d = new Date()
         d.setDate(d.getDate() - i)
-        const dayStr = d.toDateString()
-        const dayIncome = income.filter(t => new Date(t.date).toDateString() === dayStr).reduce((s, t) => s + (t.amount || 0), 0)
-        const dayExpense = expense.filter(t => new Date(t.date).toDateString() === dayStr).reduce((s, t) => s + (t.amount || 0), 0)
-        chartData.push({ label: d.toLocaleDateString('ar-EG', { weekday: 'short' }), income: dayIncome, expense: dayExpense })
+        const ds = getLocalDateStr(d)
+        const dayIncome = income.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
+        const dayExpense = expense.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
+        chartData.push({ label: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), income: dayIncome, expense: dayExpense })
       }
     } else if (personalReportPeriod === 'weekly') {
       // Last 4 weeks
       for (let i = 3; i >= 0; i--) {
-        const weekStart = new Date(today)
-        weekStart.setDate(weekStart.getDate() - (i + 1) * 7)
-        const weekEnd = new Date(weekStart)
-        weekEnd.setDate(weekEnd.getDate() + 7)
-        const weekIncome = income.filter(t => { const d = new Date(t.date); return d >= weekStart && d < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
-        const weekExpense = expense.filter(t => { const d = new Date(t.date); return d >= weekStart && d < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+        const todayDate = new Date(todayStr + 'T00:00:00')
+        const weekEnd = new Date(todayDate)
+        weekEnd.setDate(weekEnd.getDate() - i * 7)
+        const weekStart = new Date(weekEnd)
+        weekStart.setDate(weekStart.getDate() - 7)
+        const weekIncome = income.filter(t => { const td = getLocalDateStr(t.date); const tDate = new Date(td + 'T00:00:00'); return tDate >= weekStart && tDate < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+        const weekExpense = expense.filter(t => { const td = getLocalDateStr(t.date); const tDate = new Date(td + 'T00:00:00'); return tDate >= weekStart && tDate < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
         chartData.push({ label: `أسبوع ${4 - i}`, income: weekIncome, expense: weekExpense })
       }
     } else {
       // Last 6 months
       for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const monthKey = `${d.getFullYear()}-${d.getMonth()}`
-        const monthIncome = income.filter(t => { const td = new Date(t.date); return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth() }).reduce((s, t) => s + (t.amount || 0), 0)
-        const monthExpense = expense.filter(t => { const td = new Date(t.date); return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth() }).reduce((s, t) => s + (t.amount || 0), 0)
+        const m = cairoNow.month - i
+        const year = cairoNow.year + Math.floor((m - 1) / 12)
+        const month = ((m - 1) % 12 + 12) % 12 + 1
+        const monthIncome = income.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month }).reduce((s, t) => s + (t.amount || 0), 0)
+        const monthExpense = expense.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month }).reduce((s, t) => s + (t.amount || 0), 0)
+        const d = new Date(year, month - 1, 1)
         chartData.push({ label: d.toLocaleDateString('ar-EG', { month: 'short' }), income: monthIncome, expense: monthExpense })
       }
     }
@@ -993,7 +1015,7 @@ export default function Home() {
   const sessionRevenue = transactions.filter(t => t.type === 'income' && t.category === 'جلسات').reduce((s, t) => s + t.amount, 0)
   const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue
   const unpaidTotal = sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0)
-  const thisMonthIncome = transactions.filter(t => { const d = new Date(t.date); const now = new Date(); return t.type === 'income' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).reduce((s, t) => s + t.amount, 0)
+  const thisMonthIncome = transactions.filter(t => { const td = getCairoDateParts(t.date); const now = getCairoDateParts(); return t.type === 'income' && td.year === now.year && td.month === now.month }).reduce((s, t) => s + t.amount, 0)
   const thisWeekIncome = revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0)
   const revenueByCategory = useMemo(() => [
     { name: 'كشف', value: checkupRevenue || 0 },
@@ -1001,6 +1023,63 @@ export default function Home() {
     { name: 'جلسات', value: sessionRevenue || 0 },
     { name: 'أخرى', value: otherRevenue || 0 },
   ].filter(d => d.value > 0), [transactions])
+
+  // ─── Weekly Revenue Comparison ───
+  const weeklyComparison = useMemo(() => {
+    const cairoToday = getLocalDateStr()
+    const todayDate = new Date(cairoToday + 'T00:00:00')
+    // This week: last 7 days
+    const thisWeekTxns = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && t.date?.startsWith(getLocalDateStr(t.date)) && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 0 && diff < 7 })())
+    const thisWeekTotal = thisWeekTxns.reduce((s, t) => s + t.amount, 0)
+    // Last week: 7-14 days ago
+    const lastWeekTxns = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 7 && diff < 14 })())
+    const lastWeekTotal = lastWeekTxns.reduce((s, t) => s + t.amount, 0)
+    const changePercent = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : thisWeekTotal > 0 ? 100 : 0
+    return { thisWeekTotal, lastWeekTotal, changePercent, isUp: thisWeekTotal >= lastWeekTotal }
+  }, [transactions])
+
+  // ─── Top Patients by Visits ───
+  const topPatientsByVisits = useMemo(() => {
+    const countMap: Record<string, { patient: Patient; visitCount: number; sessionCount: number; totalSpent: number }> = {}
+    patients.forEach(p => {
+      const pVisits = visits.filter(v => v.patientId === p.id).length
+      const pSessions = sessions.filter(s => s.patientId === p.id).length
+      const pSpent = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && t.description?.includes(p.name)).reduce((s, t) => s + t.amount, 0)
+      if (pVisits + pSessions > 0) countMap[p.id] = { patient: p, visitCount: pVisits, sessionCount: pSessions, totalSpent: pSpent }
+    })
+    return Object.values(countMap).sort((a, b) => (b.visitCount + b.sessionCount) - (a.visitCount + a.sessionCount)).slice(0, 5)
+  }, [patients, visits, sessions, transactions])
+
+  // ─── Laser Session Progress ───
+  const laserProgressData = useMemo(() => {
+    return laserRecords.filter(r => r.status === 'active').map(r => {
+      const patient = patients.find(p => p.id === r.patientId)
+      const completedSessions = laserSessions?.filter(s => s.laserRecordId === r.id).length || 0
+      const progress = r.totalSessions > 0 ? (completedSessions / r.totalSessions) * 100 : 0
+      const areaLabel = BODY_AREAS.find(a => a.id === r.bodyArea)?.label || r.bodyArea
+      return { record: r, patient, completedSessions, totalSessions: r.totalSessions, progress, areaLabel }
+    }).sort((a, b) => b.progress - a.progress)
+  }, [laserRecords, patients])
+
+  // ─── WhatsApp Daily Summary ───
+  const shareDailySummary = () => {
+    const cairoNow = getCairoDateParts()
+    const todayStats = dailyVisitStats.find(d => d.date === todayStr)
+    const summary = `🏥 *تقرير عيادة المجازي اليومي*
+📅 ${new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })}
+
+🩺 كشف: ${todayStats?.checkupCount || 0} (${formatCurrency(todayStats?.checkupRevenue || 0)})
+🔄 إعادة: ${todayStats?.revisitCount || 0} (${formatCurrency(todayStats?.revisitRevenue || 0)})
+⚡ جلسات: ${todayStats?.sessionCount || 0} (${formatCurrency(todayStats?.sessionRevenue || 0)})
+
+💰 إيراد اليوم: ${formatCurrency(todayIncome)}
+📉 مصروفات: ${formatCurrency(todayExpense)}
+📊 صافي الربح: ${formatCurrency(todayNetProfit)}
+
+👥 إجمالي المرضى: ${patients.length}
+📅 مواعيد اليوم: ${todayAppointments.length}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, '_blank')
+  }
 
   // Laser financial computed values
   const laserRevenue = useMemo(() => transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر'))).reduce((s, t) => s + t.amount, 0), [transactions])
@@ -1292,7 +1371,7 @@ export default function Home() {
                 <div className="section-header-animated rounded-2xl bg-emerald-50 dark:bg-emerald-950/30">
                   <div className="relative z-10 flex items-center justify-between">
                     <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🏥</motion.div><div><h1 className="text-2xl font-bold">لوحة التحكم</h1><p className="text-muted-foreground text-sm">مرحباً، {safeName(user?.name)}</p></div></div>
-                    <Badge className="badge-gold text-sm">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Badge>
+                    <Badge className="badge-gold text-sm">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })}</Badge>
                   </div>
                 </div>
                 {/* Quick Actions - AT TOP */}
@@ -1837,7 +1916,10 @@ export default function Home() {
                 <div className="section-header-animated rounded-2xl bg-amber-50 dark:bg-amber-950/30">
                   <div className="relative z-10 flex items-center justify-between">
                     <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-4xl">💰</motion.div><div><h1 className="text-2xl font-bold">الإدارة المالية</h1><p className="text-muted-foreground text-sm">إيرادات ومصروفات العيادة - يومية بالتاريخ</p></div></div>
-                    <Button className="btn-luxury bg-gradient-to-l from-amber-500 to-amber-600 text-white shadow-lg" onClick={() => setShowAddTransaction(true)}><Plus size={14} className="ml-1" /> معاملة</Button>
+                    <div className="flex gap-2">
+                      <Button className="btn-luxury bg-gradient-to-l from-green-500 to-green-600 text-white shadow-lg" onClick={shareDailySummary}><Send size={14} className="ml-1" /> مشاركة واتساب</Button>
+                      <Button className="btn-luxury bg-gradient-to-l from-amber-500 to-amber-600 text-white shadow-lg" onClick={() => setShowAddTransaction(true)}><Plus size={14} className="ml-1" /> معاملة</Button>
+                    </div>
                   </div>
                 </div>
                 {/* Today's Summary Cards */}
@@ -1853,6 +1935,33 @@ export default function Home() {
                   <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><BarChart3 className="text-blue-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">صافي الربح الكلي</p><p className={cn('text-xl font-bold', netProfit >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(netProfit)}</p></div></div></Card>
                   <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">غير المدفوع</p><p className="text-xl font-bold text-amber-600">{formatCurrency(unpaidTotal)}</p></div></div></Card>
                 </div>
+                {/* ═══ Weekly Revenue Comparison ═══ */}
+                <Card className="card-luxury border-2 border-indigo-200 dark:border-indigo-800">
+                  <CardHeader><CardTitle className="text-sm flex items-center gap-2"><TrendingUp size={16} className="text-indigo-600" /> مقارنة الإيرادات الأسبوعية</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center">
+                        <p className="text-[10px] text-muted-foreground">هذا الأسبوع</p>
+                        <p className="text-lg font-black text-emerald-600">{formatCurrency(weeklyComparison.thisWeekTotal)}</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/20 text-center">
+                        <p className="text-[10px] text-muted-foreground">الأسبوع السابق</p>
+                        <p className="text-lg font-black text-gray-600">{formatCurrency(weeklyComparison.lastWeekTotal)}</p>
+                      </div>
+                      <div className={cn('p-3 rounded-xl text-center', weeklyComparison.isUp ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20')}>
+                        <p className="text-[10px] text-muted-foreground">نسبة التغير</p>
+                        <p className={cn('text-lg font-black flex items-center justify-center gap-1', weeklyComparison.isUp ? 'text-emerald-600' : 'text-red-600')}>
+                          {weeklyComparison.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                          {Math.abs(weeklyComparison.changePercent).toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <Progress value={weeklyComparison.lastWeekTotal > 0 ? Math.min((weeklyComparison.thisWeekTotal / weeklyComparison.lastWeekTotal) * 100, 150) : (weeklyComparison.thisWeekTotal > 0 ? 100 : 0)} className={cn('h-3 rounded-full', weeklyComparison.isUp ? '[&>div]:bg-emerald-500' : '[&>div]:bg-red-500')} />
+                      <p className="text-[9px] text-muted-foreground mt-1 text-center">{weeklyComparison.isUp ? '📈 ارتفاع عن الأسبوع الماضي' : '📉 انخفاض عن الأسبوع الماضي'}</p>
+                    </div>
+                  </CardContent>
+                </Card>
                 {/* Revenue by Category - Compact */}
                 <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} className="text-amber-600" /> الإيرادات حسب النوع</CardTitle></CardHeader><CardContent>
                   <div className="grid grid-cols-2 gap-3">
@@ -2239,7 +2348,7 @@ export default function Home() {
                         const now = new Date()
                         if (bookingFilterDate === 'today' && !a.date?.startsWith(todayStr)) return false
                         if (bookingFilterDate === 'week') { const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); if (aDate < weekStart) return false }
-                        if (bookingFilterDate === 'month' && (aDate.getMonth() !== now.getMonth() || aDate.getFullYear() !== now.getFullYear())) return false
+                        if (bookingFilterDate === 'month') { const ad = getCairoDateParts(a.date); const nd = getCairoDateParts(); if (ad.year !== nd.year || ad.month !== nd.month) return false }
                       }
                       return true
                     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -2585,7 +2694,7 @@ export default function Home() {
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Users size={18} className="text-blue-600" /> إحصائيات المرضى</CardTitle></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">إجمالي المرضى</p><p className="text-lg font-bold text-blue-600">{patients.length}</p></div>
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const d = new Date(p.createdAt); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).length}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const pd = getCairoDateParts(p.createdAt); const now = getCairoDateParts(); return pd.year === now.year && pd.month === now.month }).length}</p></div>
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
                       <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
                     </div>
@@ -2610,6 +2719,61 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-blue-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div>
                     </div>
                   </CardContent></Card>
+
+                  {/* ═══ Top Patients by Visits ═══ */}
+                  <Card className="card-luxury border-2 border-blue-200 dark:border-blue-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Award size={18} className="text-blue-600" /> أكثر المرضى زيارة</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {topPatientsByVisits.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد زيارات بعد</p>}
+                      {topPatientsByVisits.map((item, idx) => (
+                        <div key={item.patient.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all cursor-pointer" onClick={() => setSelectedPatient(item.patient)}>
+                          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm', idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-600' : idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' : idx === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' : 'bg-gradient-to-br from-blue-400 to-blue-600')}>
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate">{item.patient.name}</p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[8px] px-1 py-0">🩺 {item.visitCount}</Badge>
+                              <Badge variant="outline" className="text-[8px] px-1 py-0">⚡ {item.sessionCount}</Badge>
+                            </div>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-emerald-600">{formatCurrency(item.totalSpent)}</p>
+                            <p className="text-[8px] text-muted-foreground">{item.visitCount + item.sessionCount} زيارة</p>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ Laser Session Progress ═══ */}
+                  {laserProgressData.length > 0 && (
+                  <Card className="card-luxury border-2 border-cyan-200 dark:border-cyan-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Zap size={18} className="text-cyan-600" /> تقدم جلسات الليزر النشطة</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      {laserProgressData.map(item => (
+                        <div key={item.record.id} className="p-3 rounded-xl bg-muted/50 space-y-2 cursor-pointer hover:bg-muted transition-all" onClick={() => { setSelectedPatient(item.patient || null); setActiveTab('patients') }}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Zap size={12} className="text-cyan-600" /></div>
+                              <div>
+                                <p className="text-xs font-bold">{item.patient?.name || 'مريض'}</p>
+                                <p className="text-[9px] text-muted-foreground">{item.areaLabel}</p>
+                              </div>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-bold text-cyan-600">{item.completedSessions}/{item.totalSessions}</p>
+                              <p className="text-[9px] text-muted-foreground">{item.progress.toFixed(0)}%</p>
+                            </div>
+                          </div>
+                          <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(item.progress, 100)}%` }} transition={{ duration: 1, ease: 'easeOut' }} className={cn('absolute inset-y-0 right-0 rounded-full', item.progress >= 80 ? 'bg-emerald-500' : item.progress >= 50 ? 'bg-cyan-500' : item.progress >= 25 ? 'bg-amber-500' : 'bg-red-400')} />
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                  )}
 
                   {/* Weekly Revenue Bar Chart */}
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-emerald-600" /> الإيرادات الأسبوعية</CardTitle></CardHeader><CardContent>
