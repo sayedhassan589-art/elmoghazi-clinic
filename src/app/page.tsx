@@ -76,6 +76,12 @@ const waPhone = (phone?: string) => {
   if (digits.startsWith('0')) return '2' + digits // starts with 0 → add 2
   return '20' + digits // no prefix → add 20
 }
+
+// Helper: get local date string in Cairo timezone (fixes UTC offset issue)
+const getLocalDateStr = (date?: Date | string) => {
+  const d = date ? new Date(date) : new Date()
+  return d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) // en-CA gives YYYY-MM-DD format
+}
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
   if (!res.ok) { const e = await res.text().catch(() => ''); throw new Error(e || `Error ${res.status}`) }
@@ -922,19 +928,18 @@ export default function Home() {
   }
 
   // ─── Computed ─────────────────────────────────────────────────────────
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = getLocalDateStr() // Cairo timezone
   const todayVisits = visits.filter(v => v.date?.startsWith(todayStr))
   const todayIncome = transactions.filter(t => t.type === 'income' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
   const todayExpense = transactions.filter(t => t.type === 'expense' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
   const todayNetProfit = todayIncome - todayExpense
 
-  // Daily finance data - grouped by real date
+  // Daily finance data - grouped by real date (Cairo timezone)
   const dailyFinanceData = useMemo(() => {
     const dayMap: Record<string, { date: string; dateObj: Date; income: number; expense: number; net: number; transactions: Transaction[] }> = {}
     transactions.filter(t => t.category !== 'personal').forEach(t => {
-      const d = new Date(t.date)
-      const key = d.toISOString().split('T')[0]
-      if (!dayMap[key]) dayMap[key] = { date: key, dateObj: d, income: 0, expense: 0, net: 0, transactions: [] }
+      const key = getLocalDateStr(t.date)
+      if (!dayMap[key]) dayMap[key] = { date: key, dateObj: new Date(t.date), income: 0, expense: 0, net: 0, transactions: [] }
       if (t.type === 'income') dayMap[key].income += t.amount || 0
       else dayMap[key].expense += t.amount || 0
       dayMap[key].net = dayMap[key].income - dayMap[key].expense
@@ -945,29 +950,26 @@ export default function Home() {
   const todayAppointments = appointments.filter(a => a.date?.startsWith(todayStr))
   const activeAlerts = alerts.filter(a => a.active)
 
-  // Daily visit/session stats for reports
+  // Daily visit/session stats for reports (Cairo timezone)
   const dailyVisitStats = useMemo(() => {
     const dayMap: Record<string, { date: string; checkupCount: number; revisitCount: number; sessionCount: number; checkupRevenue: number; revisitRevenue: number; sessionRevenue: number }> = {}
     // Process visits
     visits.forEach(v => {
-      const d = new Date(v.date)
-      const key = d.toISOString().split('T')[0]
+      const key = getLocalDateStr(v.date)
       if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
       if (v.type === 'checkup') dayMap[key].checkupCount++
       else if (v.type === 'revisit') dayMap[key].revisitCount++
     })
     // Process completed sessions
     sessions.filter(s => s.status === 'completed').forEach(s => {
-      const d = new Date(s.date)
-      const key = d.toISOString().split('T')[0]
+      const key = getLocalDateStr(s.date)
       if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
       dayMap[key].sessionCount++
       dayMap[key].sessionRevenue += s.price || 0
     })
     // Process revenue from transactions
     transactions.filter(t => t.category !== 'personal').forEach(t => {
-      const d = new Date(t.date)
-      const key = d.toISOString().split('T')[0]
+      const key = getLocalDateStr(t.date)
       if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
       if (t.type === 'income' && t.category === 'كشف') dayMap[key].checkupRevenue += t.amount || 0
       else if (t.type === 'income' && t.category === 'إعادة') dayMap[key].revisitRevenue += t.amount || 0
@@ -978,7 +980,7 @@ export default function Home() {
   const lowStockItems = inventoryItems.filter(i => i.quantity <= i.minQuantity)
   const maleCount = patients.filter(p => p.gender === 'male').length
   const femaleCount = patients.filter(p => p.gender === 'female').length
-  const revenueChartData = useMemo(() => { const days: any[] = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().split('T')[0]; days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short' }), إيراد: transactions.filter(t => t.type === 'income' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0), مصروف: transactions.filter(t => t.type === 'expense' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0) }) } return days }, [transactions])
+  const revenueChartData = useMemo(() => { const days: any[] = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = getLocalDateStr(d); days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: transactions.filter(t => t.type === 'income' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0), مصروف: transactions.filter(t => t.type === 'expense' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0) }) } return days }, [transactions])
   const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
   const filteredPatients = useMemo(() => { let list = patients; if (searchQuery) list = list.filter(p => p.name.includes(searchQuery) || p.phone?.includes(searchQuery) || p.fileNumber?.includes(searchQuery)); if (patientFilter === 'starred') list = list.filter(p => p.starred); if (patientFilter === 'improved') list = list.filter(p => p.improved); return list }, [patients, searchQuery, patientFilter])
 
