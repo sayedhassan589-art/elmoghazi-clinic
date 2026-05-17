@@ -212,6 +212,7 @@ export default function Home() {
   const [showAddPatient, setShowAddPatient] = useState(false)
   const [showAddService, setShowAddService] = useState(false)
   const [showAddTransaction, setShowAddTransaction] = useState(false)
+  const [expandedFinanceDay, setExpandedFinanceDay] = useState<string | null>(null)
   const [showAddAppointment, setShowAddAppointment] = useState(false)
   // Transaction form
   const [txnFormType, setTxnFormType] = useState<'income' | 'expense'>('income')
@@ -915,8 +916,56 @@ export default function Home() {
   const todayStr = new Date().toISOString().split('T')[0]
   const todayVisits = visits.filter(v => v.date?.startsWith(todayStr))
   const todayIncome = transactions.filter(t => t.type === 'income' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
+  const todayExpense = transactions.filter(t => t.type === 'expense' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
+  const todayNetProfit = todayIncome - todayExpense
+
+  // Daily finance data - grouped by real date
+  const dailyFinanceData = useMemo(() => {
+    const dayMap: Record<string, { date: string; dateObj: Date; income: number; expense: number; net: number; transactions: Transaction[] }> = {}
+    transactions.filter(t => t.category !== 'personal').forEach(t => {
+      const d = new Date(t.date)
+      const key = d.toISOString().split('T')[0]
+      if (!dayMap[key]) dayMap[key] = { date: key, dateObj: d, income: 0, expense: 0, net: 0, transactions: [] }
+      if (t.type === 'income') dayMap[key].income += t.amount || 0
+      else dayMap[key].expense += t.amount || 0
+      dayMap[key].net = dayMap[key].income - dayMap[key].expense
+      dayMap[key].transactions.push(t)
+    })
+    return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
+  }, [transactions])
   const todayAppointments = appointments.filter(a => a.date?.startsWith(todayStr))
   const activeAlerts = alerts.filter(a => a.active)
+
+  // Daily visit/session stats for reports
+  const dailyVisitStats = useMemo(() => {
+    const dayMap: Record<string, { date: string; checkupCount: number; revisitCount: number; sessionCount: number; checkupRevenue: number; revisitRevenue: number; sessionRevenue: number }> = {}
+    // Process visits
+    visits.forEach(v => {
+      const d = new Date(v.date)
+      const key = d.toISOString().split('T')[0]
+      if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
+      if (v.type === 'checkup') dayMap[key].checkupCount++
+      else if (v.type === 'revisit') dayMap[key].revisitCount++
+    })
+    // Process completed sessions
+    sessions.filter(s => s.status === 'completed').forEach(s => {
+      const d = new Date(s.date)
+      const key = d.toISOString().split('T')[0]
+      if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
+      dayMap[key].sessionCount++
+      dayMap[key].sessionRevenue += s.price || 0
+    })
+    // Process revenue from transactions
+    transactions.filter(t => t.category !== 'personal').forEach(t => {
+      const d = new Date(t.date)
+      const key = d.toISOString().split('T')[0]
+      if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
+      if (t.type === 'income' && t.category === 'كشف') dayMap[key].checkupRevenue += t.amount || 0
+      else if (t.type === 'income' && t.category === 'إعادة') dayMap[key].revisitRevenue += t.amount || 0
+      else if (t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر')) dayMap[key].sessionRevenue += t.amount || 0
+    })
+    return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
+  }, [visits, sessions, transactions])
   const lowStockItems = inventoryItems.filter(i => i.quantity <= i.minQuantity)
   const maleCount = patients.filter(p => p.gender === 'male').length
   const femaleCount = patients.filter(p => p.gender === 'female').length
@@ -1776,18 +1825,24 @@ export default function Home() {
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-amber-50 dark:bg-amber-950/30">
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-4xl">💰</motion.div><div><h1 className="text-2xl font-bold">الإدارة المالية</h1><p className="text-muted-foreground text-sm">إيرادات ومصروفات العيادة</p></div></div>
+                    <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-4xl">💰</motion.div><div><h1 className="text-2xl font-bold">الإدارة المالية</h1><p className="text-muted-foreground text-sm">إيرادات ومصروفات العيادة - يومية بالتاريخ</p></div></div>
                     <Button className="btn-luxury bg-gradient-to-l from-amber-500 to-amber-600 text-white shadow-lg" onClick={() => setShowAddTransaction(true)}><Plus size={14} className="ml-1" /> معاملة</Button>
                   </div>
                 </div>
-                {/* Main Financial Cards */}
+                {/* Today's Summary Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <Card className="section-card p-4 border-2 border-emerald-200 dark:border-emerald-800"><div className="flex items-center gap-2"><div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد اليوم</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(todayIncome)}</p></div></div></Card>
+                  <Card className="section-card p-4 border-2 border-red-200 dark:border-red-800"><div className="flex items-center gap-2"><div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30"><TrendingDown className="text-red-600" size={18} /></div><div><p className="text-[10px] text-muted-foreground">مصروفات اليوم</p><p className="text-lg font-bold text-red-600">{formatCurrency(todayExpense)}</p></div></div></Card>
+                  <Card className="section-card p-4 border-2 border-blue-200 dark:border-blue-800"><div className="flex items-center gap-2"><div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30"><BarChart3 className="text-blue-600" size={18} /></div><div><p className="text-[10px] text-muted-foreground">صافي اليوم</p><p className={cn('text-lg font-bold', todayNetProfit >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(todayNetProfit)}</p></div></div></Card>
+                </div>
+                {/* Period + Overall Summary */}
                 <div className="grid grid-cols-2 gap-3">
-                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">الإيرادات</p><p className="text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p></div></div></Card>
-                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30"><TrendingUp className="text-red-600 rotate-180" size={20} /></div><div><p className="text-[11px] text-muted-foreground">المصروفات</p><p className="text-xl font-bold text-red-600">{formatCurrency(totalExpense)}</p></div></div></Card>
-                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><BarChart3 className="text-blue-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">صافي الربح</p><p className={cn('text-xl font-bold', netProfit >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(netProfit)}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">إجمالي الإيرادات</p><p className="text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30"><TrendingDown className="text-red-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">إجمالي المصروفات</p><p className="text-xl font-bold text-red-600">{formatCurrency(totalExpense)}</p></div></div></Card>
+                  <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><BarChart3 className="text-blue-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">صافي الربح الكلي</p><p className={cn('text-xl font-bold', netProfit >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(netProfit)}</p></div></div></Card>
                   <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[11px] text-muted-foreground">غير المدفوع</p><p className="text-xl font-bold text-amber-600">{formatCurrency(unpaidTotal)}</p></div></div></Card>
                 </div>
-                {/* Revenue by Category */}
+                {/* Revenue by Category - Compact */}
                 <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} className="text-amber-600" /> الإيرادات حسب النوع</CardTitle></CardHeader><CardContent>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">🩺</span><span className="text-sm font-bold">كشف</span></div><span className="font-bold text-emerald-600">{formatCurrency(checkupRevenue)}</span></div>
@@ -1795,22 +1850,84 @@ export default function Home() {
                     <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">⚡</span><span className="text-sm font-bold">جلسات</span></div><span className="font-bold text-violet-600">{formatCurrency(sessionRevenue)}</span></div>
                     <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/20 flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">📊</span><span className="text-sm font-bold">أخرى</span></div><span className="font-bold text-gray-600">{formatCurrency(otherRevenue)}</span></div>
                   </div>
-                  {/* Revenue Category Pie Chart */}
                   {revenueByCategory.length > 0 && <div className="mt-4"><ResponsiveContainer width="100%" height={200}><PieChart><Pie data={revenueByCategory} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{revenueByCategory.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer></div>}
                 </CardContent></Card>
-                {/* Period Summary */}
-                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Calendar size={16} className="text-purple-600" /> ملخص الفترات</CardTitle></CardHeader><CardContent>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center"><p className="text-[9px] text-muted-foreground">اليوم</p><p className="text-sm font-bold text-emerald-600">{formatCurrency(todayIncome)}</p></div>
-                    <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-center"><p className="text-[9px] text-muted-foreground">الأسبوع</p><p className="text-sm font-bold text-violet-600">{formatCurrency(thisWeekIncome)}</p></div>
-                    <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-center"><p className="text-[9px] text-muted-foreground">الشهر</p><p className="text-sm font-bold text-teal-600">{formatCurrency(thisMonthIncome)}</p></div>
-                  </div>
+                {/* Daily Revenue Chart */}
+                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><TrendingUp size={16} className="text-emerald-600" /> الإيرادات والمصروفات - آخر 7 أيام</CardTitle></CardHeader><CardContent>
+                  <ResponsiveContainer width="100%" height={260}><BarChart data={revenueChartData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} /><YAxis stroke="var(--muted-foreground)" fontSize={12} /><RechartsTooltip /><Bar dataKey="إيراد" fill="#047857" radius={[4,4,0,0]} /><Bar dataKey="مصروف" fill="#D4A843" radius={[4,4,0,0]} /></BarChart></ResponsiveContainer>
                 </CardContent></Card>
-                {/* Recent Transactions */}
-                <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={16} className="text-emerald-600" /> آخر المعاملات</CardTitle></CardHeader><CardContent className="space-y-2">
-                  {transactions.slice(0, 30).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><div className={cn('p-1.5 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={12} /></div><div><p className="text-xs font-medium">{t.description || t.category}</p><div className="flex items-center gap-2"><Badge variant="outline" className="text-[8px]">{t.category}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><div className="flex items-center gap-1"><span className={cn('text-sm font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span><Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { await apiFetch(`/finance/transactions/${t.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(tx => tx.id !== t.id)); toast.success('تم حذف المعاملة') } catch { toast.error('خطأ في الحذف') } }}><Trash2 size={10} className="text-red-500" /></Button></div></div>)}
-                  {transactions.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد معاملات بعد</p>}
-                </CardContent></Card>
+                {/* ═══ Daily Financial Ledger ═══ */}
+                <Card className="card-luxury border-2 border-amber-300 dark:border-amber-700">
+                  <CardHeader><CardTitle className="text-sm flex items-center gap-2"><CalendarCheck size={16} className="text-amber-600" /> السجل المالي اليومي بالتاريخ</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {dailyFinanceData.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد معاملات بعد</p>}
+                    {dailyFinanceData.map(day => {
+                      const isToday = day.date === todayStr
+                      const isExpanded = expandedFinanceDay === day.date
+                      const dayDate = new Date(day.date + 'T00:00:00')
+                      const dayName = dayDate.toLocaleDateString('ar-EG', { weekday: 'long' })
+                      const dayLabel = dayDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+                      return (
+                        <div key={day.date} className={cn('rounded-xl border-2 overflow-hidden transition-all', isToday ? 'border-amber-400 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-950/20' : 'border-border bg-card')}>
+                          <motion.div whileTap={{ scale: 0.99 }} onClick={() => setExpandedFinanceDay(isExpanded ? null : day.date)} className="p-3 cursor-pointer hover:bg-muted/50 transition-all">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className={cn('p-2 rounded-lg', isToday ? 'bg-amber-200 dark:bg-amber-800' : 'bg-muted')}>
+                                  <CalendarCheck size={14} className={isToday ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'} />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm">{dayLabel}</span>
+                                    {isToday && <Badge className="bg-amber-500 text-white text-[8px]">اليوم</Badge>}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">{dayName}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div className="text-left">
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-center"><p className="text-[8px] text-muted-foreground">إيراد</p><p className="text-xs font-bold text-emerald-600">{formatCurrency(day.income)}</p></div>
+                                    <div className="text-center"><p className="text-[8px] text-muted-foreground">مصروف</p><p className="text-xs font-bold text-red-600">{formatCurrency(day.expense)}</p></div>
+                                    <div className="text-center"><p className="text-[8px] text-muted-foreground">صافي</p><p className={cn('text-xs font-bold', day.net >= 0 ? 'text-blue-600' : 'text-red-600')}>{formatCurrency(day.net)}</p></div>
+                                  </div>
+                                </div>
+                                <ChevronDown size={14} className={cn('text-muted-foreground transition-transform', isExpanded && 'rotate-180')} />
+                              </div>
+                            </div>
+                          </motion.div>
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="px-3 pb-3 space-y-1.5 border-t border-dashed pt-2">
+                                  {day.transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
+                                    <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                                      <div className="flex items-center gap-2">
+                                        <div className={cn('p-1 rounded-lg', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}>
+                                          <DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={10} />
+                                        </div>
+                                        <div>
+                                          <p className="text-[11px] font-medium">{t.description || t.category}</p>
+                                          <div className="flex items-center gap-1.5">
+                                            <Badge variant="outline" className="text-[7px] px-1 py-0">{t.category}</Badge>
+                                            <span className="text-[9px] text-muted-foreground">{formatTime(t.date)}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <span className={cn('text-xs font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span>
+                                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={async () => { try { await apiFetch(`/finance/transactions/${t.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(tx => tx.id !== t.id)); toast.success('تم حذف المعاملة') } catch { toast.error('خطأ في الحذف') } }}><Trash2 size={9} className="text-red-500" /></Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )
+                    })}
+                  </CardContent>
+                </Card>
                 {renderQuickNotes('finance')}
               </div>
             )}
@@ -2369,6 +2486,67 @@ export default function Home() {
 
                 {/* Reports Sub-tab - التقارير المحترفة */}
                 {moreSubTab === 'reports' && (<div className="space-y-4">
+                  {/* ═══ Daily Cases Summary - ملخص يومي بالحالات ═══ */}
+                  <Card className="card-luxury border-2 border-cyan-300 dark:border-cyan-700"><CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck size={18} className="text-cyan-600" /> ملخص الحالات اليومي</CardTitle></CardHeader><CardContent className="space-y-3">
+                    {dailyVisitStats.length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد بيانات بعد</p>}
+                    {dailyVisitStats.map(day => {
+                      const isToday = day.date === todayStr
+                      const dayDate = new Date(day.date + 'T00:00:00')
+                      const dayName = dayDate.toLocaleDateString('ar-EG', { weekday: 'long' })
+                      const dayLabel = dayDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+                      const totalCases = day.checkupCount + day.revisitCount + day.sessionCount
+                      const totalRev = day.checkupRevenue + day.revisitRevenue + day.sessionRevenue
+                      return (
+                        <div key={day.date} className={cn('p-3 rounded-xl border-2', isToday ? 'border-cyan-400 dark:border-cyan-600 bg-cyan-50/50 dark:bg-cyan-950/20' : 'border-border bg-card')}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <CalendarCheck size={14} className={isToday ? 'text-cyan-600' : 'text-muted-foreground'} />
+                              <span className="font-bold text-sm">{dayLabel}</span>
+                              <span className="text-[10px] text-muted-foreground">({dayName})</span>
+                              {isToday && <Badge className="bg-cyan-500 text-white text-[8px]">اليوم</Badge>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[9px] font-bold">{totalCases} حالة</Badge>
+                              <span className="text-xs font-bold text-emerald-600">{formatCurrency(totalRev)}</span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1"><span className="text-sm">🩺</span><span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">كشف</span></div>
+                              <p className="text-lg font-black text-emerald-600">{day.checkupCount}</p>
+                              <p className="text-[9px] text-emerald-500 font-bold">{formatCurrency(day.checkupRevenue)}</p>
+                            </div>
+                            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1"><span className="text-sm">🔄</span><span className="text-[10px] font-bold text-blue-700 dark:text-blue-400">إعادة</span></div>
+                              <p className="text-lg font-black text-blue-600">{day.revisitCount}</p>
+                              <p className="text-[9px] text-blue-500 font-bold">{formatCurrency(day.revisitRevenue)}</p>
+                            </div>
+                            <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-center">
+                              <div className="flex items-center justify-center gap-1 mb-1"><span className="text-sm">⚡</span><span className="text-[10px] font-bold text-violet-700 dark:text-violet-400">جلسات</span></div>
+                              <p className="text-lg font-black text-violet-600">{day.sessionCount}</p>
+                              <p className="text-[9px] text-violet-500 font-bold">{formatCurrency(day.sessionRevenue)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </CardContent></Card>
+
+                  {/* Today's Quick Summary */}
+                  <Card className="card-luxury border-2 border-emerald-300 dark:border-emerald-700"><CardHeader><CardTitle className="flex items-center gap-2"><Activity size={18} className="text-emerald-600" /> ملخص اليوم السريع</CardTitle></CardHeader><CardContent>
+                    {(() => {
+                      const todayStats = dailyVisitStats.find(d => d.date === todayStr)
+                      return (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">🩺 كشف اليوم</p><p className="text-lg font-bold text-emerald-600">{todayStats?.checkupCount || 0}</p><p className="text-[10px] text-emerald-500 font-bold">{formatCurrency(todayStats?.checkupRevenue || 0)}</p></div>
+                          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">🔄 إعادة اليوم</p><p className="text-lg font-bold text-blue-600">{todayStats?.revisitCount || 0}</p><p className="text-[10px] text-blue-500 font-bold">{formatCurrency(todayStats?.revisitRevenue || 0)}</p></div>
+                          <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">⚡ جلسات اليوم</p><p className="text-lg font-bold text-violet-600">{todayStats?.sessionCount || 0}</p><p className="text-[10px] text-violet-500 font-bold">{formatCurrency(todayStats?.sessionRevenue || 0)}</p></div>
+                          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">💰 إيراد اليوم</p><p className="text-lg font-bold text-amber-600">{formatCurrency(todayIncome)}</p><p className="text-[10px] text-amber-500 font-bold">صافي: {formatCurrency(todayNetProfit)}</p></div>
+                        </div>
+                      )
+                    })()}
+                  </CardContent></Card>
+
                   {/* Financial Summary */}
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 size={18} className="text-cyan-600" /> الملخص المالي الشامل</CardTitle></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
@@ -2399,9 +2577,6 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const d = new Date(p.createdAt); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }).length}</p></div>
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
                       <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">🩺 كشف</p><p className="text-lg font-bold text-emerald-600">{visits.filter(v => v.type === 'checkup').length}</p><p className="text-[10px] text-emerald-500 font-bold">{formatCurrency(visits.filter(v => v.type === 'checkup').reduce((sum, v) => { const t = transactions.find(tx => tx.description?.includes(patients.find(p => p.id === v.patientId)?.name || '') && tx.category === 'كشف'); return sum + (t?.amount || 0) }, 0))}</p></div>
-                      <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">🔄 إعادة</p><p className="text-lg font-bold text-blue-600">{visits.filter(v => v.type === 'revisit').length}</p><p className="text-[10px] text-blue-500 font-bold">{formatCurrency(visits.filter(v => v.type === 'revisit').reduce((sum, v) => { const t = transactions.find(tx => tx.description?.includes(patients.find(p => p.id === v.patientId)?.name || '') && tx.category === 'إعادة'); return sum + (t?.amount || 0) }, 0))}</p></div>
-                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">⚡ جلسات</p><p className="text-lg font-bold text-violet-600">{sessions.filter(s => s.status === 'completed').length}</p><p className="text-[10px] text-violet-500 font-bold">{formatCurrency(sessions.filter(s => s.status === 'completed').reduce((sum, s) => sum + (s.price || 0), 0))}</p></div>
                     </div>
                   </CardContent></Card>
 
@@ -2424,12 +2599,6 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-blue-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div>
                     </div>
                   </CardContent></Card>
-
-                  {/* Visit Type Distribution */}
-                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><BarChart2 size={18} className="text-purple-600" /> توزيع أنواع الزيارات</CardTitle></CardHeader><CardContent className="flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart><Pie data={[{ name: 'كشف', value: visits.filter(v => v.type === 'checkup').length || 1 }, { name: 'إعادة', value: visits.filter(v => v.type === 'revisit').length || 1 }, { name: 'جلسة', value: visits.filter(v => v.type === 'session').length || 1 }]} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{[0,1,2].map(i => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer>
-                    </CardContent></Card>
 
                   {/* Weekly Revenue Bar Chart */}
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-emerald-600" /> الإيرادات الأسبوعية</CardTitle></CardHeader><CardContent>
