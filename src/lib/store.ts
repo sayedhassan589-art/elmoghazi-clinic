@@ -49,8 +49,10 @@ export interface StatusColorConfig {
 interface AuthState {
   user: AuthUser | null
   isAuthenticated: boolean
-  login: (user: AuthUser) => void
+  userRole: 'doctor' | 'secretary'
+  login: (user: AuthUser, role?: 'doctor' | 'secretary') => void
   logout: () => void
+  setUserRole: (role: 'doctor' | 'secretary') => void
 }
 
 interface ClinicSettingsState {
@@ -75,10 +77,13 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      login: (user: AuthUser) =>
-        set({ user, isAuthenticated: true }),
+      userRole: 'doctor' as 'doctor' | 'secretary',
+      login: (user: AuthUser, role?: 'doctor' | 'secretary') =>
+        set({ user, isAuthenticated: true, userRole: role || user.role as 'doctor' | 'secretary' || 'doctor' }),
       logout: () =>
-        set({ user: null, isAuthenticated: false }),
+        set({ user: null, isAuthenticated: false, userRole: 'doctor' }),
+      setUserRole: (role: 'doctor' | 'secretary') =>
+        set({ userRole: role }),
     }),
     {
       name: 'elmoghazi-auth',

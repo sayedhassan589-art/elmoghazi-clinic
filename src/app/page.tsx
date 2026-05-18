@@ -191,7 +191,7 @@ const VISIT_TYPES = [
 
 // ─── Main App ───────────────────────────────────────────────────────────────
 export default function Home() {
-  const { user, isAuthenticated, login, logout } = useAuthStore()
+  const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
   const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup } = useClinicStore()
   const [darkMode, setDarkMode] = useState(false)
   const [smartSearchOpen, setSmartSearchOpen] = useState(false)
@@ -334,8 +334,7 @@ export default function Home() {
   const [noteSearch, setNoteSearch] = useState('')
   const [noteFilter, setNoteFilter] = useState<'all' | 'important' | 'dashboard' | 'patients' | 'laser' | 'finance' | 'general'>('all')
 
-  // Role & Password system
-  const [userRole, setUserRole] = useState<'doctor' | 'secretary'>('doctor')
+  // Role & Password system (userRole is now persisted in auth store)
   const [sectionPasswords, setSectionPasswords] = useState<Record<string, string>>({})
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState('')
@@ -819,8 +818,7 @@ export default function Home() {
     setLoginLoading(true)
     try {
       const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ role: loginRole, password: loginPassword }) })
-      setUserRole(loginRole)
-      login(res.user)
+      login(res.user, loginRole)
       toast.success(loginRole === 'doctor' ? 'مرحباً دكتور 🩺' : 'مرحباً 👩‍💼')
       if (loginRole === 'secretary') setActiveTab('patients')
     } catch (e: any) { toast.error(e.message === 'Invalid password' ? 'كلمة السر غير صحيحة' : e.message || 'خطأ في تسجيل الدخول') }
@@ -1278,7 +1276,7 @@ export default function Home() {
 
   // ─── Role-based access control ────────────────────────────────────────
   const isDoctor = userRole === 'doctor'
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'sessions', 'laser']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
@@ -1307,11 +1305,12 @@ export default function Home() {
   const allNavItems = [
     { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} />, activeColor: 'from-emerald-400 to-teal-500', activeShadow: 'shadow-emerald-500/40', labelColor: 'text-emerald-600 dark:text-emerald-400' },
     { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} />, activeColor: 'from-blue-400 to-indigo-500', activeShadow: 'shadow-blue-500/40', labelColor: 'text-blue-600 dark:text-blue-400' },
+    { id: 'sessions', label: 'الجلسات', emoji: '⚡', icon: <Activity size={20} />, activeColor: 'from-violet-400 to-purple-500', activeShadow: 'shadow-violet-500/40', labelColor: 'text-violet-600 dark:text-violet-400' },
     { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} />, activeColor: 'from-cyan-400 to-violet-500', activeShadow: 'shadow-cyan-500/40', labelColor: 'text-cyan-600 dark:text-cyan-400' },
     { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
     { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
   ]
-  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => i.id === 'patients' || i.id === 'laser').map(i => i.id === 'laser' ? { ...i, label: 'الجلسات', emoji: '⚡' } : i)
+  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'sessions', 'laser'].includes(i.id))
 
   // ─── LOGIN ────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
@@ -1335,7 +1334,7 @@ export default function Home() {
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg"><Users size={28} className="text-white" /></div>
-                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والجلسات فقط</p></div>
+                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والجلسات والليزر</p></div>
                   </motion.button>
                 </div>
               ) : (
@@ -1344,7 +1343,7 @@ export default function Home() {
                     <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', loginRole === 'doctor' ? 'bg-gradient-to-br from-amber-500 to-amber-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-700')}>
                       {loginRole === 'doctor' ? <Stethoscope className="text-white" size={18} /> : <Users size={18} className="text-white" />}
                     </div>
-                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والجلسات فقط'}</p></div>
+                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والجلسات والليزر'}</p></div>
                     <button onClick={() => { setLoginRole(null); setLoginPassword('') }} className="mr-auto text-emerald-200/60 hover:text-white text-xs">تغيير</button>
                   </div>
                   <div><Label className="text-emerald-200">كلمة المرور</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="أدخل كلمة السر..." className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12 text-center text-lg" onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus /></div>
@@ -1701,28 +1700,73 @@ export default function Home() {
               </div>
             )}
 
-            {/* ═══ LASER ═══ - Professional Laser Center Management */}
-            {/* ═══ SESSIONS VIEW FOR SECRETARY ═══ */}
-            {activeTab === 'laser' && !isDoctor && (
+            {/* ═══ SESSIONS TAB ═══ - إدارة الجلسات */}
+            {activeTab === 'sessions' && (
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-violet-50 dark:bg-violet-950/30">
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">⚡</motion.div><div><h1 className="text-2xl font-bold">إدارة الجلسات</h1><p className="text-muted-foreground text-sm">متابعة وتسجيل الجلسات</p></div></div>
-                    <Button className="btn-luxury bg-gradient-to-l from-violet-600 to-violet-700 text-white shadow-lg" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> جلسة جديدة</Button>
+                    <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">⚡</motion.div><div><h1 className="text-2xl font-bold">إدارة الجلسات</h1><p className="text-muted-foreground text-sm">متابعة وتسجيل جميع الجلسات</p></div></div>
+                    <div className="flex gap-2">
+                      <Button className="btn-luxury bg-gradient-to-l from-violet-600 to-violet-700 text-white shadow-lg" onClick={() => { setShowAddLaserRecord(true) }}><Plus size={14} className="ml-1" /> جلسة ليزر</Button>
+                      <Button variant="outline" className="rounded-xl" onClick={() => { setShowAddPatient(true); setSelectedVisitType('session') }}><UserPlus size={14} className="ml-1" /> جلسة جديدة</Button>
+                    </div>
                   </div>
                 </div>
+
                 {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات الليزر</p><p className="text-xl font-bold">{laserHairSessions.length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><CheckCircle className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">مدفوعة</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.paid).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><Clock className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">غير مدفوعة</p><p className="text-xl font-bold">{laserHairSessions.filter(s => !s.paid).length}</p></div></div></motion.div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{sessions.filter(s => s.date?.startsWith(todayStr)).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><CheckCircle className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">مدفوعة</p><p className="text-xl font-bold">{sessions.filter(s => s.paid).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><Clock className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">غير مدفوعة</p><p className="text-xl font-bold">{sessions.filter(s => !s.paid).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي الجلسات</p><p className="text-xl font-bold">{formatCurrency(sessions.reduce((s, ses) => s + (ses.price || 0), 0))}</p></div></div></motion.div>
                 </div>
+
+                {/* Today's Sessions */}
+                <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800">
+                  <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Calendar size={16} className="text-violet-500" /> جلسات اليوم</CardTitle></CardHeader>
+                  <CardContent className="space-y-2">
+                    {(() => {
+                      const todaySessions = sessions.filter(s => s.date?.startsWith(todayStr))
+                      if (todaySessions.length === 0) return <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات اليوم</p></div>
+                      return todaySessions.map(s => {
+                        const p = patients.find(pt => pt.id === s.patientId)
+                        const svc = services.find(sv => sv.id === s.serviceId)
+                        return (
+                          <div key={s.id} className={cn('flex items-center justify-between p-3 rounded-xl border transition-all', s.paid ? 'bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800')}>
+                            <div className="flex items-center gap-3">
+                              <div className={cn('p-2 rounded-lg text-white', s.paid ? 'bg-emerald-500' : 'bg-amber-500')}>
+                                {s.paid ? <CheckCircle size={14} /> : <Clock size={14} />}
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span>{svc?.name || s.notes || 'جلسة'}</span>
+                                  <span>{formatTime(s.date)}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sm">{formatCurrency(s.price)}</span>
+                              {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
+                            </div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </CardContent>
+                </Card>
+
                 {/* All Sessions List */}
                 <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800">
-                  <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Zap size={16} className="text-violet-500" /> سجل الجلسات</CardTitle></CardHeader>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2"><Activity size={16} className="text-violet-500" /> جميع الجلسات</CardTitle>
+                      <Badge variant="outline">{sessions.length} جلسة</Badge>
+                    </div>
+                  </CardHeader>
                   <CardContent className="space-y-2">
-                    {laserHairSessions.length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p></div>}
-                    {laserHairSessions.slice(0, 50).map(s => {
+                    {sessions.length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></div>}
+                    {sessions.slice(0, 50).map(s => {
                       const p = patients.find(pt => pt.id === s.patientId)
                       const svc = services.find(sv => sv.id === s.serviceId)
                       return (
@@ -1734,13 +1778,14 @@ export default function Home() {
                             <div>
                               <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>{svc?.name || s.notes || 'جلسة ليزر'}</span>
+                                <span>{svc?.name || s.notes || 'جلسة'}</span>
                                 <span>{formatDate(s.date)}</span>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="font-black text-sm">{formatCurrency(s.price)}</span>
+                            <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => { const pt = patients.find(pp => pp.id === s.patientId); if (pt) { setSelectedPatient(pt); setActiveTab('patients') } }}><Eye size={10} /></Button>
                             {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
                           </div>
                         </div>
@@ -1748,18 +1793,41 @@ export default function Home() {
                     })}
                   </CardContent>
                 </Card>
+
+                {/* Unpaid Dues */}
+                {sessions.filter(s => !s.paid).length > 0 && (
+                  <Card className="card-luxury border-2 border-red-200 dark:border-red-800">
+                    <CardHeader><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle size={16} className="text-red-500" /> مستحقات غير مدفوعة</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {sessions.filter(s => !s.paid).slice(0, 20).map(s => {
+                        const p = patients.find(pt => pt.id === s.patientId)
+                        const svc = services.find(sv => sv.id === s.serviceId)
+                        return (
+                          <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30">
+                            <div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة'}</p></div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-red-600">{formatCurrency(s.price)}</span>
+                              <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      <div className="text-center pt-2"><p className="text-sm font-bold text-red-600">إجمالي المستحقات: {formatCurrency(sessions.filter(s => !s.paid).reduce((sum, s) => sum + (s.price || 0), 0))}</p></div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
-            {/* ═══ LASER FOR DOCTOR ═══ */}
-            {activeTab === 'laser' && isDoctor && (
+            {/* ═══ LASER ═══ - Professional Laser Center Management */}
+            {activeTab === 'laser' && (
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-cyan-50 dark:bg-cyan-950/30">
                   <div className="relative z-10 flex items-center justify-between">
                     <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">💎</motion.div><div><h1 className="text-2xl font-bold">مركز الليزر</h1><p className="text-muted-foreground text-sm">إدارة شاملة لليزر إزالة الشعر</p></div></div>
                     <div className="flex gap-2">
                       <Button className="btn-luxury bg-gradient-to-l from-cyan-600 to-cyan-700 text-white shadow-lg" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> سجل جديد</Button>
-                      <Button variant="outline" className="rounded-xl" onClick={() => setShowAddLaserPackage(true)}><Package size={14} className="ml-1" /> باقة</Button>
+                      {isDoctor && <Button variant="outline" className="rounded-xl" onClick={() => setShowAddLaserPackage(true)}><Package size={14} className="ml-1" /> باقة</Button>}
                     </div>
                   </div>
                 </div>
@@ -2923,7 +2991,7 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('secretary'); toast.success('تم تفعيل صلاحيات السكرتارية') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'secretary' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
                         <motion.div animate={userRole === 'secretary' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👩‍💼</motion.div>
                         <p className="font-bold text-sm">سكرتارية</p>
-                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والليزر فقط</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والجلسات والليزر فقط</p>
                         {userRole === 'secretary' && <Badge className="mt-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">فعّال ✓</Badge>}
                       </motion.button>
                     </div>
@@ -3443,7 +3511,7 @@ export default function Home() {
       <nav className="bottom-nav"><div className="flex items-center justify-around max-w-lg mx-auto">
         {bottomNavItems.map(item => {
           const isActive = activeTab === item.id || (item.id === 'more' && ['more', 'settings'].includes(activeTab))
-          const isLocked = !isDoctor && !['patients', 'laser'].includes(item.id)
+          const isLocked = !isDoctor && !['patients', 'sessions', 'laser'].includes(item.id)
           return (
             <button key={item.id} onClick={() => handleTabSwitch(item.id)} className={cn('bottom-nav-item', isActive && 'active')} style={isActive ? { '--active-color-from': item.activeColor?.split(' ')[0]?.replace('from-', ''), '--active-color-to': item.activeColor?.split(' ')[1]?.replace('to-', '') } as React.CSSProperties : undefined}>
               <div className={cn('nav-icon-wrapper', isActive && `bg-gradient-to-br ${item.activeColor} ${item.activeShadow} shadow-lg`)}>
