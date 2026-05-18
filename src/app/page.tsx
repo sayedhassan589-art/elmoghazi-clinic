@@ -1058,7 +1058,7 @@ export default function Home() {
   const laserProgressData = useMemo(() => {
     return laserRecords.filter(r => r.status === 'active').map(r => {
       const patient = patients.find(p => p.id === r.patientId)
-      const completedSessions = laserSessions?.filter(s => s.laserRecordId === r.id).length || 0
+      const completedSessions = (r as any)?.laserSessions?.length || (r as any)?._count?.laserSessions || 0
       const progress = r.totalSessions > 0 ? (completedSessions / r.totalSessions) * 100 : 0
       const areaLabel = BODY_AREAS.find(a => a.id === r.bodyArea)?.label || r.bodyArea
       return { record: r, patient, completedSessions, totalSessions: r.totalSessions, progress, areaLabel }
@@ -1085,15 +1085,15 @@ export default function Home() {
     window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, '_blank')
   }
 
-  // Laser session filter helper - checks if a session belongs to laser hair removal
-  const isLaserSession = useCallback((s: Session) => {
+  // Laser hair removal sessions - pre-computed for performance and stability
+  const laserHairSessions = useMemo(() => sessions.filter(s => {
     try {
       const svc = services.find(sv => sv.id === s.serviceId)
       if (svc?.category?.includes('ليزر')) return true
       if (s.notes?.startsWith('ليزر')) return true
       return false
     } catch { return false }
-  }, [services])
+  }), [sessions, services])
 
   // Laser financial computed values
   const laserRevenue = useMemo(() => transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر'))).reduce((s, t) => s + t.amount, 0), [transactions])
@@ -1657,7 +1657,7 @@ export default function Home() {
                   <TabsContent value="laser" className="space-y-3 mt-3">
                     <h3 className="font-bold text-sm flex items-center gap-2"><Zap size={15} className="text-cyan-500" /> سجلات الليزر</h3>
                     {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <p className="text-center text-muted-foreground text-xs py-6">لا توجد سجلات ليزر</p>}
-                    {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => { const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea); const laserSessCount = l.laserSessions?.length || 0; const progressPercent = l.totalSessions > 0 ? Math.min((laserSessCount / l.totalSessions) * 100, 100) : 0; return <Card key={l.id} className="border border-cyan-200 dark:border-cyan-800 p-3"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Zap size={16} className="text-cyan-600" /></div><div className="flex-1"><div className="flex items-center gap-2"><span className="font-bold text-xs">{areaInfo?.label || l.bodyArea}</span><Badge variant="outline" className="text-[8px]">{l.status === 'active' ? 'نشط' : l.status}</Badge>{l.paid ? <span className="text-[8px] text-emerald-600 font-bold">✅</span> : l.price > 0 && <span className="text-[8px] text-amber-600 font-bold">⏳</span>}</div><div className="flex items-center gap-2 text-[10px] text-muted-foreground">{l.skinType && <span>بشرة {l.skinType}</span>}{l.hairColor && <span>شعر {l.hairColor}</span>}</div>{l.price > 0 && <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{formatCurrency(l.price)}/جلسة</p>}<div className="mt-1"><div className="flex items-center justify-between text-[8px] mb-0.5"><span>{laserSessCount}/{l.totalSessions}</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1" /></div></div></div></Card> })}
+                    {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => { const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea); const laserSessCount = l.laserHairSessions?.length || 0; const progressPercent = l.totalSessions > 0 ? Math.min((laserSessCount / l.totalSessions) * 100, 100) : 0; return <Card key={l.id} className="border border-cyan-200 dark:border-cyan-800 p-3"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Zap size={16} className="text-cyan-600" /></div><div className="flex-1"><div className="flex items-center gap-2"><span className="font-bold text-xs">{areaInfo?.label || l.bodyArea}</span><Badge variant="outline" className="text-[8px]">{l.status === 'active' ? 'نشط' : l.status}</Badge>{l.paid ? <span className="text-[8px] text-emerald-600 font-bold">✅</span> : l.price > 0 && <span className="text-[8px] text-amber-600 font-bold">⏳</span>}</div><div className="flex items-center gap-2 text-[10px] text-muted-foreground">{l.skinType && <span>بشرة {l.skinType}</span>}{l.hairColor && <span>شعر {l.hairColor}</span>}</div>{l.price > 0 && <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{formatCurrency(l.price)}/جلسة</p>}<div className="mt-1"><div className="flex items-center justify-between text-[8px] mb-0.5"><span>{laserSessCount}/{l.totalSessions}</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1" /></div></div></div></Card> })}
                   </TabsContent>
 
                   {/* ═══ REMINDERS ═══ */}
@@ -1713,16 +1713,16 @@ export default function Home() {
                 </div>
                 {/* Quick Stats */}
                 <div className="grid grid-cols-3 gap-3">
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات الليزر</p><p className="text-xl font-bold">{sessions.filter(s => isLaserSession(s)).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><CheckCircle className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">مدفوعة</p><p className="text-xl font-bold">{sessions.filter(s => isLaserSession(s) && s.paid).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><Clock className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">غير مدفوعة</p><p className="text-xl font-bold">{sessions.filter(s => isLaserSession(s) && !s.paid).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات الليزر</p><p className="text-xl font-bold">{laserHairSessions.length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><CheckCircle className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">مدفوعة</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.paid).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><Clock className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">غير مدفوعة</p><p className="text-xl font-bold">{laserHairSessions.filter(s => !s.paid).length}</p></div></div></motion.div>
                 </div>
                 {/* All Sessions List */}
                 <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800">
                   <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Zap size={16} className="text-violet-500" /> سجل الجلسات</CardTitle></CardHeader>
                   <CardContent className="space-y-2">
-                    {sessions.filter(s => isLaserSession(s)).length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p></div>}
-                    {sessions.filter(s => isLaserSession(s)).slice(0, 50).map(s => {
+                    {laserHairSessions.length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p></div>}
+                    {laserHairSessions.slice(0, 50).map(s => {
                       const p = patients.find(pt => pt.id === s.patientId)
                       const svc = services.find(sv => sv.id === s.serviceId)
                       return (
@@ -1767,7 +1767,7 @@ export default function Home() {
                 {/* Laser Stats - 4 cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">سجلات نشطة</p><p className="text-xl font-bold">{laserRecords.filter(r => r.status === 'active').length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{sessions.filter(s => s.date?.startsWith(todayStr) && isLaserSession(s)).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.date?.startsWith(todayStr)).length}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد الليزر</p><p className="text-xl font-bold">{formatCurrency(transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر'))).reduce((s, t) => s + t.amount, 0))}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><Package className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">باقات نشطة</p><p className="text-xl font-bold">{laserPackages.filter(p => p.active).length}</p></div></div></motion.div>
                 </div>
@@ -1776,7 +1776,7 @@ export default function Home() {
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {[
                     { id: 'records', icon: '📋', label: 'السجلات', color: 'from-cyan-500 to-cyan-700', count: laserRecords.length },
-                    { id: 'sessions', icon: '⚡', label: 'الجلسات', color: 'from-violet-500 to-violet-700', count: sessions.filter(s => isLaserSession(s)).length },
+                    { id: 'sessions', icon: '⚡', label: 'الجلسات', color: 'from-violet-500 to-violet-700', count: laserHairSessions.length },
                     { id: 'packages', icon: '📦', label: 'الباقات', color: 'from-amber-500 to-amber-700', count: laserPackages.length },
                     { id: 'bodymap', icon: '🗺️', label: 'المناطق', color: 'from-emerald-500 to-emerald-700', count: BODY_AREAS.length },
                     { id: 'finance', icon: '💰', label: 'المالي', color: 'from-green-500 to-green-700', count: 0 },
@@ -1804,7 +1804,7 @@ export default function Home() {
                     {laserRecords.map(r => {
                       const p = patients.find(pt => pt.id === r.patientId)
                       const areaInfo = BODY_AREAS.find(a => a.id === r.bodyArea || a.label === r.bodyArea)
-                      const laserSessCount = r.laserSessions?.length || (r as any)._count?.laserSessions || 0
+                      const laserSessCount = r.laserHairSessions?.length || (r as any)._count?.laserHairSessions || 0
                       const progressPercent = r.totalSessions > 0 ? Math.min((laserSessCount / r.totalSessions) * 100, 100) : 0
                       return (
                         <Card key={r.id} className="section-card p-4">
@@ -1828,10 +1828,10 @@ export default function Home() {
 
                 {/* Laser Sessions */}
                 {laserSubTab === 'sessions' && (<div className="space-y-3 mt-4">
-                    <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-violet-500" /> جلسات الليزر</h3><Badge variant="outline">{sessions.filter(s => isLaserSession(s)).length} جلسة</Badge></div>
-                    {sessions.filter(s => isLaserSession(s)).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p><p className="text-xs text-muted-foreground mt-1">سيتم إنشاء الجلسات تلقائياً عند تسجيل مريض بجلسات ليزر</p></Card>}
+                    <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-violet-500" /> جلسات الليزر</h3><Badge variant="outline">{laserHairSessions.length} جلسة</Badge></div>
+                    {laserHairSessions.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p><p className="text-xs text-muted-foreground mt-1">سيتم إنشاء الجلسات تلقائياً عند تسجيل مريض بجلسات ليزر</p></Card>}
                     <div className="space-y-2">
-                      {sessions.filter(s => isLaserSession(s)).slice(0, 30).map(s => {
+                      {laserHairSessions.slice(0, 30).map(s => {
                         const p = patients.find(pt => pt.id === s.patientId)
                         const svc = services.find(sv => sv.id === s.serviceId)
                         return (
@@ -1903,7 +1903,7 @@ export default function Home() {
                 {/* Laser Financial Summary - Full System */}
                 {laserSubTab === 'finance' && (<div className="space-y-4 mt-4">
                     {/* Laser Revenue from Transactions */}
-                    {(() => { const laserTx = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر') || t.description?.includes('Laser'))); const laserTotal = laserTx.reduce((s, t) => s + t.amount, 0); const laserUnpaid = sessions.filter(s => !s.paid && isLaserSession(s)).reduce((s, ses) => s + ses.price, 0); const laserCompleted = sessions.filter(s => s.status === 'completed' && isLaserSession(s)).length; return (<>
+                    {(() => { const laserTx = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر') || t.description?.includes('Laser'))); const laserTotal = laserTx.reduce((s, t) => s + t.amount, 0); const laserUnpaid = laserHairSessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0); const laserCompleted = laserHairSessions.filter(s => s.status === 'completed').length; return (<>
                     <div className="grid grid-cols-2 gap-3">
                       <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الليزر الفعلية</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserTotal)}</p></div></div></Card>
                       <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">غير المدفوع ليزر</p><p className="text-lg font-bold text-amber-600">{formatCurrency(laserUnpaid)}</p></div></div></Card>
@@ -1928,8 +1928,8 @@ export default function Home() {
                     </CardContent></Card>
                     {/* Unpaid Dues */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
-                      {sessions.filter(s => !s.paid && isLaserSession(s)).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة ليزر'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
-                      {sessions.filter(s => !s.paid && isLaserSession(s)).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
+                      {laserHairSessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة ليزر'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
+                      {laserHairSessions.filter(s => !s.paid).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
                     </CardContent></Card>
                     </>) })()}
                 </div>)}
