@@ -71,7 +71,10 @@ const CHART_COLORS = ['#047857', '#D4A843', '#0EA5E9', '#8B5CF6', '#F59E0B', '#E
 // Helper: format phone for WhatsApp (adds Egypt country code +20 if missing)
 const waPhone = (phone?: string) => {
   if (!phone) return ''
-  const digits = phone.replace(/[^0-9]/g, '')
+  // Convert Arabic/Indic numerals (٠-٩) to Latin (0-9) first
+  const latinized = phone.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+  const digits = latinized.replace(/[^0-9]/g, '')
+  if (!digits || digits.length < 3) return '' // too short to be valid
   if (digits.startsWith('20')) return digits // already has country code
   if (digits.startsWith('0')) return '2' + digits // starts with 0 → add 2
   return '20' + digits // no prefix → add 20
@@ -1533,7 +1536,7 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"><Trash2 size={13} /> حذف</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border', selectedPatient.starred ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 text-amber-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600')}><Star size={13} className={selectedPatient.starred ? 'text-amber-500 fill-amber-500' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border', selectedPatient.improved ? 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 text-pink-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600')}><Heart size={13} className={selectedPatient.improved ? 'text-pink-500 fill-pink-500' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
-                      {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} onClick={() => window.open(`https://wa.me/${waPhone(selectedPatient.phone)}`, '_blank')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800 text-green-700 dark:text-green-400"><Send size={12} /> واتساب</motion.button>}
+                      {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800 text-green-700 dark:text-green-400"><Send size={12} /> واتساب</motion.button>}
                     </div>
                     {/* Edit Patient Form */}
                     {editingPatient && (
@@ -1758,11 +1761,34 @@ export default function Home() {
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><Package className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">باقات نشطة</p><p className="text-xl font-bold">{laserPackages.filter(p => p.active).length}</p></div></div></motion.div>
                 </div>
 
-                <Tabs value={laserSubTab} onValueChange={setLaserSubTab}>
-                  <TabsList className="w-full flex flex-wrap"><TabsTrigger value="records" className="flex-1 text-xs min-w-[60px]">📋 السجلات</TabsTrigger><TabsTrigger value="sessions" className="flex-1 text-xs min-w-[60px]">⚡ الجلسات</TabsTrigger><TabsTrigger value="packages" className="flex-1 text-xs min-w-[60px]">📦 الباقات</TabsTrigger><TabsTrigger value="bodymap" className="flex-1 text-xs min-w-[60px]">🗺️ المناطق</TabsTrigger><TabsTrigger value="finance" className="flex-1 text-xs min-w-[60px]">💰 المالي</TabsTrigger><TabsTrigger value="settings" className="flex-1 text-xs min-w-[60px]">⚙️ الأجهزة</TabsTrigger></TabsList>
+                {/* ═══ Laser Sub-section Navigation ═══ */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {[
+                    { id: 'records', icon: '📋', label: 'السجلات', color: 'from-cyan-500 to-cyan-700', count: laserRecords.length },
+                    { id: 'sessions', icon: '⚡', label: 'الجلسات', color: 'from-violet-500 to-violet-700', count: sessions.filter(s => services.find(sv => sv.id === s.serviceId)?.category?.includes('ليزر') || !s.serviceId).length },
+                    { id: 'packages', icon: '📦', label: 'الباقات', color: 'from-amber-500 to-amber-700', count: laserPackages.length },
+                    { id: 'bodymap', icon: '🗺️', label: 'المناطق', color: 'from-emerald-500 to-emerald-700', count: BODY_AREAS.length },
+                    { id: 'finance', icon: '💰', label: 'المالي', color: 'from-green-500 to-green-700', count: 0 },
+                    { id: 'settings', icon: '⚙️', label: 'الأجهزة', color: 'from-slate-500 to-slate-700', count: laserSettings.length },
+                  ].map(tab => (
+                    <motion.button key={tab.id} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03, y: -2 }}
+                      onClick={() => setLaserSubTab(tab.id)}
+                      className={cn(
+                        'flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all text-white shadow-lg',
+                        laserSubTab === tab.id
+                          ? `bg-gradient-to-br ${tab.color} border-white/30 scale-105 shadow-xl`
+                          : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted'
+                      )}
+                    >
+                      <span className="text-xl">{tab.icon}</span>
+                      <span className="text-[10px] font-bold">{tab.label}</span>
+                      {tab.count > 0 && <Badge className={cn('text-[8px] px-1 py-0', laserSubTab === tab.id ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground')}>{tab.count}</Badge>}
+                    </motion.button>
+                  ))}
+                </div>
 
-                  {/* Laser Records - Full CRUD */}
-                  <TabsContent value="records" className="space-y-3 mt-4">
+                {/* Laser Records - Full CRUD */}
+                {laserSubTab === 'records' && (<div className="space-y-3 mt-4">
                     {laserRecords.length === 0 && <Card className="card-luxury p-8 text-center"><motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">💎</motion.div><p className="text-lg font-bold mb-1">لا توجد سجلات ليزر بعد</p><p className="text-muted-foreground text-sm mb-3">ابدأ بإضافة سجل جديد لمريض</p><Button className="btn-luxury rounded-xl bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> إنشاء سجل</Button></Card>}
                     {laserRecords.map(r => {
                       const p = patients.find(pt => pt.id === r.patientId)
@@ -1787,10 +1813,10 @@ export default function Home() {
                         </Card>
                       )
                     })}
-                  </TabsContent>
+                </div>)}
 
-                  {/* Laser Sessions - Track individual sessions */}
-                  <TabsContent value="sessions" className="space-y-3 mt-4">
+                {/* Laser Sessions */}
+                {laserSubTab === 'sessions' && (<div className="space-y-3 mt-4">
                     <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-violet-500" /> جلسات الليزر</h3><Badge variant="outline">{sessions.length} جلسة</Badge></div>
                     {sessions.filter(s => services.find(sv => sv.id === s.serviceId)?.category?.includes('ليزر') || s.serviceId === undefined).length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚡</p><p className="text-muted-foreground">لا توجد جلسات ليزر مسجلة</p><p className="text-xs text-muted-foreground mt-1">سيتم إنشاء الجلسات تلقائياً عند تسجيل مريض بجلسات ليزر</p></Card>}
                     <div className="space-y-2">
@@ -1818,10 +1844,10 @@ export default function Home() {
                         )
                       })}
                     </div>
-                  </TabsContent>
+                </div>)}
 
-                  {/* Laser Packages - Enhanced */}
-                  <TabsContent value="packages" className="space-y-3 mt-4">
+                {/* Laser Packages - Enhanced */}
+                {laserSubTab === 'packages' && (<div className="space-y-3 mt-4">
                     <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> باقات الليزر</h3></div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {laserPackages.length === 0 && <Card className="card-luxury p-6 text-center col-span-2"><p className="text-3xl mb-2">📦</p><p className="text-muted-foreground">لا توجد باقات ليزر</p><Button className="mt-3 btn-luxury rounded-xl" onClick={() => setShowAddLaserPackage(true)}><Plus size={14} className="ml-1" /> إنشاء باقة</Button></Card>}
@@ -1842,10 +1868,10 @@ export default function Home() {
                         )
                       })}
                     </div>
-                  </TabsContent>
+                </div>)}
 
-                  {/* Body Area Map - Interactive */}
-                  <TabsContent value="bodymap" className="mt-4">
+                {/* Body Area Map - Interactive */}
+                {laserSubTab === 'bodymap' && (<div className="mt-4">
                     <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><MapPin size={18} /> مناطق الجسم - إزالة الشعر بالليزر</CardTitle><CardDescription>اضغط على أي منطقة لعرض سجلاتها</CardDescription></CardHeader><CardContent>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {BODY_AREAS.map(area => {
@@ -1861,10 +1887,10 @@ export default function Home() {
                         })}
                       </div>
                     </CardContent></Card>
-                  </TabsContent>
+                </div>)}
 
-                  {/* Laser Financial Summary - Full System */}
-                  <TabsContent value="finance" className="space-y-4 mt-4">
+                {/* Laser Financial Summary - Full System */}
+                {laserSubTab === 'finance' && (<div className="space-y-4 mt-4">
                     {/* Laser Revenue from Transactions */}
                     {(() => { const laserTx = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر') || t.description?.includes('Laser'))); const laserTotal = laserTx.reduce((s, t) => s + t.amount, 0); const laserUnpaid = sessions.filter(s => !s.paid && services.find(sv => sv.id === s.serviceId)?.category?.includes('laser')).reduce((s, ses) => s + ses.price, 0); const laserCompleted = sessions.filter(s => s.status === 'completed' && services.find(sv => sv.id === s.serviceId)?.category?.includes('laser')).length; return (<>
                     <div className="grid grid-cols-2 gap-3">
@@ -1895,17 +1921,16 @@ export default function Home() {
                       {sessions.filter(s => !s.paid).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
                     </CardContent></Card>
                     </>) })()}
-                  </TabsContent>
+                </div>)}
 
-                  {/* Machine Settings */}
-                  <TabsContent value="settings" className="mt-4">
+                {/* Machine Settings */}
+                {laserSubTab === 'settings' && (<div className="mt-4">
                     <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Settings size={18} /> إعدادات الأجهزة</CardTitle><CardDescription>إعدادات الطاقة والنبض لكل جهاز</CardDescription></CardHeader><CardContent>
                       {laserSettings.length === 0 ? <div className="text-center py-8"><motion.div animate={{ rotate: [0, 180, 360] }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }} className="text-4xl mb-2 inline-block">⚙️</motion.div><p className="text-muted-foreground">لا توجد إعدادات أجهزة</p><p className="text-xs text-muted-foreground mt-1">أضف إعدادات من لوحة تحكم الأجهزة</p></div> :
                         <div className="space-y-2">{laserSettings.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Wand2 className="text-cyan-600" size={16} /></div><div><p className="font-medium text-sm">{s.machineName}</p><p className="text-xs text-muted-foreground">{s.bodyArea}</p></div></div><div className="flex gap-2"><Badge variant="outline" className="text-[10px]">⚡ طاقة: {s.defaultEnergy || '-'}</Badge><Badge variant="outline" className="text-[10px]">📢 نبض: {s.defaultPulse || '-'}</Badge></div></div>)}</div>
                       }
                     </CardContent></Card>
-                  </TabsContent>
-                </Tabs>
+                </div>)}
                 {renderQuickNotes('laser')}
               </div>
             )}
@@ -2395,7 +2420,7 @@ export default function Home() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-1">
-                                {p?.phone && <motion.button whileTap={{ scale: 0.85 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all" onClick={() => { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/${waPhone(p.phone)}?text=${msg}`, '_blank') }}><Send size={14} className="text-green-600" /></motion.button>}
+                                {p?.phone && <motion.button whileTap={{ scale: 0.85 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all" onClick={() => { const wp = waPhone(p.phone); if (wp) { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/${wp}?text=${msg}`, '_blank') } }}><Send size={14} className="text-green-600" /></motion.button>}
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingBookingId(apt.id); setBookingFormPatientSearch(p?.name || ''); setBookingFormPatientId(apt.patientId || ''); setBookingFormDate(apt.date?.split('T')[0] || ''); setBookingFormTime(aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })); setBookingFormType(apt.type); setBookingFormStatus(apt.status); setBookingFormNotes(apt.notes || ''); setShowAddBooking(true) }}><Edit3 size={12} className="text-sky-500" /></Button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/appointments', apt.id, setAppointments)}><Trash2 size={12} className="text-red-500" /></Button>
                               </div>
@@ -2439,7 +2464,7 @@ export default function Home() {
                                       <div><p className="font-bold text-sm">{r.title}</p>{r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}</div>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                      {r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); return rp?.phone ? <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${waPhone(rp.phone)}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600"><Send size={12} /></motion.button> : null })()}
+                                      {r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); const wp = rp?.phone ? waPhone(rp.phone) : ''; return wp ? <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${wp}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600"><Send size={12} /></motion.button> : null })()}
                                       <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); setCelebratingId(r.id); setTimeout(() => setCelebratingId(null), 2000); toast.success('🎉 تم إكمال التذكير!') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1">✓ تم</motion.button>
                                     </div>
                                   </div>
@@ -2482,7 +2507,7 @@ export default function Home() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            {r.status !== 'completed' && r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); return rp?.phone ? <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${waPhone(rp.phone)}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 hover:bg-green-200 transition-colors"><Send size={12} /></motion.button> : null })()}
+                            {r.status !== 'completed' && r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); const wp = rp?.phone ? waPhone(rp.phone) : ''; return wp ? <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${wp}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 hover:bg-green-200 transition-colors"><Send size={12} /></motion.button> : null })()}
                             <Badge variant="outline" className={r.status === 'completed' ? 'border-emerald-500 text-emerald-600 text-[9px]' : r.status === 'pending' ? 'border-amber-500 text-amber-600 text-[9px]' : 'border-blue-500 text-blue-600 text-[9px]'}>{r.status === 'completed' ? 'مكتمل ✓' : r.status === 'pending' ? 'قيد الانتظار' : r.status}</Badge>
                             {r.status !== 'completed' && <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); setCelebratingId(r.id); setTimeout(() => setCelebratingId(null), 2000); toast.success('🎉 تم إكمال التذكير!') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 hover:bg-emerald-600 transition-colors">✓ تم</motion.button>}
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteItem('/reminders', r.id, setReminders)}><Trash2 size={10} className="text-red-500" /></Button>
