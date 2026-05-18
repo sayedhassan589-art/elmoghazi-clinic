@@ -1276,7 +1276,7 @@ export default function Home() {
 
   // ─── Role-based access control ────────────────────────────────────────
   const isDoctor = userRole === 'doctor'
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'sessions', 'laser']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
@@ -1310,7 +1310,7 @@ export default function Home() {
     { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
     { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
   ]
-  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'sessions', 'laser'].includes(i.id))
+  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'laser'].includes(i.id))
 
   // ─── LOGIN ────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
@@ -1334,7 +1334,7 @@ export default function Home() {
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg"><Users size={28} className="text-white" /></div>
-                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والجلسات والليزر</p></div>
+                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والليزر فقط</p></div>
                   </motion.button>
                 </div>
               ) : (
@@ -1343,7 +1343,7 @@ export default function Home() {
                     <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', loginRole === 'doctor' ? 'bg-gradient-to-br from-amber-500 to-amber-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-700')}>
                       {loginRole === 'doctor' ? <Stethoscope className="text-white" size={18} /> : <Users size={18} className="text-white" />}
                     </div>
-                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والجلسات والليزر'}</p></div>
+                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والليزر فقط'}</p></div>
                     <button onClick={() => { setLoginRole(null); setLoginPassword('') }} className="mr-auto text-emerald-200/60 hover:text-white text-xs">تغيير</button>
                   </div>
                   <div><Label className="text-emerald-200">كلمة المرور</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="أدخل كلمة السر..." className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12 text-center text-lg" onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus /></div>
@@ -1700,8 +1700,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* ═══ SESSIONS TAB ═══ - إدارة الجلسات */}
-            {activeTab === 'sessions' && (
+            {/* ═══ SESSIONS TAB (Doctor only) ═══ */}
+            {activeTab === 'sessions' && isDoctor && (
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-violet-50 dark:bg-violet-950/30">
                   <div className="relative z-10 flex items-center justify-between">
@@ -2991,7 +2991,7 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('secretary'); toast.success('تم تفعيل صلاحيات السكرتارية') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'secretary' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
                         <motion.div animate={userRole === 'secretary' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👩‍💼</motion.div>
                         <p className="font-bold text-sm">سكرتارية</p>
-                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والجلسات والليزر فقط</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والليزر فقط</p>
                         {userRole === 'secretary' && <Badge className="mt-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">فعّال ✓</Badge>}
                       </motion.button>
                     </div>
@@ -3511,7 +3511,7 @@ export default function Home() {
       <nav className="bottom-nav"><div className="flex items-center justify-around max-w-lg mx-auto">
         {bottomNavItems.map(item => {
           const isActive = activeTab === item.id || (item.id === 'more' && ['more', 'settings'].includes(activeTab))
-          const isLocked = !isDoctor && !['patients', 'sessions', 'laser'].includes(item.id)
+          const isLocked = !isDoctor && !['patients', 'laser'].includes(item.id)
           return (
             <button key={item.id} onClick={() => handleTabSwitch(item.id)} className={cn('bottom-nav-item', isActive && 'active')} style={isActive ? { '--active-color-from': item.activeColor?.split(' ')[0]?.replace('from-', ''), '--active-color-to': item.activeColor?.split(' ')[1]?.replace('to-', '') } as React.CSSProperties : undefined}>
               <div className={cn('nav-icon-wrapper', isActive && `bg-gradient-to-br ${item.activeColor} ${item.activeShadow} shadow-lg`)}>
