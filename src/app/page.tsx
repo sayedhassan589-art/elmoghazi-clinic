@@ -1305,7 +1305,6 @@ export default function Home() {
   const allNavItems = [
     { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} />, activeColor: 'from-emerald-400 to-teal-500', activeShadow: 'shadow-emerald-500/40', labelColor: 'text-emerald-600 dark:text-emerald-400' },
     { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} />, activeColor: 'from-blue-400 to-indigo-500', activeShadow: 'shadow-blue-500/40', labelColor: 'text-blue-600 dark:text-blue-400' },
-    { id: 'sessions', label: 'الجلسات', emoji: '⚡', icon: <Activity size={20} />, activeColor: 'from-violet-400 to-purple-500', activeShadow: 'shadow-violet-500/40', labelColor: 'text-violet-600 dark:text-violet-400' },
     { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} />, activeColor: 'from-cyan-400 to-violet-500', activeShadow: 'shadow-cyan-500/40', labelColor: 'text-cyan-600 dark:text-cyan-400' },
     { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
     { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
@@ -1700,125 +1699,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* ═══ SESSIONS TAB (Doctor only) ═══ */}
-            {activeTab === 'sessions' && isDoctor && (
-              <div className="space-y-5">
-                <div className="section-header-animated rounded-2xl bg-violet-50 dark:bg-violet-950/30">
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">⚡</motion.div><div><h1 className="text-2xl font-bold">إدارة الجلسات</h1><p className="text-muted-foreground text-sm">متابعة وتسجيل جميع الجلسات</p></div></div>
-                    <div className="flex gap-2">
-                      <Button className="btn-luxury bg-gradient-to-l from-violet-600 to-violet-700 text-white shadow-lg" onClick={() => { setShowAddLaserRecord(true) }}><Plus size={14} className="ml-1" /> جلسة ليزر</Button>
-                      <Button variant="outline" className="rounded-xl" onClick={() => { setShowAddPatient(true); setSelectedVisitType('session') }}><UserPlus size={14} className="ml-1" /> جلسة جديدة</Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{sessions.filter(s => s.date?.startsWith(todayStr)).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><CheckCircle className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">مدفوعة</p><p className="text-xl font-bold">{sessions.filter(s => s.paid).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><Clock className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">غير مدفوعة</p><p className="text-xl font-bold">{sessions.filter(s => !s.paid).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي الجلسات</p><p className="text-xl font-bold">{formatCurrency(sessions.reduce((s, ses) => s + (ses.price || 0), 0))}</p></div></div></motion.div>
-                </div>
-
-                {/* Today's Sessions */}
-                <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800">
-                  <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Calendar size={16} className="text-violet-500" /> جلسات اليوم</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    {(() => {
-                      const todaySessions = sessions.filter(s => s.date?.startsWith(todayStr))
-                      if (todaySessions.length === 0) return <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات اليوم</p></div>
-                      return todaySessions.map(s => {
-                        const p = patients.find(pt => pt.id === s.patientId)
-                        const svc = services.find(sv => sv.id === s.serviceId)
-                        return (
-                          <div key={s.id} className={cn('flex items-center justify-between p-3 rounded-xl border transition-all', s.paid ? 'bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800')}>
-                            <div className="flex items-center gap-3">
-                              <div className={cn('p-2 rounded-lg text-white', s.paid ? 'bg-emerald-500' : 'bg-amber-500')}>
-                                {s.paid ? <CheckCircle size={14} /> : <Clock size={14} />}
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span>{svc?.name || s.notes || 'جلسة'}</span>
-                                  <span>{formatTime(s.date)}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-black text-sm">{formatCurrency(s.price)}</span>
-                              {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
-                            </div>
-                          </div>
-                        )
-                      })
-                    })()}
-                  </CardContent>
-                </Card>
-
-                {/* All Sessions List */}
-                <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm flex items-center gap-2"><Activity size={16} className="text-violet-500" /> جميع الجلسات</CardTitle>
-                      <Badge variant="outline">{sessions.length} جلسة</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {sessions.length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⚡</motion.div><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></div>}
-                    {sessions.slice(0, 50).map(s => {
-                      const p = patients.find(pt => pt.id === s.patientId)
-                      const svc = services.find(sv => sv.id === s.serviceId)
-                      return (
-                        <div key={s.id} className={cn('flex items-center justify-between p-3 rounded-xl border transition-all', s.paid ? 'bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800')}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('p-2 rounded-lg text-white', s.paid ? 'bg-emerald-500' : 'bg-amber-500')}>
-                              {s.paid ? <CheckCircle size={14} /> : <Clock size={14} />}
-                            </div>
-                            <div>
-                              <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>{svc?.name || s.notes || 'جلسة'}</span>
-                                <span>{formatDate(s.date)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-sm">{formatCurrency(s.price)}</span>
-                            <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => { const pt = patients.find(pp => pp.id === s.patientId); if (pt) { setSelectedPatient(pt); setActiveTab('patients') } }}><Eye size={10} /></Button>
-                            {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </CardContent>
-                </Card>
-
-                {/* Unpaid Dues */}
-                {sessions.filter(s => !s.paid).length > 0 && (
-                  <Card className="card-luxury border-2 border-red-200 dark:border-red-800">
-                    <CardHeader><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle size={16} className="text-red-500" /> مستحقات غير مدفوعة</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                      {sessions.filter(s => !s.paid).slice(0, 20).map(s => {
-                        const p = patients.find(pt => pt.id === s.patientId)
-                        const svc = services.find(sv => sv.id === s.serviceId)
-                        return (
-                          <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30">
-                            <div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة'}</p></div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-red-600">{formatCurrency(s.price)}</span>
-                              <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                      <div className="text-center pt-2"><p className="text-sm font-bold text-red-600">إجمالي المستحقات: {formatCurrency(sessions.filter(s => !s.paid).reduce((sum, s) => sum + (s.price || 0), 0))}</p></div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-
             {/* ═══ LASER ═══ - Professional Laser Center Management */}
             {activeTab === 'laser' && (
               <div className="space-y-5">
@@ -2165,6 +2045,7 @@ export default function Home() {
                 <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                   {[
                     { id: 'services', label: 'الخدمات', emoji: '⚙️', gradient: 'from-teal-500 to-teal-700' },
+                    { id: 'sessions', label: 'الجلسات', emoji: '⚡', gradient: 'from-violet-500 to-purple-600' },
                     { id: 'visits', label: 'الزيارات', emoji: '🩺', gradient: 'from-violet-500 to-violet-700' },
                     { id: 'doctors', label: 'الأطباء المشاركون', emoji: '👨‍⚕️', gradient: 'from-emerald-500 to-emerald-700' },
                     { id: 'inventory', label: 'المخزون', emoji: '📦', gradient: 'from-amber-500 to-amber-700' },
@@ -2191,6 +2072,236 @@ export default function Home() {
                   <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Tag size={18} className="text-teal-500" /> الخدمات</h3><div className="flex items-center gap-2"><Badge variant="outline">{services.length} خدمة</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button></div></div>
                   {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
                   {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div>{editingServiceId === s.id ? (<div className="flex items-center gap-2"><Input value={editingServiceName} onChange={e => setEditingServiceName(e.target.value)} className="h-8 text-sm rounded-lg font-medium w-32" placeholder="اسم الخدمة" /><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-24 h-8 text-sm rounded-lg font-bold" /><Button size="sm" className="h-8 rounded-lg text-xs bg-teal-600 text-white" onClick={async () => { const newPrice = parseFloat(editingServicePrice); const newName = editingServiceName.trim(); if (isNaN(newPrice)) { toast.error('أدخل سعر صحيح'); return } if (!newName) { toast.error('أدخل اسم الخدمة'); return } try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, name: newName, price: newPrice } : sv)); toast.success('تم التحديث ✓'); setEditingServiceId(null) } catch (e: any) { toast.error(e?.message || 'خطأ'); setEditingServiceId(null) } }}>✓</Button><Button variant="ghost" size="sm" className="h-8 rounded-lg" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><p className="font-medium text-sm cursor-pointer hover:text-teal-600 hover:underline decoration-dashed underline-offset-2" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}>{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></>)}</div></div><div className="flex items-center gap-2">{editingServiceId !== s.id && (<><motion.button whileTap={{ scale: 0.95 }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-dashed border-teal-300 dark:border-teal-700 hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-all cursor-pointer" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><span className="font-bold text-sm text-teal-700 dark:text-teal-300">{s.price}</span><span className="text-xs text-muted-foreground">ج.م</span><Edit3 size={10} className="text-teal-400" /></motion.button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
+                </div>)}
+
+                {/* ═══ Sessions Sub-tab - PROFESSIONAL ANIMATED ═══ */}
+                {moreSubTab === 'sessions' && (<div className="space-y-5">
+                  {/* Animated Header */}
+                  <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-20">
+                      <motion.div animate={{ x: [0, 100, 0], y: [0, -50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-40 h-40 bg-white/20 rounded-full blur-3xl" />
+                      <motion.div animate={{ x: [0, -80, 0], y: [0, 60, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-300/20 rounded-full blur-3xl" />
+                    </div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <motion.div animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.2, 1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-5xl">⚡</motion.div>
+                        <div>
+                          <h2 className="text-2xl font-black text-white">إدارة الجلسات</h2>
+                          <p className="text-violet-200 text-sm mt-0.5">تتبع ومتابعة وإدارة جميع جلسات العيادة</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button className="bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 rounded-xl shadow-lg" onClick={() => { setShowAddLaserRecord(true) }}><Plus size={14} className="ml-1" /> جلسة ليزر</Button>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button className="bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 rounded-xl shadow-lg" onClick={() => { setShowAddPatient(true); setSelectedVisitType('session') }}><UserPlus size={14} className="ml-1" /> جديدة</Button>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Animated Stats Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { icon: <Activity size={20} />, label: 'جلسات اليوم', value: sessions.filter(s => s.date?.startsWith(todayStr)).length, gradient: 'from-violet-500 to-purple-600', emoji: '⚡' },
+                      { icon: <CheckCircle size={20} />, label: 'مدفوعة', value: sessions.filter(s => s.paid).length, gradient: 'from-emerald-500 to-teal-600', emoji: '✅' },
+                      { icon: <Clock size={20} />, label: 'غير مدفوعة', value: sessions.filter(s => !s.paid).length, gradient: 'from-amber-500 to-orange-600', emoji: '⏳' },
+                      { icon: <DollarSign size={20} />, label: 'إجمالي الإيرادات', value: formatCurrency(sessions.reduce((s, ses) => s + (ses.price || 0), 0)), gradient: 'from-blue-500 to-indigo-600', emoji: '💰' },
+                    ].map((stat, idx) => (
+                      <motion.div key={stat.label} initial={{ opacity: 0, y: 30, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: idx * 0.1, type: 'spring', stiffness: 200 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden">
+                        <div className={cn('p-4 rounded-2xl bg-gradient-to-br text-white shadow-lg', stat.gradient)}>
+                          <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.3 }} className="absolute top-2 left-2 text-3xl opacity-20">{stat.emoji}</motion.div>
+                          <div className="relative z-10 flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">{stat.icon}</div>
+                            <div><p className="text-[10px] text-white/70 font-medium">{stat.label}</p><p className="text-xl font-black">{stat.value}</p></div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Session Status Overview - Horizontal Bar */}
+                  {(() => {
+                    const total = sessions.length || 1
+                    const paidCount = sessions.filter(s => s.paid).length
+                    const unpaidCount = sessions.filter(s => !s.paid).length
+                    const todayCount = sessions.filter(s => s.date?.startsWith(todayStr)).length
+                    const paidPct = Math.round((paidCount / total) * 100)
+                    const unpaidPct = 100 - paidPct
+                    return (
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                        <Card className="card-luxury overflow-hidden">
+                          <div className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm font-bold flex items-center gap-2"><BarChart2 size={16} className="text-violet-500" /> نسبة الدفع</p>
+                              <div className="flex items-center gap-3 text-xs">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> مدفوع {paidPct}%</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> غير مدفوع {unpaidPct}%</span>
+                              </div>
+                            </div>
+                            <div className="flex h-4 rounded-full overflow-hidden bg-muted">
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${paidPct}%` }} transition={{ duration: 1, delay: 0.5 }} className="bg-gradient-to-l from-emerald-400 to-emerald-600" />
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${unpaidPct}%` }} transition={{ duration: 1, delay: 0.7 }} className="bg-gradient-to-l from-amber-400 to-amber-600" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 mt-3">
+                              <div className="text-center p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-lg font-black text-emerald-600">{paidCount}</p><p className="text-[9px] text-muted-foreground">مدفوعة</p></div>
+                              <div className="text-center p-2 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-lg font-black text-amber-600">{unpaidCount}</p><p className="text-[9px] text-muted-foreground">مستحقة</p></div>
+                              <div className="text-center p-2 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-lg font-black text-violet-600">{todayCount}</p><p className="text-[9px] text-muted-foreground">اليوم</p></div>
+                            </div>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    )
+                  })()}
+
+                  {/* Today's Sessions - Animated */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                    <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800 overflow-hidden">
+                      <div className="bg-gradient-to-l from-violet-500 to-purple-600 p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-xl">📅</motion.div><CardTitle className="text-sm text-white font-bold">جلسات اليوم</CardTitle></div>
+                        <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => s.date?.startsWith(todayStr)).length}</Badge>
+                      </div>
+                      <CardContent className="p-3 space-y-2">
+                        {(() => {
+                          const todaySessions = sessions.filter(s => s.date?.startsWith(todayStr))
+                          if (todaySessions.length === 0) return <div className="text-center py-8"><motion.div animate={{ y: [0, -10, 0], rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">😴</motion.div><p className="text-muted-foreground font-medium">لا توجد جلسات اليوم</p><p className="text-xs text-muted-foreground mt-1">أضف جلسة جديدة من الأعلى</p></div>
+                          return todaySessions.map((s, idx) => {
+                            const p = patients.find(pt => pt.id === s.patientId)
+                            const svc = services.find(sv => sv.id === s.serviceId)
+                            return (
+                              <motion.div key={s.id} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} className={cn('flex items-center justify-between p-3 rounded-xl border transition-all', s.paid ? 'bg-gradient-to-l from-emerald-50 to-emerald-100/50 dark:from-emerald-950/20 dark:to-emerald-900/10 border-emerald-200 dark:border-emerald-800' : 'bg-gradient-to-l from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 border-amber-200 dark:border-amber-800')}>
+                                <div className="flex items-center gap-3">
+                                  <motion.div animate={s.paid ? {} : { scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: s.paid ? 0 : Infinity, repeatDelay: 2 }} className={cn('p-2.5 rounded-xl text-white shadow-md', s.paid ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-amber-400 to-amber-600')}>
+                                    {s.paid ? <CheckCircle size={16} /> : <Clock size={16} />}
+                                  </motion.div>
+                                  <div>
+                                    <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <Badge variant="outline" className="text-[9px] px-1.5">{svc?.name || s.notes || 'جلسة'}</Badge>
+                                      <span className="flex items-center gap-1"><Clock size={10} /> {formatTime(s.date)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-sm bg-gradient-to-l from-violet-600 to-purple-600 bg-clip-text text-transparent">{formatCurrency(s.price)}</span>
+                                  {!s.paid && <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.05 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-3 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md hover:shadow-lg transition-shadow">💰 دفع</motion.button>}
+                                </div>
+                              </motion.div>
+                            )
+                          })
+                        })()}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* All Sessions - Professional List */}
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                    <Card className="card-luxury border-2 border-purple-200 dark:border-purple-800 overflow-hidden">
+                      <div className="bg-gradient-to-l from-purple-500 to-fuchsia-600 p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2"><motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-xl">⚡</motion.div><CardTitle className="text-sm text-white font-bold">جميع الجلسات</CardTitle></div>
+                        <Badge className="bg-white/20 text-white border-white/30">{sessions.length} جلسة</Badge>
+                      </div>
+                      <CardContent className="p-3 space-y-2">
+                        {sessions.length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0], scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">📋</motion.div><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></div>}
+                        {sessions.slice(0, 50).map((s, idx) => {
+                          const p = patients.find(pt => pt.id === s.patientId)
+                          const svc = services.find(sv => sv.id === s.serviceId)
+                          return (
+                            <motion.div key={s.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.02 }} whileHover={{ scale: 1.01, x: 4 }} className={cn('flex items-center justify-between p-3 rounded-xl border transition-all', s.paid ? 'bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200/50 dark:border-emerald-800/50' : 'bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-800/50')}>
+                              <div className="flex items-center gap-3">
+                                <div className={cn('p-2 rounded-lg text-white', s.paid ? 'bg-emerald-500' : 'bg-amber-500')}>
+                                  {s.paid ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <span>{svc?.name || s.notes || 'جلسة'}</span>
+                                    <span>{formatDate(s.date)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-black text-sm">{formatCurrency(s.price)}</span>
+                                <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => { const pt = patients.find(pp => pp.id === s.patientId); if (pt) { setSelectedPatient(pt); setActiveTab('patients') } }}><Eye size={10} /></Button>
+                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
+                              </div>
+                            </motion.div>
+                          )
+                        })}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* Unpaid Dues - Alert Style */}
+                  {sessions.filter(s => !s.paid).length > 0 && (
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}>
+                      <Card className="card-luxury border-2 border-red-300 dark:border-red-800 overflow-hidden">
+                        <div className="bg-gradient-to-l from-red-500 to-rose-600 p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity }} className="text-xl">🚨</motion.div><CardTitle className="text-sm text-white font-bold">مستحقات غير مدفوعة</CardTitle></div>
+                          <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => !s.paid).length} مستحق</Badge>
+                        </div>
+                        <CardContent className="p-3 space-y-2">
+                          {sessions.filter(s => !s.paid).slice(0, 20).map((s, idx) => {
+                            const p = patients.find(pt => pt.id === s.patientId)
+                            const svc = services.find(sv => sv.id === s.serviceId)
+                            return (
+                              <motion.div key={s.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }} className="flex items-center justify-between p-2.5 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30">
+                                <div className="flex items-center gap-2">
+                                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }} className="text-lg">⚠️</motion.div>
+                                  <div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة'}</p></div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-red-600">{formatCurrency(s.price)}</span>
+                                  <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2.5 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md">تأكيد الدفع</motion.button>
+                                </div>
+                              </motion.div>
+                            )
+                          })}
+                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-center pt-2">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-red-500 to-rose-600 text-white font-bold shadow-lg">
+                              <span>💸</span>
+                              <span>إجمالي المستحقات: {formatCurrency(sessions.filter(s => !s.paid).reduce((sum, s) => sum + (s.price || 0), 0))}</span>
+                            </div>
+                          </motion.div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
+
+                  {/* Session Stats by Service */}
+                  {services.length > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+                      <Card className="card-luxury overflow-hidden">
+                        <div className="bg-gradient-to-l from-indigo-500 to-blue-600 p-3 flex items-center gap-2">
+                          <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="text-xl">📊</motion.div>
+                          <CardTitle className="text-sm text-white font-bold">إحصائيات حسب الخدمة</CardTitle>
+                        </div>
+                        <CardContent className="p-3 space-y-2">
+                          {services.filter(svc => sessions.some(s => s.serviceId === svc.id)).map((svc, idx) => {
+                            const svcSessions = sessions.filter(s => s.serviceId === svc.id)
+                            const paid = svcSessions.filter(s => s.paid).length
+                            const total = svcSessions.length
+                            const revenue = svcSessions.reduce((sum, s) => sum + (s.price || 0), 0)
+                            const pct = total > 0 ? Math.round((paid / total) * 100) : 0
+                            return (
+                              <motion.div key={svc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="p-3 rounded-xl bg-muted/50 border">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2"><span className="font-bold text-sm">{svc.name}</span><Badge variant="outline" className="text-[9px]">{total} جلسة</Badge></div>
+                                  <span className="font-bold text-sm text-emerald-600">{formatCurrency(revenue)}</span>
+                                </div>
+                                <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+                                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: 0.3 + idx * 0.05 }} className="bg-gradient-to-l from-emerald-400 to-emerald-600 rounded-full" />
+                                </div>
+                                <div className="flex justify-between mt-1 text-[9px] text-muted-foreground"><span>{paid} مدفوعة</span><span>{total - paid} مستحقة</span><span>{pct}%</span></div>
+                              </motion.div>
+                            )
+                          })}
+                          {services.filter(svc => sessions.some(s => s.serviceId === svc.id)).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد إحصائيات بعد</p>}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
                 </div>)}
 
                 {/* Visits Sub-tab - ENHANCED */}
