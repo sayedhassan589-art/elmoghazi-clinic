@@ -2033,30 +2033,32 @@ export default function Home() {
 
                             {laserSess.map((ls, idx) => {
                               const isEditing = editingLaserSessionId === ls.id
+                              const isFirst = idx === 0
                               return (
                                 <motion.div key={ls.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
-                                  <Card className={cn('section-card overflow-hidden transition-all', ls.paid ? 'border-l-4 border-l-emerald-400' : 'border-l-4 border-l-amber-400', isEditing ? 'border-2 border-violet-300 dark:border-violet-700' : 'hover:border-violet-200 dark:hover:border-violet-800')}>
-                                    <div className={cn('p-3 flex items-center justify-between', isEditing ? 'bg-violet-50 dark:bg-violet-950/30' : idx === 0 ? 'bg-gradient-to-l from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20' : '')}>
+                                  <Card className={cn('section-card overflow-hidden transition-all', ls.paid ? 'border-r-4 border-r-emerald-400' : 'border-r-4 border-r-amber-400', isEditing ? 'ring-2 ring-violet-400 dark:ring-violet-600' : isFirst ? 'shadow-md' : '', isFirst && !ls.paid && 'border-2 border-amber-200 dark:border-amber-700', isFirst && ls.paid && 'border-2 border-emerald-200 dark:border-emerald-700')}>
+                                    {/* Session Header */}
+                                    <div className={cn('p-3 flex items-center justify-between gap-2', isEditing ? 'bg-violet-50 dark:bg-violet-950/30' : isFirst ? 'bg-gradient-to-l from-cyan-50/80 via-teal-50/50 to-emerald-50/80 dark:from-cyan-950/20 dark:via-teal-950/10 dark:to-emerald-950/20' : '')}>
                                       <div className="flex items-center gap-3">
-                                        <motion.div animate={idx === 0 ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: idx === 0 ? Infinity : 0, repeatDelay: 2 }} className={cn('p-2.5 rounded-xl text-white shadow-md text-sm font-black', ls.paid ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-amber-400 to-orange-500')}>
+                                        <motion.div animate={isFirst ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: isFirst ? Infinity : 0, repeatDelay: 2 }} className={cn('w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md text-lg font-black', ls.paid ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-amber-400 to-orange-500')}>
                                           {ls.sessionNumber}
                                         </motion.div>
                                         <div>
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex items-center gap-2 flex-wrap">
                                             <p className="font-bold text-sm">الجلسة رقم {ls.sessionNumber}</p>
-                                            {idx === 0 && <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 text-[9px]">الأخيرة</Badge>}
+                                            {isFirst && <Badge className="bg-gradient-to-l from-cyan-500 to-teal-500 text-white text-[9px] border-0 shadow-sm">⭐ الأخيرة</Badge>}
                                             <Badge className={cn('text-[9px]', ls.paid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400')}>{ls.paid ? '✅ مدفوعة' : '⏳ غير مدفوعة'}</Badge>
                                           </div>
-                                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span>{formatDate(ls.date)}</span>
-                                            <span className="font-bold text-emerald-600">{formatCurrency(ls.price || rec.price)}</span>
+                                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                            <Calendar size={10} /><span>{formatDate(ls.date)}</span>
+                                            <DollarSign size={10} className="text-emerald-500" /><span className="font-bold text-emerald-600">{formatCurrency(ls.price || rec.price)}</span>
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="flex items-center gap-1">
-                                        {!ls.paid && <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.05 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); setTransactions(prev => [...prev, { id: 'temp-' + Date.now(), type: 'income', category: 'ليزر', amount: ls.price || rec.price, description: `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`, date: new Date().toISOString() }]); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingLaserSessionId(isEditing ? null : ls.id); setEditLaserSessionForm({ energy: String(ls.energy || ''), pulse: ls.pulse || '', painLevel: String(ls.painLevel || ''), reaction: ls.reaction || '', notes: ls.notes || '', date: ls.date ? ls.date.split('T')[0] : '', price: String(ls.price ?? rec.price), paid: ls.paid }) }}><Edit3 size={12} className="text-violet-500" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={12} className="text-red-500" /></Button>
+                                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {!ls.paid && <motion.div whileTap={{ scale: 0.9 }}><Button size="sm" className="h-7 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-bold shadow-sm" onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); setTransactions(prev => [...prev, { id: 'temp-' + Date.now(), type: 'income', category: 'ليزر', amount: ls.price || rec.price, description: `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`, date: new Date().toISOString() }]); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }}>💰 دفع</Button></motion.div>}
+                                        <Button size="sm" variant="outline" className="h-7 px-2.5 rounded-lg text-violet-600 border-violet-200 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[9px] font-bold" onClick={() => { setEditingLaserSessionId(isEditing ? null : ls.id); setEditLaserSessionForm({ energy: String(ls.energy || ''), pulse: ls.pulse || '', painLevel: String(ls.painLevel || ''), reaction: ls.reaction || '', notes: ls.notes || '', date: ls.date ? ls.date.split('T')[0] : '', price: String(ls.price ?? rec.price), paid: ls.paid }) }}><Edit3 size={10} className="ml-0.5" /> تعديل</Button>
+                                        <Button size="sm" variant="outline" className="h-7 px-2.5 rounded-lg text-red-500 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-[9px] font-bold" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={10} className="ml-0.5" /> حذف</Button>
                                       </div>
                                     </div>
                                     {isEditing ? (
@@ -2072,19 +2074,24 @@ export default function Home() {
                                         <div className="flex items-center gap-3"><Label className="text-[10px] font-bold">تم الدفع</Label><Switch checked={editLaserSessionForm.paid} onCheckedChange={v => setEditLaserSessionForm(p => ({ ...p, paid: v }))} /></div>
                                         <div><Label className="text-[10px] font-bold">📝 ملاحظات</Label><Textarea value={editLaserSessionForm.notes} onChange={e => setEditLaserSessionForm(p => ({ ...p, notes: e.target.value }))} className="rounded-lg text-xs mt-0.5" rows={2} /></div>
                                         <div className="flex gap-2">
-                                          <Button size="sm" className="rounded-lg bg-violet-600 text-white text-xs" onClick={async () => { try { const updatedPrice = parseFloat(editLaserSessionForm.price) || rec.price; await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, price: updatedPrice, paid: editLaserSessionForm.paid, date: editLaserSessionForm.date || undefined }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, price: updatedPrice, paid: editLaserSessionForm.paid, date: editLaserSessionForm.date || s.date } : s) } : r)); toast.success('تم تحديث الجلسة ✅'); setEditingLaserSessionId(null) } catch { toast.error('خطأ') } }}>حفظ</Button>
-                                          <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setEditingLaserSessionId(null)}>إلغاء</Button>
+                                          <Button size="sm" className="rounded-lg bg-gradient-to-l from-violet-600 to-purple-600 text-white text-xs shadow-sm" onClick={async () => { try { const updatedPrice = parseFloat(editLaserSessionForm.price) || rec.price; await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, price: updatedPrice, paid: editLaserSessionForm.paid, date: editLaserSessionForm.date || undefined }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, price: updatedPrice, paid: editLaserSessionForm.paid, date: editLaserSessionForm.date || s.date } : s) } : r)); toast.success('تم تحديث الجلسة ✅'); setEditingLaserSessionId(null) } catch { toast.error('خطأ') } }}>✅ حفظ</Button>
+                                          <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setEditingLaserSessionId(null)}>إلغاء</Button>
                                         </div>
                                       </CardContent>
                                     ) : (
                                       <CardContent className="p-3">
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                          {ls.energy && <div className="p-1.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-center"><p className="text-[9px] text-muted-foreground">⚡ طاقة</p><p className="font-bold text-xs">{ls.energy} جول</p></div>}
-                                          {ls.pulse && <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-center"><p className="text-[9px] text-muted-foreground">📢 نبض</p><p className="font-bold text-xs">{ls.pulse}</p></div>}
-                                          {ls.painLevel && <div className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-center"><p className="text-[9px] text-muted-foreground">😣 ألم</p><p className="font-bold text-xs">{ls.painLevel}/10</p></div>}
-                                          {ls.reaction && <div className="p-1.5 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-center"><p className="text-[9px] text-muted-foreground">🔴 رد فعل</p><p className="font-bold text-xs">{ls.reaction}</p></div>}
+                                        <div className={cn('grid gap-2', isFirst ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-4')}>
+                                          {ls.energy && <div className="p-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 text-center border border-yellow-100 dark:border-yellow-800/30"><p className="text-[9px] text-muted-foreground">⚡ طاقة</p><p className="font-bold text-xs">{ls.energy} جول</p></div>}
+                                          {ls.pulse && <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-center border border-indigo-100 dark:border-indigo-800/30"><p className="text-[9px] text-muted-foreground">📢 نبض</p><p className="font-bold text-xs">{ls.pulse}</p></div>}
+                                          {ls.painLevel && <div className="p-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-center border border-red-100 dark:border-red-800/30"><p className="text-[9px] text-muted-foreground">😣 ألم</p><p className="font-bold text-xs">{ls.painLevel}/10</p></div>}
+                                          {ls.reaction && <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-center border border-orange-100 dark:border-orange-800/30"><p className="text-[9px] text-muted-foreground">🔴 رد فعل</p><p className="font-bold text-xs">{ls.reaction}</p></div>}
+                                          {/* For first session, show default values if not set */}
+                                          {isFirst && !ls.energy && rec.energy && <div className="p-2 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 text-center border border-cyan-100 dark:border-cyan-800/30"><p className="text-[9px] text-muted-foreground">⚡ طاقة افتراضية</p><p className="font-bold text-xs">{rec.energy} جول</p></div>}
+                                          {isFirst && !ls.pulse && rec.pulse && <div className="p-2 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 text-center border border-cyan-100 dark:border-cyan-800/30"><p className="text-[9px] text-muted-foreground">📢 نبض افتراضي</p><p className="font-bold text-xs">{rec.pulse}</p></div>}
+                                          {/* Show empty placeholder for alignment when no data */}
+                                          {!ls.energy && !ls.pulse && !ls.painLevel && !ls.reaction && (!isFirst || (!rec.energy && !rec.pulse)) && <div className="p-2 rounded-xl bg-muted/30 text-center border border-dashed border-muted-foreground/20 col-span-2"><p className="text-[10px] text-muted-foreground">لا توجد تفاصيل إضافية مسجلة لهذه الجلسة</p></div>}
                                         </div>
-                                        {ls.notes && <div className="mt-2 p-2 rounded-lg bg-muted/50 text-xs"><span className="text-muted-foreground">📝 </span>{ls.notes}</div>}
+                                        {ls.notes && <div className="mt-2 p-2.5 rounded-xl bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-800/30 text-xs"><span className="text-teal-600 dark:text-teal-400 font-semibold">📝 </span>{ls.notes}</div>}
                                       </CardContent>
                                     )}
                                   </Card>
@@ -2167,7 +2174,7 @@ export default function Home() {
                                     <div className="flex items-center gap-1.5">
                                       <span className={cn('font-bold text-sm', ls.paid ? 'text-emerald-600' : 'text-amber-600')}>{formatCurrency(ls.price || rec.price)}</span>
                                       {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">✅</Badge> : <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); setTransactions(prev => [...prev, { id: 'temp-' + Date.now(), type: 'income', category: 'ليزر', amount: ls.price || rec.price, description: `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`, date: new Date().toISOString() }]); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={10} className="text-red-500" /></Button>
+                                      <Button size="sm" variant="outline" className="h-6 px-1.5 rounded-lg text-red-500 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-[9px]" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={9} className="ml-0.5" /> حذف</Button>
                                     </div>
                                   </motion.div>
                                 ))}
@@ -2238,25 +2245,35 @@ export default function Home() {
                       const grandTotal = r.totalPrice || (r.price * r.totalSessions)
                       const totalRemaining = r.paid ? 0 : Math.max(grandTotal - totalPaid, 0)
                       return (
-                        <motion.div key={r.id} whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}>
-                          <Card className={cn('section-card p-4 cursor-pointer hover:shadow-lg transition-all border-l-4', r.paid ? 'border-l-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700' : totalRemaining > 0 ? 'border-l-amber-400 hover:border-amber-300 dark:hover:border-amber-700' : 'border-l-cyan-400 hover:border-cyan-300 dark:hover:border-cyan-700')} onClick={() => { setSelectedLaserRecordId(r.id); setLaserDetailTab('overview') }}>
-                            <div className="flex items-center gap-3">
-                              <div className={cn('p-2.5 rounded-xl', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>
-                                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-xl">💎</motion.div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2"><p className="font-bold text-sm">{p?.name || 'مريض'}</p><Badge className={cn('text-[9px]', r.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : r.status === 'completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400')}>{r.status === 'active' ? '🟢 نشط' : r.status === 'completed' ? '🔵 مكتمل' : '⏸️ متوقف'}</Badge></div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5"><span>{areaInfo?.label || r.bodyArea}</span>{r.machineName && <span>| {r.machineName}</span>}</div>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <div className="flex items-center gap-1.5 text-[10px]"><Zap size={10} className="text-violet-500" /><span className="font-bold">{laserSessCount}/{r.totalSessions}</span></div>
-                                  {r.price > 0 && <div className="flex items-center gap-1.5 text-[10px]"><DollarSign size={10} className="text-emerald-500" /><span className="font-bold text-emerald-600">{formatCurrency(totalPaid)}</span>{totalRemaining > 0 && <span className="text-amber-600">/ {formatCurrency(grandTotal)}</span>}</div>}
-                                  {laserSessCount > 0 && <div className="flex items-center gap-1 text-[10px]">{paidSessions > 0 && <span className="text-emerald-600 font-bold">✅{paidSessions}</span>}{unpaidSessions > 0 && <span className="text-amber-600 font-bold">⏳{unpaidSessions}</span>}</div>}
+                        <motion.div key={r.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} whileTap={{ scale: 0.99 }}>
+                          <Card className={cn('section-card overflow-hidden cursor-pointer hover:shadow-xl transition-all', r.paid ? 'border-r-4 border-r-emerald-400' : totalRemaining > 0 ? 'border-r-4 border-r-amber-400' : 'border-r-4 border-r-cyan-400')} onClick={() => { setSelectedLaserRecordId(r.id); setLaserDetailTab('overview') }}>
+                            <div className="p-3.5">
+                              <div className="flex items-start gap-3">
+                                {/* Area Icon */}
+                                <div className={cn('p-2.5 rounded-xl flex-shrink-0', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>
+                                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-lg">💎</motion.div>
                                 </div>
-                                <div className="mt-1.5"><div className="flex items-center justify-between text-[9px] mb-0.5"><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1.5" /></div>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <motion.div whileTap={{ scale: 0.9 }}><Eye size={16} className="text-cyan-500" /></motion.div>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={e => { e.stopPropagation(); setDeleteLaserRecordConfirmId(r.id) }}><Trash2 size={10} className="text-red-500" /></Button>
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-bold text-sm">{p?.name || 'مريض'}</p>
+                                    <Badge className={cn('text-[9px]', r.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : r.status === 'completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400')}>{r.status === 'active' ? '🟢 نشط' : r.status === 'completed' ? '🔵 مكتمل' : '⏸️ متوقف'}</Badge>
+                                    {areaInfo && <Badge className={cn('text-[9px]', areaInfo.color)}>{areaInfo.label}</Badge>}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">{r.machineName && <span>⚙️ {r.machineName}</span>}</div>
+                                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                    <div className="flex items-center gap-1.5 text-[10px]"><Zap size={11} className="text-violet-500" /><span className="font-bold">{laserSessCount}/{r.totalSessions} جلسة</span></div>
+                                    {r.price > 0 && <div className="flex items-center gap-1.5 text-[10px]"><DollarSign size={11} className="text-emerald-500" /><span className="font-bold text-emerald-600">{formatCurrency(totalPaid)}</span>{totalRemaining > 0 && <span className="text-amber-600">/ {formatCurrency(grandTotal)}</span>}</div>}
+                                    {laserSessCount > 0 && <div className="flex items-center gap-1.5 text-[10px]">{paidSessions > 0 && <span className="text-emerald-600 font-bold">✅ {paidSessions}</span>}{unpaidSessions > 0 && <span className="text-amber-600 font-bold">⏳ {unpaidSessions}</span>}</div>}
+                                  </div>
+                                  {/* Progress */}
+                                  <div className="mt-2"><div className="flex items-center justify-between text-[9px] mb-1"><span className="text-muted-foreground">التقدم</span><span className="font-bold">{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-2" /></div>
+                                </div>
+                                {/* Actions */}
+                                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                                  <Button size="sm" className="h-8 px-3 rounded-lg bg-gradient-to-l from-cyan-500 to-teal-500 text-white text-[10px] font-bold shadow-sm hover:shadow-md" onClick={e => { e.stopPropagation(); setSelectedLaserRecordId(r.id); setLaserDetailTab('overview') }}><Eye size={12} className="ml-1" /> فتح</Button>
+                                  <Button size="sm" variant="outline" className="h-8 px-3 rounded-lg text-red-500 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-[10px] font-bold" onClick={e => { e.stopPropagation(); setDeleteLaserRecordConfirmId(r.id) }}><Trash2 size={12} className="ml-1" /> حذف</Button>
+                                </div>
                               </div>
                             </div>
                           </Card>
@@ -4131,9 +4148,27 @@ export default function Home() {
               if (r) {
                 const rP = r.patient || patients.find(pt => pt.id === r.patientId)
                 const rSess2 = r.laserSessions || []
+                const areaLabel = BODY_AREAS.find(a => a.id === r.bodyArea || a.label === r.bodyArea)?.label || r.bodyArea
+
+                // 1. Remove related transactions
                 const rTxIds = new Set<string>()
-                if (rP) { rSess2.filter(s => s.paid).forEach(s => { const t = transactions.find(tx => tx.description?.includes(`جلسة ليزر #${s.sessionNumber}`) && tx.description?.includes(rP!.name) && tx.category === 'ليزر'); if (t) rTxIds.add(t.id) }) }
+                if (rP) {
+                  rSess2.filter(s => s.paid).forEach(s => {
+                    const t = transactions.find(tx => tx.description?.includes(`جلسة ليزر #${s.sessionNumber}`) && tx.description?.includes(rP!.name) && tx.category === 'ليزر')
+                    if (t) rTxIds.add(t.id)
+                  })
+                  // Also remove initial record transaction
+                  const initTx = transactions.find(tx => tx.category === 'ليزر' && tx.description?.includes(rP.name) && tx.description?.includes(areaLabel) && !tx.description?.includes('جلسة ليزر #'))
+                  if (initTx) rTxIds.add(initTx.id)
+                }
                 setTransactions(prev => prev.filter(t => !rTxIds.has(t.id)))
+
+                // 2. Remove related regular sessions
+                if (rP) {
+                  const relatedSessions = sessions.filter(s => s.patientId === r.patientId && s.notes?.includes('ليزر') && s.notes?.includes(areaLabel))
+                  const rSessIds = new Set(relatedSessions.map(s => s.id))
+                  if (rSessIds.size > 0) setSessions(prev => prev.filter(s => !rSessIds.has(s.id)))
+                }
               }
               setLaserRecords(prev => prev.filter(rec => rec.id !== deleteLaserRecordConfirmId))
               if (selectedLaserRecordId === deleteLaserRecordConfirmId) setSelectedLaserRecordId(null)
@@ -4147,7 +4182,7 @@ export default function Home() {
       {/* Delete Laser Session */}
       <AlertDialog open={!!deleteLaserSessionConfirmId} onOpenChange={() => setDeleteLaserSessionConfirmId(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف جلسة الليزر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذه الجلسة؟ سيتم حذف المعاملة المالية المرتبطة بها إذا كانت مدفوعة.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف جلسة الليزر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذه الجلسة؟ سيتم حذف المعاملة المالية والجلسة المرتبطة بها إذا كانت مدفوعة.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => {
             if (!deleteLaserSessionConfirmId) return
             try {
@@ -4156,11 +4191,24 @@ export default function Home() {
               if (ls) {
                 const parentRec = laserRecords.find(r => (r.laserSessions || []).some(s => s.id === deleteLaserSessionConfirmId))
                 const pName = parentRec?.patient?.name || patients.find(pt => pt.id === parentRec?.patientId)?.name
+                const areaLabel = parentRec ? BODY_AREAS.find(a => a.id === parentRec.bodyArea || a.label === parentRec.bodyArea)?.label || parentRec.bodyArea : ''
+
+                // 1. Remove related transaction (by session number and patient name match)
                 const relatedTx = transactions.find(t => t.description?.includes(`جلسة ليزر #${ls.sessionNumber}`) && t.description?.includes(pName || '') && t.category === 'ليزر')
                 if (relatedTx) setTransactions(prev => prev.filter(t => t.id !== relatedTx.id))
+
+                // 2. Also try to remove by broader match (ليرز areaLabel - patientName format)
+                const broaderTx = transactions.find(t => t.category === 'ليزر' && t.description?.includes(pName || '') && t.description?.includes(areaLabel) && Math.abs(t.amount - ls.price) < 1)
+                if (broaderTx && broaderTx.id !== relatedTx?.id) setTransactions(prev => prev.filter(t => t.id !== broaderTx.id))
+
+                // 3. Remove related regular session
+                const relatedSession = sessions.find(s => s.patientId === parentRec?.patientId && s.notes?.includes('ليزر') && s.notes?.includes(areaLabel) && Math.abs(s.price - ls.price) < 1 && s.date && ls.date && new Date(s.date).toDateString() === new Date(ls.date).toDateString())
+                if (relatedSession) setSessions(prev => prev.filter(s => s.id !== relatedSession.id))
+
+                // 4. Update laser records state
                 setLaserRecords(prev => prev.map(r => (r.laserSessions || []).some(s => s.id === deleteLaserSessionConfirmId) ? { ...r, laserSessions: (r.laserSessions || []).filter(s => s.id !== deleteLaserSessionConfirmId), _count: { laserSessions: Math.max((r._count?.laserSessions || 1) - 1, 0) } } : r))
               }
-              toast.success('تم حذف الجلسة والمعاملة المالية المرتبطة ✅')
+              toast.success('تم حذف الجلسة والمعاملات المرتبطة ✅')
             } catch { toast.error('خطأ في الحذف') }
             setDeleteLaserSessionConfirmId(null)
           }}>حذف</AlertDialogAction></AlertDialogFooter>
@@ -4375,7 +4423,6 @@ export default function Home() {
       <Dialog open={showAddLaserRecord} onOpenChange={(open) => {
         setShowAddLaserRecord(open)
         if (open) {
-          // Refresh patients list when dialog opens to avoid stale IDs
           apiFetch<any>('/patients?limit=200').then(res => {
             const pList = res?.patients || res?.data || (Array.isArray(res) ? res : [])
             if (Array.isArray(pList) && pList.length > 0) setPatients(pList)
@@ -4383,68 +4430,75 @@ export default function Home() {
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0 gap-0">
-          {/* Clean Header */}
-          <div className="bg-gradient-to-l from-slate-800 via-slate-700 to-slate-800 p-5">
-            <div className="flex items-center justify-between">
+          {/* ═══ Premium Header ═══ */}
+          <div className="relative overflow-hidden bg-gradient-to-l from-teal-600 via-cyan-600 to-emerald-600 p-5">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9zdmc+')] opacity-50" />
+            <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center">
-                  <Zap size={20} className="text-teal-400" />
-                </div>
+                <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }} className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                  <Zap size={22} className="text-white" />
+                </motion.div>
                 <div>
-                  <DialogTitle className="text-lg font-bold text-white">سجل ليزر جديد</DialogTitle>
-                  <DialogDescription className="text-slate-400 text-xs">تسجيل جلسة إزالة الشعر بالليزر</DialogDescription>
+                  <DialogTitle className="text-xl font-black text-white">سجل ليزر جديد</DialogTitle>
+                  <DialogDescription className="text-cyan-100 text-xs mt-0.5">تسجيل جلسة إزالة الشعر بالليزر</DialogDescription>
                 </div>
               </div>
-              <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30 text-[10px] px-3 py-1">مركز الليزر</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-white/15 text-white border-white/20 text-[10px] px-3 py-1 backdrop-blur-sm">💎 مركز الليزر</Badge>
+              </div>
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-5">
             {/* ═══ Section 1: بيانات العميل ═══ */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <Users size={15} className="text-teal-500" />
-                  بيانات العميل
-                </h3>
-                <Badge variant="outline" className="text-[9px] text-red-500 border-red-300">مطلوب</Badge>
+            <div className="rounded-2xl border-2 border-teal-200/50 dark:border-teal-800/50 overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-l from-teal-500 to-cyan-500 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span className="text-white text-sm font-black">1</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Users size={15} /> بيانات العميل
+                  </h3>
+                </div>
+                <Badge className="bg-white/20 text-white border-white/30 text-[9px]">مطلوب *</Badge>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 bg-gradient-to-b from-teal-50/30 to-transparent dark:from-teal-950/10">
                 {/* Patient Search */}
                 <div>
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 mb-1.5">
-                    <Search size={13} className="text-teal-500" /> ابحث عن المريض
+                  <Label className="text-xs font-semibold text-teal-700 dark:text-teal-300 flex items-center gap-1.5 mb-2">
+                    <Search size={13} /> ابحث عن المريض بالاسم أو الهاتف
                   </Label>
                   <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اسم المريض أو رقم الهاتف..." className="rounded-lg h-11 pr-10 text-sm border border-slate-300 dark:border-slate-600 focus:border-teal-400 focus:ring-teal-400/20" autoFocus />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-400" size={18} />
+                    <Input value={laserFormPatientSearch} onChange={e => { setLaserFormPatientSearch(e.target.value); if (laserFormPatientId) setLaserFormPatientId('') }} placeholder="اكتب اسم المريض أو رقم الهاتف..." className="rounded-xl h-12 pr-10 text-sm border-2 border-teal-200 dark:border-teal-700 focus:border-teal-400 focus:ring-teal-400/20 bg-white dark:bg-slate-900" autoFocus />
                     {laserFormPatientSearch && !laserFormPatientId && (
-                      <button onClick={() => { setLaserFormPatientSearch(''); setLaserFormPatientId('') }} className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center"><X size={12} /></button>
+                      <button onClick={() => { setLaserFormPatientSearch(''); setLaserFormPatientId('') }} className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-teal-100 dark:bg-teal-900/50 hover:bg-teal-200 dark:hover:bg-teal-800 flex items-center justify-center transition-colors"><X size={12} className="text-teal-600" /></button>
                     )}
                   </div>
                   {/* Search Results */}
                   {laserPatientSuggestions.length > 0 && !laserFormPatientId && (
-                    <div className="mt-2 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-lg">
-                      <div className="px-3 py-2 bg-teal-600 flex items-center justify-between">
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-2 border-2 border-teal-200 dark:border-teal-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xl">
+                      <div className="px-3 py-2 bg-gradient-to-l from-teal-500 to-cyan-500 flex items-center justify-between">
                         <p className="text-xs font-bold text-white flex items-center gap-1.5"><Search size={12} /> نتائج البحث</p>
-                        <Badge className="bg-white/20 text-white text-[9px]">{laserPatientSuggestions.length}</Badge>
+                        <Badge className="bg-white/25 text-white text-[9px]">{laserPatientSuggestions.length}</Badge>
                       </div>
-                      <div className="max-h-[200px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      <div className="max-h-[200px] overflow-y-auto divide-y divide-teal-50 dark:divide-teal-900/30">
                         {laserPatientSuggestions.map(p => (
-                          <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-teal-50 dark:hover:bg-teal-950/20 text-right transition-colors">
-                            <div className="w-9 h-9 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center font-bold text-teal-600 dark:text-teal-400 text-sm flex-shrink-0">{p.name?.charAt(0)}</div>
+                          <motion.button key={p.id} whileHover={{ x: -4 }} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-teal-50 dark:hover:bg-teal-950/30 text-right transition-colors">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center font-bold text-white text-sm flex-shrink-0 shadow-md">{p.name?.charAt(0)}</div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm truncate">{p.name}</p>
+                              <p className="font-bold text-sm">{p.name}</p>
                               <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                                <span>#{p.fileNumber}</span>
+                                <Badge variant="outline" className="text-[9px] h-4">#{p.fileNumber}</Badge>
                                 {p.phone && <span dir="ltr">{p.phone}</span>}
                                 {p.age && <span>{p.age} سنة</span>}
                               </div>
                             </div>
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
 
@@ -4453,47 +4507,51 @@ export default function Home() {
                   const sp = patients.find(p => p.id === laserFormPatientId)
                   if (!sp) return null
                   return (
-                    <div className="rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/20 overflow-hidden">
-                      <div className="bg-teal-600 p-3 flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border-2 border-white/30"><AvatarFallback className="bg-white text-teal-600 text-sm font-bold">{sp.name?.charAt(0)}</AvatarFallback></Avatar>
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-xl border-2 border-teal-300 dark:border-teal-700 overflow-hidden shadow-lg">
+                      <div className="bg-gradient-to-l from-teal-500 to-cyan-500 p-3 flex items-center gap-3">
+                        <Avatar className="h-11 w-11 border-2 border-white/30 shadow-md"><AvatarFallback className="bg-white text-teal-600 text-sm font-bold">{sp.name?.charAt(0)}</AvatarFallback></Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-bold text-sm">{sp.name}</p>
-                          <div className="flex items-center gap-1.5 text-teal-100 text-[10px] flex-wrap">
-                            <span>#{sp.fileNumber}</span>
-                            {sp.gender && <span>{sp.gender}</span>}
-                            {sp.age && <span>{sp.age} سنة</span>}
-                            {sp.phone && <span dir="ltr">{sp.phone}</span>}
+                          <div className="flex items-center gap-1.5 text-cyan-100 text-[10px] flex-wrap">
+                            <Badge className="bg-white/15 text-white text-[9px] border-white/20">#{sp.fileNumber}</Badge>
+                            {sp.gender && <Badge className="bg-white/15 text-white text-[9px] border-white/20">{sp.gender === 'male' ? 'ذكر' : sp.gender === 'female' ? 'أنثى' : sp.gender}</Badge>}
+                            {sp.age && <Badge className="bg-white/15 text-white text-[9px] border-white/20">{sp.age} سنة</Badge>}
+                            {sp.phone && <Badge className="bg-white/15 text-white text-[9px] border-white/20" dir="ltr">{sp.phone}</Badge>}
                           </div>
                         </div>
-                        <button onClick={() => { setLaserFormPatientId(''); setLaserFormPatientSearch('') }} className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"><X size={14} /></button>
+                        <button onClick={() => { setLaserFormPatientId(''); setLaserFormPatientSearch('') }} className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors shadow-sm"><X size={14} /></button>
                       </div>
                       {(sp.allergies || sp.medicalHistory) && (
-                        <div className="p-2 space-y-1">
-                          {sp.allergies && <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"><AlertTriangle size={11} className="text-red-500 flex-shrink-0" /><p className="text-[10px] text-red-600 dark:text-red-400 font-medium">حساسية: {sp.allergies}</p></div>}
-                          {sp.medicalHistory && <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"><AlertCircle size={11} className="text-amber-500 flex-shrink-0" /><p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium truncate">{sp.medicalHistory}</p></div>}
+                        <div className="p-2.5 space-y-1.5 bg-teal-50/50 dark:bg-teal-950/20">
+                          {sp.allergies && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"><AlertTriangle size={12} className="text-red-500 flex-shrink-0" /><p className="text-[10px] text-red-600 dark:text-red-400 font-semibold">حساسية: {sp.allergies}</p></div>}
+                          {sp.medicalHistory && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"><AlertCircle size={12} className="text-amber-500 flex-shrink-0" /><p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold truncate">{sp.medicalHistory}</p></div>}
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   )
                 })()}
               </div>
             </div>
 
             {/* ═══ Section 2: بيانات الليزر ═══ */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <Zap size={15} className="text-teal-500" />
-                  بيانات الليزر
-                </h3>
-                <Badge variant="outline" className="text-[9px] text-teal-500 border-teal-300">الأساسية</Badge>
+            <div className="rounded-2xl border-2 border-cyan-200/50 dark:border-cyan-800/50 overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-l from-cyan-500 to-emerald-500 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span className="text-white text-sm font-black">2</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Zap size={15} /> بيانات العلاج
+                  </h3>
+                </div>
+                <Badge className="bg-white/20 text-white border-white/30 text-[9px]">أساسي</Badge>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 bg-gradient-to-b from-cyan-50/30 to-transparent dark:from-cyan-950/10">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">الطبيب المعالج</Label>
+                    <Label className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-1.5 block">الطبيب المعالج</Label>
                     <Select value={laserFormDoctorId} onValueChange={setLaserFormDoctorId}>
-                      <SelectTrigger className="rounded-lg h-10 border border-slate-300 dark:border-slate-600 text-sm">
+                      <SelectTrigger className="rounded-xl h-10 border-2 border-cyan-200 dark:border-cyan-700 text-sm focus:border-cyan-400">
                         <SelectValue placeholder="اختر الطبيب..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -4504,9 +4562,9 @@ export default function Home() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">منطقة الجسم <span className="text-red-500">*</span></Label>
+                    <Label className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-1.5 block">منطقة الجسم <span className="text-red-500">*</span></Label>
                     <Select value={laserFormArea} onValueChange={setLaserFormArea}>
-                      <SelectTrigger className="rounded-lg h-10 border border-slate-300 dark:border-slate-600 text-sm">
+                      <SelectTrigger className="rounded-xl h-10 border-2 border-cyan-200 dark:border-cyan-700 text-sm focus:border-cyan-400">
                         <SelectValue placeholder="اختر المنطقة..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -4519,9 +4577,9 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">نوع البشرة</Label>
+                    <Label className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-1.5 block">نوع البشرة</Label>
                     <Select value={laserFormSkinType} onValueChange={setLaserFormSkinType}>
-                      <SelectTrigger className="rounded-lg h-10 border border-slate-300 dark:border-slate-600 text-sm">
+                      <SelectTrigger className="rounded-xl h-10 border-2 border-cyan-200 dark:border-cyan-700 text-sm focus:border-cyan-400">
                         <SelectValue placeholder="اختر النوع..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -4532,9 +4590,9 @@ export default function Home() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">لون الشعر</Label>
+                    <Label className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-1.5 block">لون الشعر</Label>
                     <Select value={laserFormHairColor} onValueChange={setLaserFormHairColor}>
-                      <SelectTrigger className="rounded-lg h-10 border border-slate-300 dark:border-slate-600 text-sm">
+                      <SelectTrigger className="rounded-xl h-10 border-2 border-cyan-200 dark:border-cyan-700 text-sm focus:border-cyan-400">
                         <SelectValue placeholder="اختر اللون..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -4545,9 +4603,9 @@ export default function Home() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">كثافة الشعر</Label>
+                    <Label className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-1.5 block">كثافة الشعر</Label>
                     <Select value={laserFormHairDensity} onValueChange={setLaserFormHairDensity}>
-                      <SelectTrigger className="rounded-lg h-10 border border-slate-300 dark:border-slate-600 text-sm">
+                      <SelectTrigger className="rounded-xl h-10 border-2 border-cyan-200 dark:border-cyan-700 text-sm focus:border-cyan-400">
                         <SelectValue placeholder="اختر الكثافة..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -4561,85 +4619,96 @@ export default function Home() {
               </div>
             </div>
 
-            {/* ═══ Section 3: إعدادات الجلسة ═══ */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <Settings size={15} className="text-teal-500" />
-                  إعدادات الجلسة
-                </h3>
-                <Badge variant="outline" className="text-[9px] text-slate-500 border-slate-300">اختياري</Badge>
+            {/* ═══ Section 3: إعدادات الجهاز ═══ */}
+            <div className="rounded-2xl border-2 border-emerald-200/50 dark:border-emerald-800/50 overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-l from-emerald-500 to-teal-500 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span className="text-white text-sm font-black">3</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Settings size={15} /> إعدادات الجهاز
+                  </h3>
+                </div>
+                <Badge className="bg-white/20 text-white border-white/30 text-[9px]">اختياري</Badge>
               </div>
-              <div className="p-4">
+              <div className="p-4 bg-gradient-to-b from-emerald-50/30 to-transparent dark:from-emerald-950/10">
                 <div className="grid grid-cols-3 gap-3">
-                  <div><Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">اسم الجهاز</Label><Input value={laserFormMachine} onChange={e => setLaserFormMachine(e.target.value)} placeholder="Soprano" className="rounded-lg h-10 text-sm border border-slate-300 dark:border-slate-600" /></div>
-                  <div><Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">الطاقة (J)</Label><Input type="number" value={laserFormEnergy} onChange={e => setLaserFormEnergy(e.target.value)} placeholder="14" className="rounded-lg h-10 text-sm border border-slate-300 dark:border-slate-600" /></div>
-                  <div><Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">النبض (ms)</Label><Input value={laserFormPulse} onChange={e => setLaserFormPulse(e.target.value)} placeholder="20" className="rounded-lg h-10 text-sm border border-slate-300 dark:border-slate-600" /></div>
+                  <div><Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1.5 block">اسم الجهاز</Label><Input value={laserFormMachine} onChange={e => setLaserFormMachine(e.target.value)} placeholder="Soprano" className="rounded-xl h-10 text-sm border-2 border-emerald-200 dark:border-emerald-700 focus:border-emerald-400" /></div>
+                  <div><Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1.5 block">الطاقة (J)</Label><Input type="number" value={laserFormEnergy} onChange={e => setLaserFormEnergy(e.target.value)} placeholder="14" className="rounded-xl h-10 text-sm border-2 border-emerald-200 dark:border-emerald-700 focus:border-emerald-400" /></div>
+                  <div><Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1.5 block">النبض (ms)</Label><Input value={laserFormPulse} onChange={e => setLaserFormPulse(e.target.value)} placeholder="20" className="rounded-xl h-10 text-sm border-2 border-emerald-200 dark:border-emerald-700 focus:border-emerald-400" /></div>
                 </div>
               </div>
             </div>
 
             {/* ═══ Section 4: التكلفة ═══ */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <DollarSign size={15} className="text-teal-500" />
-                  التكلفة
-                </h3>
-                <Badge variant="outline" className="text-[9px] text-emerald-500 border-emerald-300">متصل مالي</Badge>
+            <div className="rounded-2xl border-2 border-amber-200/50 dark:border-amber-800/50 overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-l from-amber-500 to-orange-500 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span className="text-white text-sm font-black">4</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <DollarSign size={15} /> التكلفة والسداد
+                  </h3>
+                </div>
+                <Badge className="bg-white/20 text-white border-white/30 text-[9px]">💰 مالي</Badge>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 bg-gradient-to-b from-amber-50/30 to-transparent dark:from-amber-950/10">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">عدد الجلسات</Label><Input value={laserFormSessions} onChange={e => setLaserFormSessions(e.target.value)} type="number" className="rounded-lg h-10 text-sm text-center border border-slate-300 dark:border-slate-600" /></div>
-                  <div><Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 block">سعر الجلسة (ج.م) <span className="text-red-500">*</span></Label><Input type="number" value={laserFormPrice} onChange={e => setLaserFormPrice(e.target.value)} placeholder="0" className="rounded-lg h-10 text-sm text-center border border-slate-300 dark:border-slate-600" /></div>
+                  <div><Label className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5 block">عدد الجلسات</Label><Input value={laserFormSessions} onChange={e => setLaserFormSessions(e.target.value)} type="number" className="rounded-xl h-10 text-sm text-center border-2 border-amber-200 dark:border-amber-700 focus:border-amber-400 font-bold" /></div>
+                  <div><Label className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5 block">سعر الجلسة (ج.م) <span className="text-red-500">*</span></Label><Input type="number" value={laserFormPrice} onChange={e => setLaserFormPrice(e.target.value)} placeholder="0" className="rounded-xl h-10 text-sm text-center border-2 border-amber-200 dark:border-amber-700 focus:border-amber-400 font-bold" /></div>
                 </div>
                 {laserFormPrice && parseInt(laserFormSessions) > 0 && (
-                  <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-800">
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-gradient-to-l from-teal-500 to-emerald-500 border border-teal-300 dark:border-teal-600 shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-teal-600 dark:text-teal-400 font-semibold">إجمالي الباقة ({laserFormSessions} جلسة)</p>
-                        <p className="text-[9px] text-slate-500">يُسجّل تلقائياً في النظام المالي</p>
+                        <p className="text-sm text-white font-bold">إجمالي الباقة ({laserFormSessions} جلسة)</p>
+                        <p className="text-[10px] text-teal-100 mt-0.5">يُسجّل تلقائياً في النظام المالي</p>
                       </div>
-                      <p className="text-lg font-bold text-teal-600 dark:text-teal-400">{formatCurrency(parseFloat(laserFormPrice) * parseInt(laserFormSessions))}</p>
+                      <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-2xl font-black text-white">{formatCurrency(parseFloat(laserFormPrice) * parseInt(laserFormSessions))}</motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
-                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                  <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400">حالة الدفع:</Label>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-700">
+                  <Label className="text-xs font-bold text-amber-700 dark:text-amber-300">حالة الدفع:</Label>
                   <div className="flex gap-2">
-                    <button onClick={() => setLaserFormPaid(true)} className={cn('px-4 py-1.5 rounded-lg text-xs font-semibold transition-all', laserFormPaid ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600')}>مدفوع</button>
-                    <button onClick={() => setLaserFormPaid(false)} className={cn('px-4 py-1.5 rounded-lg text-xs font-semibold transition-all', !laserFormPaid ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600')}>غير مدفوع</button>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLaserFormPaid(true)} className={cn('px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm', laserFormPaid ? 'bg-gradient-to-l from-emerald-500 to-green-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700')}>✅ مدفوع</motion.button>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLaserFormPaid(false)} className={cn('px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm', !laserFormPaid ? 'bg-gradient-to-l from-amber-500 to-orange-500 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700')}>⏳ غير مدفوع</motion.button>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* ═══ Section 5: ملاحظات ═══ */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="text-sm font-bold flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <FileText size={15} className="text-teal-500" />
-                  ملاحظات
-                </h3>
+            <div className="rounded-2xl border-2 border-slate-200/50 dark:border-slate-700/50 overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-l from-slate-500 to-slate-600 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span className="text-white text-sm font-black">5</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <FileText size={15} /> ملاحظات
+                  </h3>
+                </div>
+                <Badge className="bg-white/20 text-white border-white/30 text-[9px]">اختياري</Badge>
               </div>
-              <div className="p-4">
-                <Textarea value={laserFormNotes} onChange={e => setLaserFormNotes(e.target.value)} placeholder="ملاحظات عن الحالة أو التعليمات..." className="rounded-lg min-h-[70px] text-sm border border-slate-300 dark:border-slate-600 focus:border-teal-400 focus:ring-teal-400/20 resize-none" />
+              <div className="p-4 bg-gradient-to-b from-slate-50/30 to-transparent dark:from-slate-900/10">
+                <Textarea value={laserFormNotes} onChange={e => setLaserFormNotes(e.target.value)} placeholder="ملاحظات عن الحالة أو التعليمات الخاصة بالعلاج..." className="rounded-xl min-h-[80px] text-sm border-2 border-slate-200 dark:border-slate-600 focus:border-teal-400 focus:ring-teal-400/20 resize-none" />
               </div>
             </div>
           </div>
 
-          <DialogFooter className="gap-2 p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-            <Button variant="ghost" onClick={() => setShowAddLaserRecord(false)} className="rounded-lg text-slate-600">إلغاء</Button>
-            <Button className="rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold h-11 px-8" onClick={async () => {
+          <DialogFooter className="gap-2 p-4 border-t border-slate-200 dark:border-slate-700 bg-gradient-to-l from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+            <Button variant="ghost" onClick={() => setShowAddLaserRecord(false)} className="rounded-xl text-slate-600 px-6">إلغاء</Button>
+            <Button className="rounded-xl bg-gradient-to-l from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold h-12 px-8 shadow-lg" onClick={async () => {
               if (!laserFormPatientId) return toast.error('اختر المريض أولاً')
               if (!laserFormArea) return toast.error('اختر منطقة الجسم')
 
-              // Verify patient exists in database before creating laser record
               try {
                 const patientCheck = await apiFetch<any>(`/patients/${laserFormPatientId}`)
                 if (!patientCheck?.id && !patientCheck?.patient?.id) {
                   toast.error('المريض غير موجود في قاعدة البيانات. قم بتحديث الصفحة وحاول مرة أخرى')
-                  // Refresh patient list
                   const freshPatients = await apiFetch<any>('/patients?limit=200')
                   const pList = freshPatients?.patients || freshPatients?.data || freshPatients || []
                   if (Array.isArray(pList)) setPatients(pList)
@@ -4708,8 +4777,8 @@ export default function Home() {
               } catch { /* non-critical */ }
 
               setLaserFormArea(''); setLaserFormSkinType(''); setLaserFormHairColor(''); setLaserFormHairDensity(''); setLaserFormSessions('6'); setLaserFormNotes(''); setLaserFormPatientId(''); setLaserFormPatientSearch(''); setLaserFormPrice(''); setLaserFormPaid(false); setLaserFormMachine(''); setLaserFormEnergy(''); setLaserFormPulse(''); setLaserFormDoctorId(''); setShowAddLaserRecord(false)
-              toast.success('تم تسجيل سجل الليزر بنجاح')
-            }}><Zap size={15} className="ml-1.5" /> حفظ السجل</Button>
+              toast.success('تم تسجيل سجل الليزر بنجاح ✅')
+            }}><Zap size={16} className="ml-1.5" /> حفظ السجل</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
