@@ -64,9 +64,27 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     const { id } = await params
 
-    const existing = await db.laserSession.findUnique({ where: { id } })
+    const existing = await db.laserSession.findUnique({
+      where: { id },
+      include: { laserRecord: { include: { patient: { select: { name: true } } } } },
+    })
     if (!existing) {
       return NextResponse.json({ error: 'Laser session not found' }, { status: 404 })
+    }
+
+    // If the session was paid, delete the corresponding finance transaction
+    if (existing.paid) {
+      const patientName = existing.laserRecord?.patient?.name || 'مريض'
+      const descriptionPattern = `جلسة ليزر #${existing.sessionNumber} - ${patientName}`
+      try {
+        await db.transaction.deleteMany({
+          where: {
+            type: 'income',
+            category: 'ليزر',
+            description: descriptionPattern,
+          },
+        })
+      } catch (e) { console.error('Failed to delete related transaction:', e) }
     }
 
     await db.laserSession.delete({ where: { id } })
