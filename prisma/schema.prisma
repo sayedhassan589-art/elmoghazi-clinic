@@ -178,6 +178,8 @@ model LaserSession {
   painLevel       Int?     // 1-10
   reaction        String?
   notes           String?
+  price           Float    @default(0) // سعر الجلسة
+  paid            Boolean  @default(false) // هل تم الدفع
   date            DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -65,6 +65,8 @@ export async function POST(request: Request) {
     const sessionData: Record<string, unknown> = {
       laserRecordId: body.laserRecordId,
       sessionNumber: body.sessionNumber || sessionNumber,
+      price: body.price ?? record.price ?? 0,
+      paid: body.paid ?? false,
       date: body.date ? new Date(body.date) : new Date(),
     }
     if (body.energy) sessionData.energy = body.energy
@@ -83,6 +85,23 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    // If session is paid, auto-create a financial transaction
+    if (body.paid && (body.price ?? record.price ?? 0) > 0) {
+      const patientName = session.laserRecord?.patient?.name || 'مريض'
+      const areaInfo = record.bodyArea || ''
+      try {
+        await db.transaction.create({
+          data: {
+            type: 'income',
+            category: 'ليزر',
+            amount: body.price ?? record.price ?? 0,
+            description: `جلسة ليزر #${sessionNumber} - ${patientName} - ${areaInfo}`,
+            date: session.date,
+          },
+        })
+      } catch (e) { console.error('Failed to create transaction for laser session:', e) }
+    }
 
     // Update totalSessions on the record
     await db.laserRecord.update({

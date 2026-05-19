@@ -50,7 +50,7 @@ interface Note { id: string; patientId?: string; userId?: string; content: strin
 interface Alert { id: string; patientId: string; type: string; message: string; active: boolean; }
 interface Reminder { id: string; patientId?: string; title: string; description?: string; date: string; type: string; status: string; }
 interface LaserRecord { id: string; patientId: string; bodyArea: string; skinType?: string; hairColor?: string; hairDensity?: string; totalSessions: number; price: number; totalPrice: number; paid: boolean; machineName?: string; energy?: number; pulse?: string; status: string; notes?: string; createdAt?: string; laserSessions?: LaserSession[]; patient?: { id: string; name: string; fileNumber: string; phone?: string; age?: number; gender?: string; }; _count?: { laserSessions: number; }; }
-interface LaserSession { id: string; laserRecordId: string; sessionNumber: number; energy?: number; pulse?: string; painLevel?: number; reaction?: string; notes?: string; date: string; createdAt?: string; }
+interface LaserSession { id: string; laserRecordId: string; sessionNumber: number; energy?: number; pulse?: string; painLevel?: number; reaction?: string; notes?: string; price: number; paid: boolean; date: string; createdAt?: string; }
 interface LaserPackage { id: string; name: string; sessionsCount: number; price: number; bodyArea?: string; active: boolean; }
 interface LaserSetting { id: string; machineName: string; bodyArea: string; defaultEnergy?: number; defaultPulse?: string; }
 interface Transaction { id: string; type: string; category: string; amount: number; description?: string; date: string; }
@@ -338,8 +338,8 @@ export default function Home() {
   const [selectedLaserRecordId, setSelectedLaserRecordId] = useState<string | null>(null)
   const [showAddLaserSessionForm, setShowAddLaserSessionForm] = useState(false)
   const [editingLaserSessionId, setEditingLaserSessionId] = useState<string | null>(null)
-  const [editLaserSessionForm, setEditLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '' })
-  const [newLaserSessionForm, setNewLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '' })
+  const [editLaserSessionForm, setEditLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false })
+  const [newLaserSessionForm, setNewLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false })
   const [laserDetailTab, setLaserDetailTab] = useState<'overview' | 'sessions' | 'payments' | 'notes'>('overview')
   const [editingLaserRecordId, setEditingLaserRecordId] = useState<string | null>(null)
   const [editLaserRecordForm, setEditLaserRecordForm] = useState({ bodyArea: '', skinType: '', hairColor: '', hairDensity: '', totalSessions: '', price: '', totalPrice: '', paid: false, machineName: '', energy: '', pulse: '', status: '', notes: '' })
@@ -1663,9 +1663,34 @@ export default function Home() {
 
                   {/* ═══ LASER ═══ */}
                   <TabsContent value="laser" className="space-y-3 mt-3">
-                    <h3 className="font-bold text-sm flex items-center gap-2"><Zap size={15} className="text-cyan-500" /> سجلات الليزر</h3>
-                    {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <p className="text-center text-muted-foreground text-xs py-6">لا توجد سجلات ليزر</p>}
-                    {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => { const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea); const laserSessCount = l.laserHairSessions?.length || 0; const progressPercent = l.totalSessions > 0 ? Math.min((laserSessCount / l.totalSessions) * 100, 100) : 0; return <Card key={l.id} className="border border-cyan-200 dark:border-cyan-800 p-3"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Zap size={16} className="text-cyan-600" /></div><div className="flex-1"><div className="flex items-center gap-2"><span className="font-bold text-xs">{areaInfo?.label || l.bodyArea}</span><Badge variant="outline" className="text-[8px]">{l.status === 'active' ? 'نشط' : l.status}</Badge>{l.paid ? <span className="text-[8px] text-emerald-600 font-bold">✅</span> : l.price > 0 && <span className="text-[8px] text-amber-600 font-bold">⏳</span>}</div><div className="flex items-center gap-2 text-[10px] text-muted-foreground">{l.skinType && <span>بشرة {l.skinType}</span>}{l.hairColor && <span>شعر {l.hairColor}</span>}</div>{l.price > 0 && <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{formatCurrency(l.price)}/جلسة</p>}<div className="mt-1"><div className="flex items-center justify-between text-[8px] mb-0.5"><span>{laserSessCount}/{l.totalSessions}</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1" /></div></div></div></Card> })}
+                    <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-2"><Zap size={15} className="text-cyan-500" /> سجلات الليزر</h3></div>
+                    {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-3xl mb-2">💎</motion.div><p className="text-muted-foreground text-xs">لا توجد سجلات ليزر</p><Button size="sm" className="mt-2 rounded-xl bg-gradient-to-l from-cyan-500 to-teal-600 text-white text-xs" onClick={() => { setActiveTab('laser'); setShowAddLaserRecord(true); setLaserFormPatientId(selectedPatient.id); setLaserFormPatientSearch(selectedPatient.name) }}><Plus size={12} className="ml-1" /> إنشاء سجل</Button></Card>}
+                    {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => {
+                      const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea)
+                      const lSess = l.laserSessions || []
+                      const laserSessCount = lSess.length || l._count?.laserSessions || 0
+                      const progressPercent = l.totalSessions > 0 ? Math.min((laserSessCount / l.totalSessions) * 100, 100) : 0
+                      const paidCount = lSess.filter(s => s.paid).length
+                      const unpaidCount = lSess.filter(s => !s.paid).length
+                      const totalSessionPaid = lSess.filter(s => s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
+                      return (
+                        <motion.div key={l.id} whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}>
+                          <Card className="border-2 border-cyan-200 dark:border-cyan-800 p-3 cursor-pointer hover:shadow-lg transition-all" onClick={() => { setActiveTab('laser'); setSelectedLaserRecordId(l.id); setLaserDetailTab('overview') }}>
+                            <div className="flex items-center gap-3">
+                              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-md"><Zap size={16} /></motion.div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2"><span className="font-bold text-sm">{areaInfo?.label || l.bodyArea}</span><Badge className={cn('text-[8px]', l.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400')}>{l.status === 'active' ? '🟢 نشط' : l.status === 'completed' ? '🔵 مكتمل' : l.status === 'paused' ? '⏸️ متوقف' : l.status}</Badge></div>
+                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">{l.skinType && <span>بشرة {l.skinType}</span>}{l.hairColor && <span>شعر {l.hairColor}</span>}{l.machineName && <span>| {l.machineName}</span>}</div>
+                                {l.price > 0 && <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{formatCurrency(l.price)}/جلسة - إجمالي: {formatCurrency(l.totalPrice || l.price * l.totalSessions)}</p>}
+                                <div className="mt-1.5"><div className="flex items-center justify-between text-[9px] mb-0.5"><span>{laserSessCount}/{l.totalSessions} جلسة</span><span>{Math.round(progressPercent)}%</span></div><Progress value={progressPercent} className="h-1.5" /></div>
+                                {laserSessCount > 0 && <div className="flex items-center gap-2 mt-1 text-[9px]"><span className="text-emerald-600 font-bold">✅ {paidCount} مدفوعة</span>{unpaidCount > 0 && <span className="text-amber-600 font-bold">⏳ {unpaidCount} متبقية</span>}<span className="text-muted-foreground">({formatCurrency(totalSessionPaid)})</span></div>}
+                              </div>
+                              <div className="flex flex-col items-center gap-1"><Eye size={14} className="text-cyan-500" /><span className="text-[8px] text-cyan-500 font-bold">عرض</span></div>
+                            </div>
+                          </Card>
+                        </motion.div>
+                      )
+                    })}
                   </TabsContent>
 
                   {/* ═══ REMINDERS ═══ */}
@@ -1764,14 +1789,16 @@ export default function Home() {
                       if (!rec) return <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">لم يتم العثور على السجل</p><Button className="mt-3" onClick={() => setSelectedLaserRecordId(null)}>رجوع</Button></Card>
                       const pat = rec.patient || patients.find(pt => pt.id === rec.patientId)
                       const areaInfo = BODY_AREAS.find(a => a.id === rec.bodyArea || a.label === rec.bodyArea)
-                      const sessCount = rec.laserSessions?.length || rec._count?.laserSessions || 0
+                      const laserSess = (rec.laserSessions || []).sort((a, b) => (b.sessionNumber || 0) - (a.sessionNumber || 0))
+                      const sessCount = laserSess.length || rec._count?.laserSessions || 0
                       const progressPct = rec.totalSessions > 0 ? Math.min((sessCount / rec.totalSessions) * 100, 100) : 0
                       const remainingSessions = Math.max(rec.totalSessions - sessCount, 0)
-                      const sessionsPaid = laserHairSessions.filter(s => s.patientId === rec.patientId && s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
-                      const sessionsUnpaid = laserHairSessions.filter(s => s.patientId === rec.patientId && !s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
-                      const totalPaid = rec.paid ? rec.totalPrice || (rec.price * rec.totalSessions) : sessionsPaid
-                      const totalRemaining = rec.paid ? 0 : Math.max((rec.totalPrice || (rec.price * rec.totalSessions)) - totalPaid, 0)
-                      const laserSess = (rec.laserSessions || []).sort((a, b) => (b.sessionNumber || 0) - (a.sessionNumber || 0))
+                      // Calculate payments from actual laser sessions
+                      const totalPaidFromSessions = laserSess.filter(s => s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
+                      const totalUnpaidFromSessions = laserSess.filter(s => !s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
+                      const grandTotal = rec.totalPrice || (rec.price * rec.totalSessions)
+                      const totalPaid = rec.paid ? grandTotal : totalPaidFromSessions
+                      const totalRemaining = rec.paid ? 0 : Math.max(grandTotal - totalPaid, 0)
                       const isEditingRecord = editingLaserRecordId === rec.id
                       const skinInfo = SKIN_TYPES.find(s => s.id === rec.skinType)
                       const hairInfo = HAIR_COLORS.find(h => h.id === rec.hairColor)
@@ -1970,19 +1997,27 @@ export default function Home() {
                               const isEditing = editingLaserSessionId === ls.id
                               return (
                                 <motion.div key={ls.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
-                                  <Card className={cn('section-card overflow-hidden transition-all', isEditing ? 'border-2 border-violet-300 dark:border-violet-700' : 'border border-transparent hover:border-violet-200 dark:hover:border-violet-800')}>
+                                  <Card className={cn('section-card overflow-hidden transition-all', ls.paid ? 'border-l-4 border-l-emerald-400' : 'border-l-4 border-l-amber-400', isEditing ? 'border-2 border-violet-300 dark:border-violet-700' : 'hover:border-violet-200 dark:hover:border-violet-800')}>
                                     <div className={cn('p-3 flex items-center justify-between', isEditing ? 'bg-violet-50 dark:bg-violet-950/30' : idx === 0 ? 'bg-gradient-to-l from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20' : '')}>
                                       <div className="flex items-center gap-3">
-                                        <motion.div animate={idx === 0 ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: idx === 0 ? Infinity : 0, repeatDelay: 2 }} className={cn('p-2.5 rounded-xl text-white shadow-md text-sm font-black', idx === 0 ? 'bg-gradient-to-br from-violet-500 to-purple-600' : 'bg-gradient-to-br from-slate-400 to-slate-500')}>
+                                        <motion.div animate={idx === 0 ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: idx === 0 ? Infinity : 0, repeatDelay: 2 }} className={cn('p-2.5 rounded-xl text-white shadow-md text-sm font-black', ls.paid ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-amber-400 to-orange-500')}>
                                           {ls.sessionNumber}
                                         </motion.div>
                                         <div>
-                                          <p className="font-bold text-sm">الجلسة رقم {ls.sessionNumber} {idx === 0 && <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 text-[9px] mr-1">الأخيرة</Badge>}</p>
-                                          <p className="text-xs text-muted-foreground">{formatDate(ls.date)}</p>
+                                          <div className="flex items-center gap-2">
+                                            <p className="font-bold text-sm">الجلسة رقم {ls.sessionNumber}</p>
+                                            {idx === 0 && <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 text-[9px]">الأخيرة</Badge>}
+                                            <Badge className={cn('text-[9px]', ls.paid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400')}>{ls.paid ? '✅ مدفوعة' : '⏳ غير مدفوعة'}</Badge>
+                                          </div>
+                                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span>{formatDate(ls.date)}</span>
+                                            <span className="font-bold text-emerald-600">{formatCurrency(ls.price || rec.price)}</span>
+                                          </div>
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingLaserSessionId(isEditing ? null : ls.id); setEditLaserSessionForm({ energy: String(ls.energy || ''), pulse: ls.pulse || '', painLevel: String(ls.painLevel || ''), reaction: ls.reaction || '', notes: ls.notes || '', date: ls.date ? ls.date.split('T')[0] : '' }) }}><Edit3 size={12} className="text-violet-500" /></Button>
+                                        {!ls.paid && <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.05 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingLaserSessionId(isEditing ? null : ls.id); setEditLaserSessionForm({ energy: String(ls.energy || ''), pulse: ls.pulse || '', painLevel: String(ls.painLevel || ''), reaction: ls.reaction || '', notes: ls.notes || '', date: ls.date ? ls.date.split('T')[0] : '', price: String(ls.price ?? rec.price), paid: ls.paid }) }}><Edit3 size={12} className="text-violet-500" /></Button>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'DELETE' }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).filter(s => s.id !== ls.id), _count: { laserSessions: Math.max((r._count?.laserSessions || 1) - 1, 0) } } : r)); toast.success('تم حذف الجلسة') } catch { toast.error('خطأ في الحذف') } }}><Trash2 size={12} className="text-red-500" /></Button>
                                       </div>
                                     </div>
@@ -1993,11 +2028,13 @@ export default function Home() {
                                           <div><Label className="text-[10px] font-bold">📢 النبض</Label><Input value={editLaserSessionForm.pulse} onChange={e => setEditLaserSessionForm(p => ({ ...p, pulse: e.target.value }))} className="rounded-lg h-8 text-xs mt-0.5" /></div>
                                           <div><Label className="text-[10px] font-bold">😣 مستوى الألم (1-10)</Label><Input type="number" min="1" max="10" value={editLaserSessionForm.painLevel} onChange={e => setEditLaserSessionForm(p => ({ ...p, painLevel: e.target.value }))} className="rounded-lg h-8 text-xs mt-0.5" /></div>
                                           <div><Label className="text-[10px] font-bold">🔴 رد الفعل</Label><Input value={editLaserSessionForm.reaction} onChange={e => setEditLaserSessionForm(p => ({ ...p, reaction: e.target.value }))} className="rounded-lg h-8 text-xs mt-0.5" /></div>
+                                          <div><Label className="text-[10px] font-bold">💰 السعر</Label><Input type="number" value={editLaserSessionForm.price} onChange={e => setEditLaserSessionForm(p => ({ ...p, price: e.target.value }))} className="rounded-lg h-8 text-xs mt-0.5" /></div>
                                           <div><Label className="text-[10px] font-bold">📅 التاريخ</Label><Input type="date" value={editLaserSessionForm.date} onChange={e => setEditLaserSessionForm(p => ({ ...p, date: e.target.value }))} className="rounded-lg h-8 text-xs mt-0.5" /></div>
                                         </div>
+                                        <div className="flex items-center gap-3"><Label className="text-[10px] font-bold">تم الدفع</Label><Switch checked={editLaserSessionForm.paid} onCheckedChange={v => setEditLaserSessionForm(p => ({ ...p, paid: v }))} /></div>
                                         <div><Label className="text-[10px] font-bold">📝 ملاحظات</Label><Textarea value={editLaserSessionForm.notes} onChange={e => setEditLaserSessionForm(p => ({ ...p, notes: e.target.value }))} className="rounded-lg text-xs mt-0.5" rows={2} /></div>
                                         <div className="flex gap-2">
-                                          <Button size="sm" className="rounded-lg bg-violet-600 text-white text-xs" onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, date: editLaserSessionForm.date || undefined }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, date: editLaserSessionForm.date || s.date } : s) } : r)); toast.success('تم تحديث الجلسة ✅'); setEditingLaserSessionId(null) } catch { toast.error('خطأ') } }}>حفظ</Button>
+                                          <Button size="sm" className="rounded-lg bg-violet-600 text-white text-xs" onClick={async () => { try { const updatedPrice = parseFloat(editLaserSessionForm.price) || rec.price; await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, price: updatedPrice, paid: editLaserSessionForm.paid, date: editLaserSessionForm.date || undefined }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, energy: parseFloat(editLaserSessionForm.energy) || undefined, pulse: editLaserSessionForm.pulse || undefined, painLevel: parseInt(editLaserSessionForm.painLevel) || undefined, reaction: editLaserSessionForm.reaction || undefined, notes: editLaserSessionForm.notes || undefined, price: updatedPrice, paid: editLaserSessionForm.paid, date: editLaserSessionForm.date || s.date } : s) } : r)); toast.success('تم تحديث الجلسة ✅'); setEditingLaserSessionId(null) } catch { toast.error('خطأ') } }}>حفظ</Button>
                                           <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setEditingLaserSessionId(null)}>إلغاء</Button>
                                         </div>
                                       </CardContent>
@@ -2030,9 +2067,13 @@ export default function Home() {
                                       <div><Label className="text-xs font-bold">🔴 رد الفعل</Label><Input value={newLaserSessionForm.reaction} onChange={e => setNewLaserSessionForm(p => ({ ...p, reaction: e.target.value }))} placeholder="احمرار، تورم..." className="rounded-xl h-9 text-xs mt-1" /></div>
                                       <div><Label className="text-xs font-bold">📅 التاريخ</Label><Input type="date" value={newLaserSessionForm.date} onChange={e => setNewLaserSessionForm(p => ({ ...p, date: e.target.value }))} className="rounded-xl h-9 text-xs mt-1" /></div>
                                     </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div><Label className="text-xs font-bold">💰 سعر الجلسة (ج.م)</Label><Input type="number" value={newLaserSessionForm.price || String(rec.price)} onChange={e => setNewLaserSessionForm(p => ({ ...p, price: e.target.value }))} className="rounded-xl h-9 text-xs mt-1 font-bold" /></div>
+                                      <div className="flex items-end gap-2 pb-1"><Label className="text-xs font-bold">تم الدفع</Label><Switch checked={newLaserSessionForm.paid} onCheckedChange={v => setNewLaserSessionForm(p => ({ ...p, paid: v }))} /></div>
+                                    </div>
                                     <div><Label className="text-xs font-bold">📝 ملاحظات الجلسة</Label><Textarea value={newLaserSessionForm.notes} onChange={e => setNewLaserSessionForm(p => ({ ...p, notes: e.target.value }))} placeholder="ملاحظات عن الجلسة، استجابة المريض، تعديلات..." className="rounded-xl text-xs mt-1" rows={2} /></div>
                                     <div className="flex gap-2">
-                                      <Button className="rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white flex-1" onClick={async () => { try { const res = await apiFetch<any>('/laser/sessions', { method: 'POST', body: JSON.stringify({ laserRecordId: rec.id, energy: parseFloat(newLaserSessionForm.energy) || undefined, pulse: newLaserSessionForm.pulse || undefined, painLevel: parseInt(newLaserSessionForm.painLevel) || undefined, reaction: newLaserSessionForm.reaction || undefined, notes: newLaserSessionForm.notes || undefined, date: newLaserSessionForm.date || new Date().toISOString() }) }); const newSession = res?.session; if (newSession) { setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: [...(r.laserSessions || []), newSession], _count: { laserSessions: (r._count?.laserSessions || 0) + 1 } } : r)); } toast.success('تم تسجيل الجلسة ✅'); setShowAddLaserSessionForm(false); setNewLaserSessionForm({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '' }) } catch { toast.error('خطأ في تسجيل الجلسة') } }}>تسجيل الجلسة</Button>
+                                      <Button className="rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white flex-1" onClick={async () => { try { const sessionPrice = parseFloat(newLaserSessionForm.price) || rec.price; const res = await apiFetch<any>('/laser/sessions', { method: 'POST', body: JSON.stringify({ laserRecordId: rec.id, energy: parseFloat(newLaserSessionForm.energy) || undefined, pulse: newLaserSessionForm.pulse || undefined, painLevel: parseInt(newLaserSessionForm.painLevel) || undefined, reaction: newLaserSessionForm.reaction || undefined, notes: newLaserSessionForm.notes || undefined, price: sessionPrice, paid: newLaserSessionForm.paid, date: newLaserSessionForm.date || new Date().toISOString() }) }); const newSession = res?.session; if (newSession) { setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: [...(r.laserSessions || []), newSession], _count: { laserSessions: (r._count?.laserSessions || 0) + 1 } } : r)); } toast.success('تم تسجيل الجلسة ✅'); setShowAddLaserSessionForm(false); setNewLaserSessionForm({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '' }) } catch { toast.error('خطأ في تسجيل الجلسة') } }}>تسجيل الجلسة</Button>
                                       <Button variant="outline" className="rounded-xl" onClick={() => setShowAddLaserSessionForm(false)}>إلغاء</Button>
                                     </div>
                                   </CardContent>
@@ -2060,7 +2101,7 @@ export default function Home() {
                               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.02 }}>
                                 <Card className="card-luxury overflow-hidden border-2 border-blue-200 dark:border-blue-800/50">
                                   <div className="bg-gradient-to-l from-blue-500 to-indigo-600 p-3 flex items-center gap-2"><Receipt size={16} className="text-white" /><p className="text-sm text-white font-bold">الإجمالي</p></div>
-                                  <CardContent className="p-3 text-center"><div className="text-2xl font-black text-blue-600">{formatCurrency(rec.totalPrice || (rec.price * rec.totalSessions))}</div></CardContent>
+                                  <CardContent className="p-3 text-center"><div className="text-2xl font-black text-blue-600">{formatCurrency(grandTotal)}</div></CardContent>
                                 </Card>
                               </motion.div>
                             </div>
@@ -2068,19 +2109,42 @@ export default function Home() {
                             <Card className="card-luxury p-4">
                               <p className="text-sm font-bold mb-2 flex items-center gap-2"><BarChart3 size={16} className="text-emerald-500" /> نسبة السداد</p>
                               <div className="flex h-6 rounded-full overflow-hidden bg-muted">
-                                <motion.div initial={{ width: 0 }} animate={{ width: `${Math.round((totalPaid / Math.max(rec.totalPrice || (rec.price * rec.totalSessions), 1)) * 100)}%` }} transition={{ duration: 1 }} className="bg-gradient-to-l from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-[10px] font-bold">{Math.round((totalPaid / Math.max(rec.totalPrice || (rec.price * rec.totalSessions), 1)) * 100)}%</motion.div>
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${Math.round((totalPaid / Math.max(grandTotal, 1)) * 100)}%` }} transition={{ duration: 1 }} className="bg-gradient-to-l from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-[10px] font-bold">{Math.round((totalPaid / Math.max(grandTotal, 1)) * 100)}%</motion.div>
                               </div>
                             </Card>
-                            {/* Payment Details */}
+                            {/* Individual Session Payments */}
                             <Card className="card-luxury overflow-hidden">
-                              <div className="bg-gradient-to-l from-slate-600 to-slate-700 p-3 flex items-center gap-2"><FileText size={16} className="text-white" /><p className="text-sm text-white font-bold">تفاصيل الفاتورة</p></div>
+                              <div className="bg-gradient-to-l from-violet-500 to-purple-600 p-3 flex items-center gap-2"><Zap size={16} className="text-white" /><p className="text-sm text-white font-bold">مدفوعات الجلسات</p></div>
+                              <CardContent className="p-3 space-y-2">
+                                {laserSess.length === 0 && <p className="text-center text-muted-foreground text-sm py-3">لا توجد جلسات مسجلة بعد</p>}
+                                {laserSess.map((ls, idx) => (
+                                  <motion.div key={ls.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} className={cn('flex items-center justify-between p-2.5 rounded-xl border transition-all', ls.paid ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-800/30' : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30')}>
+                                    <div className="flex items-center gap-2.5">
+                                      <div className={cn('p-1.5 rounded-lg text-white text-[10px] font-bold', ls.paid ? 'bg-emerald-500' : 'bg-amber-500')}>{ls.sessionNumber}</div>
+                                      <div>
+                                        <p className="text-xs font-bold">الجلسة رقم {ls.sessionNumber}</p>
+                                        <p className="text-[10px] text-muted-foreground">{formatDate(ls.date)}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={cn('font-bold text-sm', ls.paid ? 'text-emerald-600' : 'text-amber-600')}>{formatCurrency(ls.price || rec.price)}</span>
+                                      {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">✅</Badge> : <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </CardContent>
+                            </Card>
+                            {/* Payment Summary */}
+                            <Card className="card-luxury overflow-hidden">
+                              <div className="bg-gradient-to-l from-slate-600 to-slate-700 p-3 flex items-center gap-2"><FileText size={16} className="text-white" /><p className="text-sm text-white font-bold">ملخص الفاتورة</p></div>
                               <CardContent className="p-3 space-y-2">
                                 <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50 text-sm"><span>سعر الجلسة الواحدة</span><span className="font-bold">{formatCurrency(rec.price)}</span></div>
-                                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50 text-sm"><span>عدد الجلسات</span><span className="font-bold">{rec.totalSessions} جلسة</span></div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50 text-sm"><span>عدد الجلسات الكلي</span><span className="font-bold">{rec.totalSessions} جلسة</span></div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50 text-sm"><span>جلسات تمت</span><span className="font-bold">{laserSess.length} جلسة</span></div>
                                 <Separator />
-                                <div className="flex justify-between items-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-sm"><span className="font-bold">الإجمالي</span><span className="font-bold text-blue-600">{formatCurrency(rec.totalPrice || (rec.price * rec.totalSessions))}</span></div>
-                                <div className="flex justify-between items-center p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-sm"><span>المدفوع</span><span className="font-bold text-emerald-600">{formatCurrency(totalPaid)}</span></div>
-                                <div className="flex justify-between items-center p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm"><span>المتبقي</span><span className="font-bold text-amber-600">{formatCurrency(totalRemaining)}</span></div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-sm"><span className="font-bold">الإجمالي</span><span className="font-bold text-blue-600">{formatCurrency(grandTotal)}</span></div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-sm"><span>المدفوع ({laserSess.filter(s => s.paid).length} جلسة)</span><span className="font-bold text-emerald-600">{formatCurrency(totalPaid)}</span></div>
+                                <div className="flex justify-between items-center p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm"><span>المتبقي ({laserSess.filter(s => !s.paid).length} جلسة)</span><span className="font-bold text-amber-600">{formatCurrency(totalUnpaidFromSessions)}</span></div>
                                 <div className="flex justify-between items-center p-2 rounded-lg text-sm"><span>حالة الدفع</span><Badge className={rec.paid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}>{rec.paid ? '✅ مدفوع بالكامل' : '⏳ يوجد متبقي'}</Badge></div>
                               </CardContent>
                             </Card>
