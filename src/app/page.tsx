@@ -1105,26 +1105,26 @@ export default function Home() {
     } catch { return false }
   }), [sessions, services])
 
-  // Laser financial computed values
-  const laserRevenue = useMemo(() => transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر'))).reduce((s, t) => s + t.amount, 0), [transactions])
+  // Laser financial computed values - based on actual paid laser sessions for accuracy
+  const laserRevenue = useMemo(() => laserRecords.flatMap(r => (r.laserSessions || []).filter(s => s.paid)).reduce((s, sess) => s + (sess.price || 0), 0), [laserRecords])
   const laserRevenueByArea = useMemo(() => {
     const areaMap: Record<string, number> = {}
     laserRecords.forEach(r => {
       const area = r.bodyArea || 'غير محدد'
-      const patientName = patients.find(p => p.id === r.patientId)?.name || ''
-      const areaTxns = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر')) && t.description?.includes(patientName))
-      areaMap[area] = (areaMap[area] || 0) + areaTxns.reduce((s, t) => s + t.amount, 0)
+      const paid = (r.laserSessions || []).filter(s => s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
+      areaMap[area] = (areaMap[area] || 0) + paid
     })
     return Object.entries(areaMap).map(([name, value]) => ({ name, value })).filter(d => d.value > 0)
-  }, [transactions, laserRecords, patients])
+  }, [laserRecords])
   const laserRevenueByPackage = useMemo(() => {
     const pkgMap: Record<string, number> = {}
     laserPackages.forEach(pkg => {
-      const areaTxns = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر')) && t.description?.includes(pkg.bodyArea || pkg.name))
-      pkgMap[pkg.name] = areaTxns.reduce((s, t) => s + t.amount, 0)
+      const matchingRecords = laserRecords.filter(r => r.bodyArea === pkg.bodyArea || r.bodyArea === pkg.name)
+      const paid = matchingRecords.flatMap(r => (r.laserSessions || []).filter(s => s.paid)).reduce((sum, s) => sum + (s.price || 0), 0)
+      if (paid > 0) pkgMap[pkg.name] = paid
     })
     return Object.entries(pkgMap).map(([name, value]) => ({ name, value })).filter(d => d.value > 0)
-  }, [transactions, laserPackages])
+  }, [laserRecords, laserPackages])
 
   // Smart search
   const smartSearchResults = useMemo(() => {
@@ -1588,7 +1588,7 @@ export default function Home() {
 
                 {/* Delete Patient Confirmation */}
                 <AlertDialog open={deletePatientConfirmOpen} onOpenChange={setDeletePatientConfirmOpen}>
-                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف المريض</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف {selectedPatient?.name}؟ سيتم حذف جميع البيانات المرتبطة.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (!selectedPatient) return; try { const pVisits = visits.filter(v => v.patientId === selectedPatient.id); const pSessions = sessions.filter(s => s.patientId === selectedPatient.id); for (const v of pVisits) { await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); } for (const s of pSessions) { await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); } const relatedTx = transactions.filter(t => t.description?.includes(selectedPatient.name)); for (const tx of relatedTx) { await apiFetch(`/finance/transactions/${tx.id}`, { method: 'DELETE' }); } const relatedNotes = notes.filter(n => n.patientId === selectedPatient.id); for (const n of relatedNotes) { await apiFetch(`/notes/${n.id}`, { method: 'DELETE' }); } await apiFetch(`/patients/${selectedPatient.id}`, { method: 'DELETE' }); setPatients(prev => prev.filter(p => p.id !== selectedPatient.id)); setVisits(prev => prev.filter(v => v.patientId !== selectedPatient.id)); setSessions(prev => prev.filter(s => s.patientId !== selectedPatient.id)); setTransactions(prev => prev.filter(t => !t.description?.includes(selectedPatient.name))); setNotes(prev => prev.filter(n => n.patientId !== selectedPatient.id)); setSelectedPatient(null); setDeletePatientConfirmOpen(false); toast.success('تم حذف المريض وكل البيانات المرتبطة') } catch { toast.error('خطأ في الحذف') } }}>حذف نهائي</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف المريض</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف {selectedPatient?.name}؟ سيتم حذف جميع البيانات المرتبطة بما فيها سجلات وجلسات الليزر.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (!selectedPatient) return; try { const pVisits = visits.filter(v => v.patientId === selectedPatient.id); const pSessions = sessions.filter(s => s.patientId === selectedPatient.id); for (const v of pVisits) { await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); } for (const s of pSessions) { await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); } const relatedTx = transactions.filter(t => t.description?.includes(selectedPatient.name)); for (const tx of relatedTx) { await apiFetch(`/finance/transactions/${tx.id}`, { method: 'DELETE' }); } const relatedNotes = notes.filter(n => n.patientId === selectedPatient.id); for (const n of relatedNotes) { await apiFetch(`/notes/${n.id}`, { method: 'DELETE' }); } await apiFetch(`/patients/${selectedPatient.id}`, { method: 'DELETE' }); setPatients(prev => prev.filter(p => p.id !== selectedPatient.id)); setVisits(prev => prev.filter(v => v.patientId !== selectedPatient.id)); setSessions(prev => prev.filter(s => s.patientId !== selectedPatient.id)); setTransactions(prev => prev.filter(t => !t.description?.includes(selectedPatient.name))); setNotes(prev => prev.filter(n => n.patientId !== selectedPatient.id)); setLaserRecords(prev => prev.filter(r => r.patientId !== selectedPatient.id)); setSelectedPatient(null); setDeletePatientConfirmOpen(false); toast.success('تم حذف المريض وكل البيانات المرتبطة ✅') } catch { toast.error('خطأ في الحذف') } }}>حذف نهائي</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                 </AlertDialog>
 
                 {/* ═══ PATIENT DETAIL TABS ═══ */}
@@ -1755,7 +1755,7 @@ export default function Home() {
                       </>)
                     })()}
                     <h4 className="font-bold text-xs flex items-center gap-2 mt-2"><FileText size={13} className="text-slate-500" /> سجل المعاملات</h4>
-                    <div className="space-y-1.5">{transactions.filter(t => t.description?.includes(selectedPatient.name)).slice(0, 20).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50"><div className="flex items-center gap-2"><div className={cn('p-1 rounded', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={10} /></div><div><p className="text-[10px] font-medium">{t.description || t.category}</p><div className="flex items-center gap-1.5"><Badge className={cn('text-[7px] px-1', t.category === 'ليزر' ? 'bg-cyan-100 text-cyan-700' : t.category === 'كشف' ? 'bg-violet-100 text-violet-700' : t.category === 'إعادة' ? 'bg-blue-100 text-blue-700' : t.category === 'جلسات' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700')}>{t.category}</Badge><span className="text-[8px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><span className={cn('text-xs font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></div>)}</div>
+                    <div className="space-y-1.5">{transactions.filter(t => t.description?.includes(selectedPatient.name)).slice(0, 20).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50"><div className="flex items-center gap-2"><div className={cn('p-1 rounded', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={10} /></div><div><p className="text-[10px] font-medium">{t.description || t.category}</p><div className="flex items-center gap-1.5"><Badge className={cn('text-[7px] px-1', t.category === 'ليزر' ? 'bg-cyan-100 text-cyan-700' : t.category === 'كشف' ? 'bg-violet-100 text-violet-700' : t.category === 'إعادة' ? 'bg-blue-100 text-blue-700' : t.category === 'جلسات' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700')}>{t.category}</Badge><span className="text-[8px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><div className="flex items-center gap-1"><span className={cn('text-xs font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span><Button variant="ghost" size="icon" className="h-5 w-5" onClick={async () => { try { await apiFetch(`/finance/transactions/${t.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(tx => tx.id !== t.id)); toast.success('تم حذف المعاملة المالية') } catch { toast.error('خطأ في الحذف') } }}><Trash2 size={9} className="text-red-400" /></Button></div></div>)}</div>
                   </TabsContent>
 
                   {/* ═══ NOTES ═══ */}
@@ -1789,7 +1789,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">سجلات نشطة</p><p className="text-xl font-bold">{laserRecords.filter(r => r.status === 'active').length}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.date?.startsWith(todayStr)).length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد الليزر</p><p className="text-xl font-bold">{formatCurrency(transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر'))).reduce((s, t) => s + t.amount, 0))}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد الليزر</p><p className="text-xl font-bold">{formatCurrency(laserRevenue)}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><Package className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">باقات نشطة</p><p className="text-xl font-bold">{laserPackages.filter(p => p.active).length}</p></div></div></motion.div>
                 </div>
 
@@ -2164,9 +2164,10 @@ export default function Home() {
                                         <p className="text-[10px] text-muted-foreground">{formatDate(ls.date)}</p>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5">
                                       <span className={cn('font-bold text-sm', ls.paid ? 'text-emerald-600' : 'text-amber-600')}>{formatCurrency(ls.price || rec.price)}</span>
                                       {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">✅</Badge> : <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); setTransactions(prev => [...prev, { id: 'temp-' + Date.now(), type: 'income', category: 'ليزر', amount: ls.price || rec.price, description: `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`, date: new Date().toISOString() }]); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={10} className="text-red-500" /></Button>
                                     </div>
                                   </motion.div>
                                 ))}
@@ -2341,17 +2342,25 @@ export default function Home() {
 
                 {/* Laser Financial Summary - Full System */}
                 {laserSubTab === 'finance' && (<div className="space-y-4 mt-4">
-                    {/* Laser Revenue from Transactions */}
-                    {(() => { const laserTx = transactions.filter(t => t.type === 'income' && (t.category === 'ليزر' || t.description?.includes('ليزر') || t.description?.includes('Laser'))); const laserTotal = laserTx.reduce((s, t) => s + t.amount, 0); const laserUnpaid = laserHairSessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0); const laserCompleted = laserHairSessions.filter(s => s.status === 'completed').length; return (<>
+                    {/* Laser Revenue from actual paid sessions */}
+                    {(() => {
+                      const allLaserSessions = laserRecords.flatMap(r => (r.laserSessions || []));
+                      const paidSessions = allLaserSessions.filter(s => s.paid);
+                      const unpaidSessions = allLaserSessions.filter(s => !s.paid);
+                      const totalLaserPaid = paidSessions.reduce((s, sess) => s + (sess.price || 0), 0);
+                      const totalLaserUnpaid = unpaidSessions.reduce((s, sess) => s + (sess.price || 0), 0);
+                      const totalLaserGrand = laserRecords.reduce((s, r) => s + (r.totalPrice || r.price * r.totalSessions), 0);
+                      const totalRemaining = Math.max(totalLaserGrand - totalLaserPaid, 0);
+                      return (<>
                     <div className="grid grid-cols-2 gap-3">
-                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الليزر الفعلية</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserTotal)}</p></div></div></Card>
-                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">غير المدفوع ليزر</p><p className="text-lg font-bold text-amber-600">{formatCurrency(laserUnpaid)}</p></div></div></Card>
-                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><ClipboardCheck className="text-blue-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات مكتملة</p><p className="text-lg font-bold text-blue-600">{laserCompleted}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">إجمالي إيرادات الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(totalLaserPaid)}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Receipt className="text-amber-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">غير المدفوع ليزر</p><p className="text-lg font-bold text-amber-600">{formatCurrency(totalLaserUnpaid)}</p></div></div></Card>
+                      <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30"><ClipboardCheck className="text-blue-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">جلسات مدفوعة</p><p className="text-lg font-bold text-blue-600">{paidSessions.length} / {allLaserSessions.length}</p></div></div></Card>
                       <Card className="section-card p-4"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/30"><UsersRound className="text-violet-600" size={20} /></div><div><p className="text-[10px] text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-violet-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div></div></Card>
                     </div>
                     {/* Laser Revenue by Area */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><MapPin size={16} className="text-cyan-500" /> الإيرادات حسب المنطقة</CardTitle></CardHeader><CardContent>
-                      <div className="space-y-2">{BODY_AREAS.map(area => { const areaRecords = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label); if (areaRecords.length === 0) return null; const areaPatients = areaRecords.map(r => r.patientId); const areaTx = laserTx.filter(t => areaPatients.some(pid => t.description?.includes(patients.find(p => p.id === pid)?.name || '___'))); const areaTotal = areaTx.reduce((s, t) => s + t.amount, 0); return <div key={area.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><MapPin size={14} className="text-cyan-500" /><span className="text-sm font-medium">{area.label}</span><Badge variant="outline" className="text-[9px]">{areaRecords.length} سجل</Badge></div><span className="font-bold text-sm text-emerald-600">{formatCurrency(areaTotal)}</span></div> })}
+                      <div className="space-y-2">{BODY_AREAS.map(area => { const areaRecords = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label); if (areaRecords.length === 0) return null; const areaPaid = areaRecords.flatMap(r => (r.laserSessions || []).filter(s => s.paid)).reduce((sum, s) => sum + (s.price || 0), 0); const areaSessCount = areaRecords.flatMap(r => (r.laserSessions || [])).length; return <div key={area.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50"><div className="flex items-center gap-2"><MapPin size={14} className="text-cyan-500" /><span className="text-sm font-medium">{area.label}</span><Badge variant="outline" className="text-[9px]">{areaRecords.length} سجل | {areaSessCount} جلسة</Badge></div><span className="font-bold text-sm text-emerald-600">{formatCurrency(areaPaid)}</span></div> })}
                       </div>
                     </CardContent></Card>
                     {/* Laser Service Pricing */}
@@ -2857,16 +2866,6 @@ export default function Home() {
                   {/* Delete Visit Confirm */}
                   <AlertDialog open={!!deleteVisitConfirmId} onOpenChange={() => setDeleteVisitConfirmId(null)}>
                     <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف الزيارة</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذه الزيارة والمعاملة المالية المرتبطة بها؟</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (deleteVisitConfirmId) { const v = visits.find(vv => vv.id === deleteVisitConfirmId); const p = v ? patients.find(pt => pt.id === v.patientId) : null; if (v && p) await deleteVisitWithFinance(v, p.name); else if (v) { await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); setVisits(prev => prev.filter(vv => vv.id !== deleteVisitConfirmId)); toast.success('تم حذف الزيارة') } setDeleteVisitConfirmId(null) } }}>حذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                  </AlertDialog>
-
-                  {/* Delete Laser Record Confirm */}
-                  <AlertDialog open={!!deleteLaserRecordConfirmId} onOpenChange={() => setDeleteLaserRecordConfirmId(null)}>
-                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف سجل الليزر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف سجل الليزر هذا؟ سيتم حذف جميع الجلسات والمعاملات المالية المرتبطة به.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (deleteLaserRecordConfirmId) { try { const r = laserRecords.find(rec => rec.id === deleteLaserRecordConfirmId); await apiFetch(`/laser/records/${deleteLaserRecordConfirmId}`, { method: 'DELETE' }); if (r) { const rP = r.patient || patients.find(pt => pt.id === r.patientId); const rSess2 = r.laserSessions || []; const rTxIds = new Set<string>(); if (rP) { rSess2.filter(s => s.paid).forEach(s => { const t = transactions.find(tx => tx.description?.includes(`جلسة ليزر #${s.sessionNumber}`) && tx.description?.includes(rP!.name) && tx.category === 'ليزر'); if (t) rTxIds.add(t.id); }); } setTransactions(prev => prev.filter(t => !rTxIds.has(t.id))); } setLaserRecords(prev => prev.filter(rec => rec.id !== deleteLaserRecordConfirmId)); if (selectedLaserRecordId === deleteLaserRecordConfirmId) setSelectedLaserRecordId(null); toast.success('تم حذف السجل والمعاملات المالية المرتبطة') } catch { toast.error('خطأ في الحذف') } setDeleteLaserRecordConfirmId(null) } }}>حذف نهائي</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                  </AlertDialog>
-
-                  {/* Delete Laser Session Confirm */}
-                  <AlertDialog open={!!deleteLaserSessionConfirmId} onOpenChange={() => setDeleteLaserSessionConfirmId(null)}>
-                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف جلسة الليزر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذه الجلسة؟ سيتم حذف المعاملة المالية المرتبطة بها إذا كانت مدفوعة.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (deleteLaserSessionConfirmId) { try { const ls = laserRecords.flatMap(r => r.laserSessions || []).find(s => s.id === deleteLaserSessionConfirmId); await apiFetch(`/laser/sessions/${deleteLaserSessionConfirmId}`, { method: 'DELETE' }); if (ls) { const parentRec = laserRecords.find(r => (r.laserSessions || []).some(s => s.id === deleteLaserSessionConfirmId)); const pName = parentRec?.patient?.name || patients.find(pt => pt.id === parentRec?.patientId)?.name; const relatedTx = transactions.find(t => t.description?.includes(`جلسة ليزر #${ls.sessionNumber}`) && t.description?.includes(pName || '') && t.category === 'ليزر'); if (relatedTx) setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); setLaserRecords(prev => prev.map(r => (r.laserSessions || []).some(s => s.id === deleteLaserSessionConfirmId) ? { ...r, laserSessions: (r.laserSessions || []).filter(s => s.id !== deleteLaserSessionConfirmId), _count: { laserSessions: Math.max((r._count?.laserSessions || 1) - 1, 0) } } : r)); } toast.success('تم حذف الجلسة والمعاملة المالية المرتبطة') } catch { toast.error('خطأ في الحذف') } setDeleteLaserSessionConfirmId(null) } }}>حذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                   </AlertDialog>
                 </div>)}
 
@@ -4118,6 +4117,55 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* ─── Global Confirmation Dialogs (work across all tabs) ─── */}
+      {/* Delete Laser Record */}
+      <AlertDialog open={!!deleteLaserRecordConfirmId} onOpenChange={() => setDeleteLaserRecordConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف سجل الليزر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف سجل الليزر هذا؟ سيتم حذف جميع الجلسات والمعاملات المالية المرتبطة به نهائياً.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => {
+            if (!deleteLaserRecordConfirmId) return
+            try {
+              const r = laserRecords.find(rec => rec.id === deleteLaserRecordConfirmId)
+              await apiFetch(`/laser/records/${deleteLaserRecordConfirmId}`, { method: 'DELETE' })
+              if (r) {
+                const rP = r.patient || patients.find(pt => pt.id === r.patientId)
+                const rSess2 = r.laserSessions || []
+                const rTxIds = new Set<string>()
+                if (rP) { rSess2.filter(s => s.paid).forEach(s => { const t = transactions.find(tx => tx.description?.includes(`جلسة ليزر #${s.sessionNumber}`) && tx.description?.includes(rP!.name) && tx.category === 'ليزر'); if (t) rTxIds.add(t.id) }) }
+                setTransactions(prev => prev.filter(t => !rTxIds.has(t.id)))
+              }
+              setLaserRecords(prev => prev.filter(rec => rec.id !== deleteLaserRecordConfirmId))
+              if (selectedLaserRecordId === deleteLaserRecordConfirmId) setSelectedLaserRecordId(null)
+              toast.success('تم حذف السجل والمعاملات المالية المرتبطة ✅')
+            } catch { toast.error('خطأ في الحذف') }
+            setDeleteLaserRecordConfirmId(null)
+          }}>حذف نهائي</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Laser Session */}
+      <AlertDialog open={!!deleteLaserSessionConfirmId} onOpenChange={() => setDeleteLaserSessionConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف جلسة الليزر</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف هذه الجلسة؟ سيتم حذف المعاملة المالية المرتبطة بها إذا كانت مدفوعة.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => {
+            if (!deleteLaserSessionConfirmId) return
+            try {
+              const ls = laserRecords.flatMap(r => r.laserSessions || []).find(s => s.id === deleteLaserSessionConfirmId)
+              await apiFetch(`/laser/sessions/${deleteLaserSessionConfirmId}`, { method: 'DELETE' })
+              if (ls) {
+                const parentRec = laserRecords.find(r => (r.laserSessions || []).some(s => s.id === deleteLaserSessionConfirmId))
+                const pName = parentRec?.patient?.name || patients.find(pt => pt.id === parentRec?.patientId)?.name
+                const relatedTx = transactions.find(t => t.description?.includes(`جلسة ليزر #${ls.sessionNumber}`) && t.description?.includes(pName || '') && t.category === 'ليزر')
+                if (relatedTx) setTransactions(prev => prev.filter(t => t.id !== relatedTx.id))
+                setLaserRecords(prev => prev.map(r => (r.laserSessions || []).some(s => s.id === deleteLaserSessionConfirmId) ? { ...r, laserSessions: (r.laserSessions || []).filter(s => s.id !== deleteLaserSessionConfirmId), _count: { laserSessions: Math.max((r._count?.laserSessions || 1) - 1, 0) } } : r))
+              }
+              toast.success('تم حذف الجلسة والمعاملة المالية المرتبطة ✅')
+            } catch { toast.error('خطأ في الحذف') }
+            setDeleteLaserSessionConfirmId(null)
+          }}>حذف</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ─── Bottom Navigation ──────────────────────────────────────────── */}
       <nav className="bottom-nav"><div className="flex items-center justify-around max-w-lg mx-auto">
