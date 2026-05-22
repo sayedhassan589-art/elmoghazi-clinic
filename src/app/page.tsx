@@ -1285,6 +1285,9 @@ export default function Home() {
     return cats
   }, [services])
 
+  // Selected follow-up record (component-level so dialogs can access it)
+  const selectedFU = useMemo(() => followUpRecords.find(f => f.id === selectedFollowUpId), [followUpRecords, selectedFollowUpId])
+
   // ─── Quick Notes helper - Professional Animated ────────────────────
   const renderQuickNotes = (section: string) => {
     const sectionNotesList = notes.filter(n => n.section === section)
@@ -2595,7 +2598,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                   {[
-                    { id: 'followup', label: 'المتابعات', emoji: '🔄', gradient: 'from-[#A0522D] to-[#CD853F]' },
+                    { id: 'followup', label: 'المتابعات', emoji: '🔄', gradient: 'from-[#0891B2] to-[#06B6D4]' },
                     { id: 'services', label: 'الخدمات', emoji: '⚙️', gradient: 'from-teal-500 to-teal-700' },
                     { id: 'sessions', label: 'الجلسات', emoji: '⚡', gradient: 'from-violet-500 to-purple-600' },
                     { id: 'visits', label: 'الزيارات', emoji: '🩺', gradient: 'from-violet-500 to-violet-700' },
@@ -2619,7 +2622,7 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* ═══ Follow-up (المتابعات) Sub-tab - SIENNA THEME ═══ */}
+                {/* ═══ Follow-up (المتابعات) Sub-tab - LIGHT CYAN/TEAL THEME ═══ */}
                 {moreSubTab === 'followup' && (() => {
                   const filteredFU = followUpRecords.filter(fu => {
                     if (followUpFilter !== 'all' && fu.status !== followUpFilter) return false
@@ -2632,7 +2635,7 @@ export default function Home() {
                     }
                     return true
                   })
-                  const selectedFU = followUpRecords.find(f => f.id === selectedFollowUpId)
+                  // selectedFU is now defined at component level
                   const activeCount = followUpRecords.filter(f => f.status === 'active').length
                   const subCount = followUpRecords.filter(f => f.hasSubscription).length
                   const dueSoon = followUpRecords.filter(f => {
@@ -2662,8 +2665,8 @@ export default function Home() {
                   }
                   return (
                   <div className="space-y-4">
-                    {/* Hero Header - Sienna Theme */}
-                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#A0522D] via-[#CD853F] to-[#DEB887] p-5 shadow-xl">
+                    {/* Hero Header - Light Cyan Theme */}
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0891B2] via-[#06B6D4] to-[#67E8F9] p-5 shadow-xl">
                       <div className="absolute inset-0 opacity-15">
                         <motion.div animate={{ x: [0, 80, 0], y: [0, -40, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-36 h-36 bg-white/30 rounded-full blur-3xl" />
                         <motion.div animate={{ x: [0, -60, 0], y: [0, 50, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-28 h-28 bg-white/20 rounded-full blur-3xl" />
@@ -2688,10 +2691,10 @@ export default function Home() {
 
                     {/* Search & Filters */}
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="relative flex-1"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0522D]/40" size={16} /><Input placeholder="بحث بالاسم أو الحالة أو التشخيص..." value={followUpSearch} onChange={e => setFollowUpSearch(e.target.value)} className="pr-10 input-luxury rounded-xl h-11 border-[#CD853F]/30 focus:border-[#A0522D]" /></div>
+                      <div className="relative flex-1"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0891B2]/40" size={16} /><Input placeholder="بحث بالاسم أو الحالة أو التشخيص..." value={followUpSearch} onChange={e => setFollowUpSearch(e.target.value)} className="pr-10 input-luxury rounded-xl h-11 border-[#06B6D4]/30 focus:border-[#0891B2]" /></div>
                       <div className="flex gap-1.5 flex-wrap">
                         {(['all', 'active', 'paused', 'completed', 'discharged'] as const).map(f => (
-                          <Button key={f} size="sm" variant={followUpFilter === f ? 'default' : 'outline'} className={cn('rounded-lg text-xs h-9', followUpFilter === f ? 'bg-[#A0522D] text-white' : 'border-[#CD853F]/30 text-[#A0522D]')} onClick={() => setFollowUpFilter(f)}>
+                          <Button key={f} size="sm" variant={followUpFilter === f ? 'default' : 'outline'} className={cn('rounded-lg text-xs h-9', followUpFilter === f ? 'bg-[#0891B2] text-white' : 'border-[#06B6D4]/30 text-[#0891B2]')} onClick={() => setFollowUpFilter(f)}>
                             {f === 'all' ? 'الكل' : f === 'active' ? 'نشط' : f === 'paused' ? 'متوقف' : f === 'completed' ? 'مكتمل' : 'خرج'}
                           </Button>
                         ))}
@@ -2701,14 +2704,14 @@ export default function Home() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       {/* Follow-up Records List */}
                       <div className="lg:col-span-1 space-y-2 max-h-[65vh] overflow-y-auto">
-                        {filteredFU.length === 0 && <Card className="card-luxury p-8 text-center border-[#CD853F]/20"><p className="text-4xl mb-2">🔄</p><p className="text-muted-foreground">لا توجد متابعات</p></Card>}
+                        {filteredFU.length === 0 && <Card className="card-luxury p-8 text-center border-[#06B6D4]/20"><p className="text-4xl mb-2">🔄</p><p className="text-muted-foreground">لا توجد متابعات</p></Card>}
                         {filteredFU.map(fu => {
                           const sev = SEVERITY_MAP[fu.severity] || SEVERITY_MAP.moderate
                           const stat = STATUS_MAP[fu.status] || STATUS_MAP.active
                           const isDue = fu.nextVisitDate && new Date(fu.nextVisitDate) <= new Date() && fu.status === 'active'
                           const isSelected = selectedFollowUpId === fu.id
                           return (
-                            <motion.div key={fu.id} whileTap={{ scale: 0.98 }} onClick={() => { setSelectedFollowUpId(isSelected ? null : fu.id); setFollowUpDetailTab('overview') }} className={cn('cursor-pointer rounded-xl p-3 border-2 transition-all', isSelected ? 'border-[#A0522D] bg-[#A0522D]/5 shadow-lg' : 'border-transparent bg-card hover:border-[#CD853F]/30 hover:shadow-md')}>
+                            <motion.div key={fu.id} whileTap={{ scale: 0.98 }} onClick={() => { setSelectedFollowUpId(isSelected ? null : fu.id); setFollowUpDetailTab('overview') }} className={cn('cursor-pointer rounded-xl p-3 border-2 transition-all', isSelected ? 'border-[#0891B2] bg-[#0891B2]/5 shadow-lg' : 'border-transparent bg-card hover:border-[#06B6D4]/30 hover:shadow-md')}>
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                   <div className={cn('p-1.5 rounded-lg', sev.bg)}><span className="text-xs">{fu.conditionCategory === 'جلدية' ? '🩺' : fu.conditionCategory === 'داخلية' ? '💊' : '📋'}</span></div>
@@ -2720,7 +2723,7 @@ export default function Home() {
                                 <div className="flex flex-col items-end gap-1">
                                   <Badge className={cn('text-[8px]', stat.bg, stat.color)}>{stat.label}</Badge>
                                   {isDue && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[8px]">⏰ موعد اليوم</Badge>}
-                                  {fu.hasSubscription && <Badge className="bg-[#CD853F]/20 text-[#A0522D] text-[8px]">💎 باقة</Badge>}
+                                  {fu.hasSubscription && <Badge className="bg-[#06B6D4]/20 text-[#0891B2] text-[8px]">💎 باقة</Badge>}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
@@ -2731,8 +2734,8 @@ export default function Home() {
                               </div>
                               {fu.hasSubscription && (
                                 <div className="mt-2 flex items-center gap-1.5">
-                                  <div className="flex-1 h-1.5 rounded-full bg-[#DEB887]/30 dark:bg-[#A0522D]/20"><div className="h-full rounded-full bg-gradient-to-l from-[#A0522D] to-[#CD853F]" style={{ width: `${fu.sessionsIncluded > 0 ? (fu.sessionsUsed / fu.sessionsIncluded) * 100 : 0}%` }} /></div>
-                                  <span className="text-[9px] font-bold text-[#A0522D]">{fu.sessionsUsed}/{fu.sessionsIncluded}</span>
+                                  <div className="flex-1 h-1.5 rounded-full bg-[#67E8F9]/30 dark:bg-[#0891B2]/20"><div className="h-full rounded-full bg-gradient-to-l from-[#0891B2] to-[#06B6D4]" style={{ width: `${fu.sessionsIncluded > 0 ? (fu.sessionsUsed / fu.sessionsIncluded) * 100 : 0}%` }} /></div>
+                                  <span className="text-[9px] font-bold text-[#0891B2]">{fu.sessionsUsed}/{fu.sessionsIncluded}</span>
                                 </div>
                               )}
                             </motion.div>
@@ -2748,9 +2751,9 @@ export default function Home() {
                           const stat = STATUS_MAP[fu.status] || STATUS_MAP.active
                           const pat = fu.patient
                           return (
-                            <Card className="card-luxury border-[#CD853F]/20 overflow-hidden">
+                            <Card className="card-luxury border-[#06B6D4]/20 overflow-hidden">
                               {/* Detail Header */}
-                              <div className="bg-gradient-to-l from-[#A0522D] to-[#CD853F] p-4">
+                              <div className="bg-gradient-to-l from-[#0891B2] to-[#06B6D4] p-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">🔄</div>
@@ -2779,21 +2782,21 @@ export default function Home() {
                                 {followUpDetailTab === 'overview' && (
                                   <div className="space-y-3">
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                      <div className="p-3 rounded-xl bg-[#DEB887]/10 dark:bg-[#A0522D]/10 border border-[#CD853F]/20"><p className="text-[10px] text-muted-foreground">الشدة</p><p className={cn('font-bold text-sm', sev.color)}>{sev.label}</p></div>
-                                      <div className="p-3 rounded-xl bg-[#DEB887]/10 dark:bg-[#A0522D]/10 border border-[#CD853F]/20"><p className="text-[10px] text-muted-foreground">التكرار</p><p className="font-bold text-sm">{FREQ_MAP[fu.frequency] || fu.frequency}</p></div>
-                                      <div className="p-3 rounded-xl bg-[#DEB887]/10 dark:bg-[#A0522D]/10 border border-[#CD853F]/20"><p className="text-[10px] text-muted-foreground">آخر زيارة</p><p className="font-bold text-sm">{fu.lastVisitDate ? formatDate(fu.lastVisitDate) : 'لا توجد'}</p></div>
-                                      <div className="p-3 rounded-xl bg-[#DEB887]/10 dark:bg-[#A0522D]/10 border border-[#CD853F]/20"><p className="text-[10px] text-muted-foreground">الزيارة القادمة</p><p className={cn('font-bold text-sm', fu.nextVisitDate && new Date(fu.nextVisitDate) <= new Date() ? 'text-red-600' : 'text-emerald-600')}>{fu.nextVisitDate ? formatDate(fu.nextVisitDate) : 'غير محدد'}</p></div>
+                                      <div className="p-3 rounded-xl bg-[#67E8F9]/10 dark:bg-[#0891B2]/10 border border-[#06B6D4]/20"><p className="text-[10px] text-muted-foreground">الشدة</p><p className={cn('font-bold text-sm', sev.color)}>{sev.label}</p></div>
+                                      <div className="p-3 rounded-xl bg-[#67E8F9]/10 dark:bg-[#0891B2]/10 border border-[#06B6D4]/20"><p className="text-[10px] text-muted-foreground">التكرار</p><p className="font-bold text-sm">{FREQ_MAP[fu.frequency] || fu.frequency}</p></div>
+                                      <div className="p-3 rounded-xl bg-[#67E8F9]/10 dark:bg-[#0891B2]/10 border border-[#06B6D4]/20"><p className="text-[10px] text-muted-foreground">آخر زيارة</p><p className="font-bold text-sm">{fu.lastVisitDate ? formatDate(fu.lastVisitDate) : 'لا توجد'}</p></div>
+                                      <div className="p-3 rounded-xl bg-[#67E8F9]/10 dark:bg-[#0891B2]/10 border border-[#06B6D4]/20"><p className="text-[10px] text-muted-foreground">الزيارة القادمة</p><p className={cn('font-bold text-sm', fu.nextVisitDate && new Date(fu.nextVisitDate) <= new Date() ? 'text-red-600' : 'text-emerald-600')}>{fu.nextVisitDate ? formatDate(fu.nextVisitDate) : 'غير محدد'}</p></div>
                                     </div>
                                     {fu.diagnosis && <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800"><p className="text-[10px] text-blue-600 font-bold">التشخيص</p><p className="text-sm mt-1">{fu.diagnosis}</p></div>}
                                     {fu.treatmentPlan && <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800"><p className="text-[10px] text-violet-600 font-bold">خطة العلاج</p><p className="text-sm mt-1">{fu.treatmentPlan}</p></div>}
                                     {fu.medications && <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800"><p className="text-[10px] text-emerald-600 font-bold">الأدوية</p><p className="text-sm mt-1">{fu.medications}</p></div>}
                                     {fu.notes && <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800"><p className="text-[10px] text-amber-600 font-bold">ملاحظات</p><p className="text-sm mt-1">{fu.notes}</p></div>}
                                     {/* Patient Info */}
-                                    {pat && <div className="p-3 rounded-xl bg-muted/50 border"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">👤</span><div><p className="font-bold text-sm">{pat.name}</p><div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{pat.fileNumber}</span>{pat.phone && <><span>•</span><a href={`https://wa.me/${waPhone(pat.phone)}`} target="_blank" className="text-emerald-600 hover:underline">{pat.phone}</a></>}</div></div></div><Button size="sm" variant="outline" className="rounded-lg text-[#A0522D] border-[#CD853F]/30" onClick={() => { setSelectedPatient(pat); setActiveTab('patients') }}>📋 ملف المريض</Button></div></div>}
+                                    {pat && <div className="p-3 rounded-xl bg-muted/50 border"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-lg">👤</span><div><p className="font-bold text-sm">{pat.name}</p><div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{pat.fileNumber}</span>{pat.phone && <><span>•</span><a href={`https://wa.me/${waPhone(pat.phone)}`} target="_blank" className="text-emerald-600 hover:underline">{pat.phone}</a></>}</div></div></div><Button size="sm" variant="outline" className="rounded-lg text-[#0891B2] border-[#06B6D4]/30" onClick={() => { setSelectedPatient(pat); setActiveTab('patients') }}>📋 ملف المريض</Button></div></div>}
                                     {/* Quick Actions */}
                                     <div className="flex gap-2">
-                                      <Button className="flex-1 rounded-xl bg-gradient-to-l from-[#A0522D] to-[#CD853F] text-white" onClick={() => setShowAddFollowUpVisit(true)}><Plus size={14} className="ml-1" /> زيارة متابعة</Button>
-                                      <Button variant="outline" className="rounded-xl border-[#CD853F]/30 text-[#A0522D]" onClick={async () => { try { await apiFetch(`/follow-up/records/${fu.id}`, { method: 'PUT', body: JSON.stringify({ status: fu.status === 'active' ? 'paused' : 'active' }) }); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, status: fu.status === 'active' ? 'paused' : 'active' } : f)); toast.success(fu.status === 'active' ? 'تم إيقاف المتابعة' : 'تم تنشيط المتابعة') } catch { toast.error('خطأ') } }}>{fu.status === 'active' ? '⏸ إيقاف' : '▶️ تنشيط'}</Button>
+                                      <Button className="flex-1 rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white" onClick={() => setShowAddFollowUpVisit(true)}><Plus size={14} className="ml-1" /> زيارة متابعة</Button>
+                                      <Button variant="outline" className="rounded-xl border-[#06B6D4]/30 text-[#0891B2]" onClick={async () => { try { await apiFetch(`/follow-up/records/${fu.id}`, { method: 'PUT', body: JSON.stringify({ status: fu.status === 'active' ? 'paused' : 'active' }) }); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, status: fu.status === 'active' ? 'paused' : 'active' } : f)); toast.success(fu.status === 'active' ? 'تم إيقاف المتابعة' : 'تم تنشيط المتابعة') } catch { toast.error('خطأ') } }}>{fu.status === 'active' ? '⏸ إيقاف' : '▶️ تنشيط'}</Button>
                                     </div>
                                   </div>
                                 )}
@@ -2801,10 +2804,10 @@ export default function Home() {
                                 {/* Visits Tab */}
                                 {followUpDetailTab === 'visits' && (
                                   <div className="space-y-3">
-                                    <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-1"><Calendar size={14} className="text-[#A0522D]" /> سجل الزيارات ({fu.followUpVisits?.length || 0})</h3><Button size="sm" className="rounded-lg bg-[#A0522D] text-white text-xs" onClick={() => setShowAddFollowUpVisit(true)}><Plus size={12} className="ml-1" /> زيارة جديدة</Button></div>
+                                    <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-1"><Calendar size={14} className="text-[#0891B2]" /> سجل الزيارات ({fu.followUpVisits?.length || 0})</h3><Button size="sm" className="rounded-lg bg-[#0891B2] text-white text-xs" onClick={() => setShowAddFollowUpVisit(true)}><Plus size={12} className="ml-1" /> زيارة جديدة</Button></div>
                                     {(fu.followUpVisits || []).length === 0 && <div className="text-center py-8"><p className="text-3xl mb-2">📋</p><p className="text-muted-foreground text-sm">لا توجد زيارات بعد</p></div>}
                                     {(fu.followUpVisits || []).map(v => (
-                                      <Card key={v.id} className="border border-[#CD853F]/20 p-3">
+                                      <Card key={v.id} className="border border-[#06B6D4]/20 p-3">
                                         <div className="flex items-center justify-between">
                                           <div className="flex items-center gap-2">
                                             <div className={cn('p-2 rounded-lg', v.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' : v.status === 'no_show' ? 'bg-red-100 dark:bg-red-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>
@@ -2817,7 +2820,7 @@ export default function Home() {
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <Badge className={cn('text-[8px]', v.paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>{v.paid ? 'مدفوعة' : 'غير مدفوعة'}</Badge>
-                                            {v.price > 0 && <span className="text-xs font-bold text-[#A0522D]">{formatCurrency(v.price)}</span>}
+                                            {v.price > 0 && <span className="text-xs font-bold text-[#0891B2]">{formatCurrency(v.price)}</span>}
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { await apiFetch(`/follow-up/visits/${v.id}`, { method: 'DELETE' }); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, followUpVisits: (f.followUpVisits || []).filter(fv => fv.id !== v.id), sessionsUsed: Math.max(0, f.sessionsUsed - 1) } : f)); toast.success('تم حذف الزيارة') } catch { toast.error('خطأ') } }}><Trash2 size={10} className="text-red-500" /></Button>
                                           </div>
                                         </div>
@@ -2839,22 +2842,22 @@ export default function Home() {
                                   <div className="space-y-3">
                                     {fu.hasSubscription ? (
                                       <>
-                                        <div className="p-4 rounded-xl bg-gradient-to-br from-[#A0522D]/10 to-[#CD853F]/10 border-2 border-[#CD853F]/30">
-                                          <div className="flex items-center gap-2 mb-3"><span className="text-2xl">💎</span><div><p className="font-bold text-[#A0522D]">باقة المتابعة</p><p className="text-xs text-muted-foreground">{fu.subscriptionType === 'monthly' ? 'شهرية' : fu.subscriptionType === 'quarterly' ? 'ربع سنوية' : fu.subscriptionType === 'yearly' ? 'سنوية' : 'بالجلسات'}</p></div></div>
+                                        <div className="p-4 rounded-xl bg-gradient-to-br from-[#0891B2]/10 to-[#06B6D4]/10 border-2 border-[#06B6D4]/30">
+                                          <div className="flex items-center gap-2 mb-3"><span className="text-2xl">💎</span><div><p className="font-bold text-[#0891B2]">باقة المتابعة</p><p className="text-xs text-muted-foreground">{fu.subscriptionType === 'monthly' ? 'شهرية' : fu.subscriptionType === 'quarterly' ? 'ربع سنوية' : fu.subscriptionType === 'yearly' ? 'سنوية' : 'بالجلسات'}</p></div></div>
                                           <div className="grid grid-cols-2 gap-3">
-                                            <div className="p-2 rounded-lg bg-white/50 dark:bg-white/5"><p className="text-[10px] text-muted-foreground">السعر</p><p className="font-bold text-sm text-[#A0522D]">{formatCurrency(fu.subscriptionPrice)}</p></div>
+                                            <div className="p-2 rounded-lg bg-white/50 dark:bg-white/5"><p className="text-[10px] text-muted-foreground">السعر</p><p className="font-bold text-sm text-[#0891B2]">{formatCurrency(fu.subscriptionPrice)}</p></div>
                                             <div className="p-2 rounded-lg bg-white/50 dark:bg-white/5"><p className="text-[10px] text-muted-foreground">الجلسات</p><p className="font-bold text-sm">{fu.sessionsUsed} / {fu.sessionsIncluded}</p></div>
                                             {fu.subscriptionStart && <div className="p-2 rounded-lg bg-white/50 dark:bg-white/5"><p className="text-[10px] text-muted-foreground">البداية</p><p className="font-bold text-sm">{formatDate(fu.subscriptionStart)}</p></div>}
                                             {fu.subscriptionEnd && <div className="p-2 rounded-lg bg-white/50 dark:bg-white/5"><p className="text-[10px] text-muted-foreground">النهاية</p><p className="font-bold text-sm">{formatDate(fu.subscriptionEnd)}</p></div>}
                                           </div>
                                           {/* Progress Bar */}
                                           <div className="mt-3">
-                                            <div className="flex items-center justify-between mb-1"><span className="text-[10px] text-muted-foreground">استخدام الجلسات</span><span className="text-[10px] font-bold text-[#A0522D]">{fu.sessionsIncluded > 0 ? Math.round((fu.sessionsUsed / fu.sessionsIncluded) * 100) : 0}%</span></div>
-                                            <div className="h-2.5 rounded-full bg-[#DEB887]/30"><div className="h-full rounded-full bg-gradient-to-l from-[#A0522D] to-[#CD853F] transition-all" style={{ width: `${fu.sessionsIncluded > 0 ? (fu.sessionsUsed / fu.sessionsIncluded) * 100 : 0}%` }} /></div>
+                                            <div className="flex items-center justify-between mb-1"><span className="text-[10px] text-muted-foreground">استخدام الجلسات</span><span className="text-[10px] font-bold text-[#0891B2]">{fu.sessionsIncluded > 0 ? Math.round((fu.sessionsUsed / fu.sessionsIncluded) * 100) : 0}%</span></div>
+                                            <div className="h-2.5 rounded-full bg-[#67E8F9]/30"><div className="h-full rounded-full bg-gradient-to-l from-[#0891B2] to-[#06B6D4] transition-all" style={{ width: `${fu.sessionsIncluded > 0 ? (fu.sessionsUsed / fu.sessionsIncluded) * 100 : 0}%` }} /></div>
                                           </div>
                                         </div>
                                         <div className="flex gap-2">
-                                          <Button variant="outline" className="flex-1 rounded-xl border-[#CD853F]/30 text-[#A0522D]" onClick={async () => { try { await apiFetch(`/follow-up/records/${fu.id}`, { method: 'PUT', body: JSON.stringify({ sessionsUsed: fu.sessionsUsed + 1 }) }); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, sessionsUsed: f.sessionsUsed + 1 } : f)); toast.success('تم تسجيل استخدام جلسة') } catch { toast.error('خطأ') } }}>➕ استخدام جلسة</Button>
+                                          <Button variant="outline" className="flex-1 rounded-xl border-[#06B6D4]/30 text-[#0891B2]" onClick={async () => { try { await apiFetch(`/follow-up/records/${fu.id}`, { method: 'PUT', body: JSON.stringify({ sessionsUsed: fu.sessionsUsed + 1 }) }); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, sessionsUsed: f.sessionsUsed + 1 } : f)); toast.success('تم تسجيل استخدام جلسة') } catch { toast.error('خطأ') } }}>➕ استخدام جلسة</Button>
                                           <Button variant="outline" className="rounded-xl border-red-300 text-red-600" onClick={async () => { try { await apiFetch(`/follow-up/records/${fu.id}`, { method: 'PUT', body: JSON.stringify({ hasSubscription: false, subscriptionType: null, subscriptionPrice: 0, sessionsIncluded: 0, sessionsUsed: 0 }) }); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, hasSubscription: false, subscriptionType: undefined, subscriptionPrice: 0, sessionsIncluded: 0, sessionsUsed: 0 } : f)); toast.success('تم إلغاء الباقة') } catch { toast.error('خطأ') } }}>🗑 إلغاء الباقة</Button>
                                         </div>
                                       </>
@@ -2863,7 +2866,7 @@ export default function Home() {
                                         <p className="text-4xl mb-3">💎</p>
                                         <p className="text-muted-foreground mb-4">لا توجد باقة متابعة لهذه الحالة</p>
                                         <p className="text-sm text-muted-foreground mb-4">الباقة تتيح للمريض دفع مبلغ مقطوع والحصول على عدد زيارات محددة بدون دفع كل مرة</p>
-                                        <Button className="rounded-xl bg-gradient-to-l from-[#A0522D] to-[#CD853F] text-white" onClick={() => setEditingFollowUpId(fu.id)}>إضافة باقة متابعة</Button>
+                                        <Button className="rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white" onClick={() => setEditingFollowUpId(fu.id)}>إضافة باقة متابعة</Button>
                                       </div>
                                     )}
                                   </div>
@@ -2872,7 +2875,7 @@ export default function Home() {
                             </Card>
                           )
                         })() : (
-                          <Card className="card-luxury p-12 text-center border-[#CD853F]/20">
+                          <Card className="card-luxury p-12 text-center border-[#06B6D4]/20">
                             <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">🔄</motion.div>
                             <p className="text-muted-foreground">اختر حالة من القائمة لعرض التفاصيل</p>
                           </Card>
@@ -4720,63 +4723,63 @@ export default function Home() {
 
       {/* ═══ FOLLOW-UP: ADD RECORD DIALOG ═══ */}
       <Dialog open={showAddFollowUp} onOpenChange={setShowAddFollowUp}><DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle className="flex items-center gap-2 text-[#A0522D]"><span className="text-xl">🔄</span> تسجيل حالة متابعة جديدة</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2 text-[#0891B2]"><span className="text-xl">🔄</span> تسجيل حالة متابعة جديدة</DialogTitle></DialogHeader>
         <div className="space-y-3">
           {/* Patient Search */}
           <div className="relative">
             <Label className="text-xs font-bold">المريض *</Label>
-            <div className="relative mt-1"><Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A0522D]/40" size={14} /><Input placeholder="بحث بالاسم أو الهاتف أو رقم الملف..." value={fuFormPatientSearch} onChange={e => { setFuFormPatientSearch(e.target.value); setFuFormPatientId('') }} className="pr-9 input-luxury rounded-xl h-10 border-[#CD853F]/30 focus:border-[#A0522D]" /></div>
+            <div className="relative mt-1"><Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#0891B2]/40" size={14} /><Input placeholder="بحث بالاسم أو الهاتف أو رقم الملف..." value={fuFormPatientSearch} onChange={e => { setFuFormPatientSearch(e.target.value); setFuFormPatientId('') }} className="pr-9 input-luxury rounded-xl h-10 border-[#06B6D4]/30 focus:border-[#0891B2]" /></div>
             {fuFormPatientSearch && !fuFormPatientId && (
-              <div className="absolute z-50 mt-1 w-full bg-card border border-[#CD853F]/30 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+              <div className="absolute z-50 mt-1 w-full bg-card border border-[#06B6D4]/30 rounded-xl shadow-lg max-h-40 overflow-y-auto">
                 {patients.filter(p => { const q = fuFormPatientSearch.toLowerCase(); return p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q) }).slice(0, 5).map(p => (
-                  <button key={p.id} className="w-full text-right p-2.5 hover:bg-[#A0522D]/5 flex items-center gap-2 border-b last:border-0" onClick={() => { setFuFormPatientId(p.id); setFuFormPatientSearch(p.name) }}>
+                  <button key={p.id} className="w-full text-right p-2.5 hover:bg-[#0891B2]/5 flex items-center gap-2 border-b last:border-0" onClick={() => { setFuFormPatientId(p.id); setFuFormPatientSearch(p.name) }}>
                     <span className="text-sm font-medium">{p.name}</span><span className="text-xs text-muted-foreground">{p.fileNumber}</span>
                   </button>
                 ))}
               </div>
             )}
-            {fuFormPatientId && <Badge className="mt-1 bg-[#CD853F]/20 text-[#A0522D]">{patients.find(p => p.id === fuFormPatientId)?.name}</Badge>}
+            {fuFormPatientId && <Badge className="mt-1 bg-[#06B6D4]/20 text-[#0891B2]">{patients.find(p => p.id === fuFormPatientId)?.name}</Badge>}
           </div>
           {/* Condition */}
-          <div><Label className="text-xs font-bold">الحالة / المرض *</Label><Input placeholder="مثال: صدفية، إكزيما، ضغط..." value={fuFormCondition} onChange={e => setFuFormCondition(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-[#CD853F]/30 focus:border-[#A0522D]" /></div>
+          <div><Label className="text-xs font-bold">الحالة / المرض *</Label><Input placeholder="مثال: صدفية، إكزيما، ضغط..." value={fuFormCondition} onChange={e => setFuFormCondition(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-[#06B6D4]/30 focus:border-[#0891B2]" /></div>
           {/* Category & Severity */}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs font-bold">التصنيف</Label><Select value={fuFormCategory} onValueChange={setFuFormCategory}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#CD853F]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="جلدية">🩺 جلدية</SelectItem><SelectItem value="داخلية">💊 داخلية</SelectItem><SelectItem value="أخرى">📋 أخرى</SelectItem></SelectContent></Select></div>
-            <div><Label className="text-xs font-bold">الشدة</Label><Select value={fuFormSeverity} onValueChange={setFuFormSeverity}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#CD853F]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="mild">خفيف</SelectItem><SelectItem value="moderate">متوسط</SelectItem><SelectItem value="severe">شديد</SelectItem><SelectItem value="critical">حرج</SelectItem></SelectContent></Select></div>
+            <div><Label className="text-xs font-bold">التصنيف</Label><Select value={fuFormCategory} onValueChange={setFuFormCategory}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#06B6D4]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="جلدية">🩺 جلدية</SelectItem><SelectItem value="داخلية">💊 داخلية</SelectItem><SelectItem value="أخرى">📋 أخرى</SelectItem></SelectContent></Select></div>
+            <div><Label className="text-xs font-bold">الشدة</Label><Select value={fuFormSeverity} onValueChange={setFuFormSeverity}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#06B6D4]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="mild">خفيف</SelectItem><SelectItem value="moderate">متوسط</SelectItem><SelectItem value="severe">شديد</SelectItem><SelectItem value="critical">حرج</SelectItem></SelectContent></Select></div>
           </div>
           {/* Frequency & Next Visit */}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs font-bold">تكرار المتابعة</Label><Select value={fuFormFrequency} onValueChange={setFuFormFrequency}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#CD853F]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">أسبوعي</SelectItem><SelectItem value="biweekly">كل أسبوعين</SelectItem><SelectItem value="monthly">شهري</SelectItem><SelectItem value="quarterly">ربع سنوي</SelectItem><SelectItem value="custom">مخصص</SelectItem></SelectContent></Select></div>
-            <div><Label className="text-xs font-bold">الزيارة القادمة</Label><Input type="date" value={fuFormNextVisit} onChange={e => setFuFormNextVisit(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-[#CD853F]/30" /></div>
+            <div><Label className="text-xs font-bold">تكرار المتابعة</Label><Select value={fuFormFrequency} onValueChange={setFuFormFrequency}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#06B6D4]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">أسبوعي</SelectItem><SelectItem value="biweekly">كل أسبوعين</SelectItem><SelectItem value="monthly">شهري</SelectItem><SelectItem value="quarterly">ربع سنوي</SelectItem><SelectItem value="custom">مخصص</SelectItem></SelectContent></Select></div>
+            <div><Label className="text-xs font-bold">الزيارة القادمة</Label><Input type="date" value={fuFormNextVisit} onChange={e => setFuFormNextVisit(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-[#06B6D4]/30" /></div>
           </div>
-          {fuFormFrequency === 'custom' && <div><Label className="text-xs font-bold">عدد الأيام</Label><Input type="number" placeholder="كل كم يوم" value={fuFormCustomDays} onChange={e => setFuFormCustomDays(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-[#CD853F]/30" /></div>}
+          {fuFormFrequency === 'custom' && <div><Label className="text-xs font-bold">عدد الأيام</Label><Input type="number" placeholder="كل كم يوم" value={fuFormCustomDays} onChange={e => setFuFormCustomDays(e.target.value)} className="input-luxury rounded-xl h-10 mt-1 border-[#06B6D4]/30" /></div>}
           {/* Medical Info */}
-          <div className="space-y-2 p-3 rounded-xl bg-[#DEB887]/10 dark:bg-[#A0522D]/10 border border-[#CD853F]/20">
-            <p className="text-xs font-bold text-[#A0522D]">🏥 معلومات طبية</p>
-            <div><Label className="text-[10px]">التشخيص</Label><Input placeholder="التشخيص..." value={fuFormDiagnosis} onChange={e => setFuFormDiagnosis(e.target.value)} className="input-luxury rounded-xl h-9 text-xs mt-0.5 border-[#CD853F]/30" /></div>
-            <div><Label className="text-[10px]">خطة العلاج</Label><Input placeholder="خطة العلاج..." value={fuFormTreatmentPlan} onChange={e => setFuFormTreatmentPlan(e.target.value)} className="input-luxury rounded-xl h-9 text-xs mt-0.5 border-[#CD853F]/30" /></div>
-            <div><Label className="text-[10px]">الأدوية</Label><Input placeholder="الأدوية الحالية..." value={fuFormMedications} onChange={e => setFuFormMedications(e.target.value)} className="input-luxury rounded-xl h-9 text-xs mt-0.5 border-[#CD853F]/30" /></div>
+          <div className="space-y-2 p-3 rounded-xl bg-[#67E8F9]/10 dark:bg-[#0891B2]/10 border border-[#06B6D4]/20">
+            <p className="text-xs font-bold text-[#0891B2]">🏥 معلومات طبية</p>
+            <div><Label className="text-[10px]">التشخيص</Label><Input placeholder="التشخيص..." value={fuFormDiagnosis} onChange={e => setFuFormDiagnosis(e.target.value)} className="input-luxury rounded-xl h-9 text-xs mt-0.5 border-[#06B6D4]/30" /></div>
+            <div><Label className="text-[10px]">خطة العلاج</Label><Input placeholder="خطة العلاج..." value={fuFormTreatmentPlan} onChange={e => setFuFormTreatmentPlan(e.target.value)} className="input-luxury rounded-xl h-9 text-xs mt-0.5 border-[#06B6D4]/30" /></div>
+            <div><Label className="text-[10px]">الأدوية</Label><Input placeholder="الأدوية الحالية..." value={fuFormMedications} onChange={e => setFuFormMedications(e.target.value)} className="input-luxury rounded-xl h-9 text-xs mt-0.5 border-[#06B6D4]/30" /></div>
           </div>
-          <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea placeholder="ملاحظات إضافية..." value={fuFormNotes} onChange={e => setFuFormNotes(e.target.value)} className="input-luxury rounded-xl mt-1 border-[#CD853F]/30" rows={2} /></div>
+          <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea placeholder="ملاحظات إضافية..." value={fuFormNotes} onChange={e => setFuFormNotes(e.target.value)} className="input-luxury rounded-xl mt-1 border-[#06B6D4]/30" rows={2} /></div>
           {/* Subscription Section */}
-          <div className="p-3 rounded-xl border-2 border-dashed border-[#CD853F]/30 bg-[#CD853F]/5">
-            <div className="flex items-center gap-2 mb-2"><Switch checked={fuFormHasSubscription} onCheckedChange={setFuFormHasSubscription} /><Label className="text-xs font-bold text-[#A0522D]">💎 باقة متابعة</Label></div>
+          <div className="p-3 rounded-xl border-2 border-dashed border-[#06B6D4]/30 bg-[#06B6D4]/5">
+            <div className="flex items-center gap-2 mb-2"><Switch checked={fuFormHasSubscription} onCheckedChange={setFuFormHasSubscription} /><Label className="text-xs font-bold text-[#0891B2]">💎 باقة متابعة</Label></div>
             {fuFormHasSubscription && (
               <div className="space-y-2 mt-2">
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-[10px]">نوع الباقة</Label><Select value={fuFormSubType} onValueChange={setFuFormSubType}><SelectTrigger className="rounded-lg h-9 text-xs border-[#CD853F]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرية</SelectItem><SelectItem value="quarterly">ربع سنوية</SelectItem><SelectItem value="yearly">سنوية</SelectItem><SelectItem value="session_based">بالجلسات</SelectItem></SelectContent></Select></div>
-                  <div><Label className="text-[10px]">السعر</Label><Input type="number" placeholder="0" value={fuFormSubPrice} onChange={e => setFuFormSubPrice(e.target.value)} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
+                  <div><Label className="text-[10px]">نوع الباقة</Label><Select value={fuFormSubType} onValueChange={setFuFormSubType}><SelectTrigger className="rounded-lg h-9 text-xs border-[#06B6D4]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرية</SelectItem><SelectItem value="quarterly">ربع سنوية</SelectItem><SelectItem value="yearly">سنوية</SelectItem><SelectItem value="session_based">بالجلسات</SelectItem></SelectContent></Select></div>
+                  <div><Label className="text-[10px]">السعر</Label><Input type="number" placeholder="0" value={fuFormSubPrice} onChange={e => setFuFormSubPrice(e.target.value)} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div><Label className="text-[10px]">عدد الجلسات</Label><Input type="number" placeholder="0" value={fuFormSubSessions} onChange={e => setFuFormSubSessions(e.target.value)} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
-                  <div><Label className="text-[10px]">البداية</Label><Input type="date" value={fuFormSubStart} onChange={e => setFuFormSubStart(e.target.value)} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
-                  <div><Label className="text-[10px]">النهاية</Label><Input type="date" value={fuFormSubEnd} onChange={e => setFuFormSubEnd(e.target.value)} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
+                  <div><Label className="text-[10px]">عدد الجلسات</Label><Input type="number" placeholder="0" value={fuFormSubSessions} onChange={e => setFuFormSubSessions(e.target.value)} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
+                  <div><Label className="text-[10px]">البداية</Label><Input type="date" value={fuFormSubStart} onChange={e => setFuFormSubStart(e.target.value)} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
+                  <div><Label className="text-[10px]">النهاية</Label><Input type="date" value={fuFormSubEnd} onChange={e => setFuFormSubEnd(e.target.value)} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
                 </div>
               </div>
             )}
           </div>
         </div>
-        <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#A0522D] to-[#CD853F] text-white w-full" onClick={async () => {
+        <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white w-full" onClick={async () => {
           if (!fuFormPatientId || !fuFormCondition.trim()) return toast.error('اختار المريض وحدد الحالة')
           try {
             const body: Record<string, unknown> = { patientId: fuFormPatientId, condition: fuFormCondition, conditionCategory: fuFormCategory, severity: fuFormSeverity, frequency: fuFormFrequency, diagnosis: fuFormDiagnosis || undefined, treatmentPlan: fuFormTreatmentPlan || undefined, medications: fuFormMedications || undefined, notes: fuFormNotes || undefined, nextVisitDate: fuFormNextVisit || undefined }
@@ -4799,26 +4802,26 @@ export default function Home() {
 
       {/* ═══ FOLLOW-UP: ADD VISIT DIALOG ═══ */}
       <Dialog open={showAddFollowUpVisit} onOpenChange={setShowAddFollowUpVisit}><DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle className="flex items-center gap-2 text-[#A0522D]"><span className="text-xl">🩺</span> زيارة متابعة جديدة</DialogTitle></DialogHeader>
-        {selectedFU && <p className="text-xs text-muted-foreground bg-[#DEB887]/10 rounded-lg p-2">{selectedFU.patient?.name} - {selectedFU.condition}</p>}
+        <DialogHeader><DialogTitle className="flex items-center gap-2 text-[#0891B2]"><span className="text-xl">🩺</span> زيارة متابعة جديدة</DialogTitle></DialogHeader>
+        {selectedFU && <p className="text-xs text-muted-foreground bg-[#67E8F9]/10 rounded-lg p-2">{selectedFU.patient?.name} - {selectedFU.condition}</p>}
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-[10px] font-bold">النتائج السريرية</Label><Input placeholder="النتائج..." value={fuVisitForm.findings} onChange={e => setFuVisitForm(p => ({ ...p, findings: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
-            <div><Label className="text-[10px] font-bold">ملاحظات العلاج</Label><Input placeholder="العلاج..." value={fuVisitForm.treatmentNotes} onChange={e => setFuVisitForm(p => ({ ...p, treatmentNotes: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
+            <div><Label className="text-[10px] font-bold">النتائج السريرية</Label><Input placeholder="النتائج..." value={fuVisitForm.findings} onChange={e => setFuVisitForm(p => ({ ...p, findings: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
+            <div><Label className="text-[10px] font-bold">ملاحظات العلاج</Label><Input placeholder="العلاج..." value={fuVisitForm.treatmentNotes} onChange={e => setFuVisitForm(p => ({ ...p, treatmentNotes: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-[10px] font-bold">الأدوية</Label><Input placeholder="الأدوية الموصوفة..." value={fuVisitForm.medications} onChange={e => setFuVisitForm(p => ({ ...p, medications: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
-            <div><Label className="text-[10px] font-bold">التعليمات</Label><Input placeholder="التعليمات للمريض..." value={fuVisitForm.instructions} onChange={e => setFuVisitForm(p => ({ ...p, instructions: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
+            <div><Label className="text-[10px] font-bold">الأدوية</Label><Input placeholder="الأدوية الموصوفة..." value={fuVisitForm.medications} onChange={e => setFuVisitForm(p => ({ ...p, medications: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
+            <div><Label className="text-[10px] font-bold">التعليمات</Label><Input placeholder="التعليمات للمريض..." value={fuVisitForm.instructions} onChange={e => setFuVisitForm(p => ({ ...p, instructions: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
           </div>
-          <div><Label className="text-[10px] font-bold">التشخيص</Label><Input placeholder="التشخيص..." value={fuVisitForm.diagnosis} onChange={e => setFuVisitForm(p => ({ ...p, diagnosis: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
+          <div><Label className="text-[10px] font-bold">التشخيص</Label><Input placeholder="التشخيص..." value={fuVisitForm.diagnosis} onChange={e => setFuVisitForm(p => ({ ...p, diagnosis: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-[10px] font-bold">السعر</Label><Input type="number" placeholder="0" value={fuVisitForm.price} onChange={e => setFuVisitForm(p => ({ ...p, price: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
-            <div><Label className="text-[10px] font-bold">الزيارة القادمة</Label><Input type="date" value={fuVisitForm.nextVisitDate} onChange={e => setFuVisitForm(p => ({ ...p, nextVisitDate: e.target.value }))} className="rounded-lg h-9 text-xs border-[#CD853F]/30" /></div>
+            <div><Label className="text-[10px] font-bold">السعر</Label><Input type="number" placeholder="0" value={fuVisitForm.price} onChange={e => setFuVisitForm(p => ({ ...p, price: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
+            <div><Label className="text-[10px] font-bold">الزيارة القادمة</Label><Input type="date" value={fuVisitForm.nextVisitDate} onChange={e => setFuVisitForm(p => ({ ...p, nextVisitDate: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
           </div>
           <div className="flex items-center gap-3"><Label className="text-[10px] font-bold">تم الدفع</Label><Switch checked={fuVisitForm.paid} onCheckedChange={v => setFuVisitForm(p => ({ ...p, paid: v }))} /></div>
-          <div><Label className="text-[10px] font-bold">ملاحظات</Label><Textarea placeholder="ملاحظات..." value={fuVisitForm.notes} onChange={e => setFuVisitForm(p => ({ ...p, notes: e.target.value }))} className="rounded-lg text-xs border-[#CD853F]/30" rows={2} /></div>
+          <div><Label className="text-[10px] font-bold">ملاحظات</Label><Textarea placeholder="ملاحظات..." value={fuVisitForm.notes} onChange={e => setFuVisitForm(p => ({ ...p, notes: e.target.value }))} className="rounded-lg text-xs border-[#06B6D4]/30" rows={2} /></div>
         </div>
-        <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#A0522D] to-[#CD853F] text-white w-full" onClick={async () => {
+        <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white w-full" onClick={async () => {
           if (!selectedFU) return
           try {
             const body: Record<string, unknown> = { followUpId: selectedFU.id, findings: fuVisitForm.findings || undefined, treatmentNotes: fuVisitForm.treatmentNotes || undefined, medications: fuVisitForm.medications || undefined, instructions: fuVisitForm.instructions || undefined, diagnosis: fuVisitForm.diagnosis || undefined, paid: fuVisitForm.paid, price: parseFloat(fuVisitForm.price) || 0, nextVisitDate: fuVisitForm.nextVisitDate || undefined, notes: fuVisitForm.notes || undefined }
@@ -4838,19 +4841,19 @@ export default function Home() {
 
       {/* ═══ FOLLOW-UP: SUBSCRIPTION EDITOR DIALOG ═══ */}
       <Dialog open={!!editingFollowUpId} onOpenChange={() => setEditingFollowUpId(null)}><DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle className="flex items-center gap-2 text-[#A0522D]"><span className="text-xl">💎</span> باقة المتابعة</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2 text-[#0891B2]"><span className="text-xl">💎</span> باقة المتابعة</DialogTitle></DialogHeader>
         <div className="space-y-2">
-          <div><Label className="text-xs font-bold">نوع الباقة</Label><Select value={fuFormSubType} onValueChange={setFuFormSubType}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#CD853F]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرية</SelectItem><SelectItem value="quarterly">ربع سنوية</SelectItem><SelectItem value="yearly">سنوية</SelectItem><SelectItem value="session_based">بالجلسات</SelectItem></SelectContent></Select></div>
+          <div><Label className="text-xs font-bold">نوع الباقة</Label><Select value={fuFormSubType} onValueChange={setFuFormSubType}><SelectTrigger className="rounded-xl h-10 mt-1 border-[#06B6D4]/30"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرية</SelectItem><SelectItem value="quarterly">ربع سنوية</SelectItem><SelectItem value="yearly">سنوية</SelectItem><SelectItem value="session_based">بالجلسات</SelectItem></SelectContent></Select></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs font-bold">السعر</Label><Input type="number" placeholder="0" value={fuFormSubPrice} onChange={e => setFuFormSubPrice(e.target.value)} className="rounded-xl h-10 border-[#CD853F]/30" /></div>
-            <div><Label className="text-xs font-bold">عدد الجلسات</Label><Input type="number" placeholder="0" value={fuFormSubSessions} onChange={e => setFuFormSubSessions(e.target.value)} className="rounded-xl h-10 border-[#CD853F]/30" /></div>
+            <div><Label className="text-xs font-bold">السعر</Label><Input type="number" placeholder="0" value={fuFormSubPrice} onChange={e => setFuFormSubPrice(e.target.value)} className="rounded-xl h-10 border-[#06B6D4]/30" /></div>
+            <div><Label className="text-xs font-bold">عدد الجلسات</Label><Input type="number" placeholder="0" value={fuFormSubSessions} onChange={e => setFuFormSubSessions(e.target.value)} className="rounded-xl h-10 border-[#06B6D4]/30" /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div><Label className="text-xs font-bold">البداية</Label><Input type="date" value={fuFormSubStart} onChange={e => setFuFormSubStart(e.target.value)} className="rounded-xl h-10 border-[#CD853F]/30" /></div>
-            <div><Label className="text-xs font-bold">النهاية</Label><Input type="date" value={fuFormSubEnd} onChange={e => setFuFormSubEnd(e.target.value)} className="rounded-xl h-10 border-[#CD853F]/30" /></div>
+            <div><Label className="text-xs font-bold">البداية</Label><Input type="date" value={fuFormSubStart} onChange={e => setFuFormSubStart(e.target.value)} className="rounded-xl h-10 border-[#06B6D4]/30" /></div>
+            <div><Label className="text-xs font-bold">النهاية</Label><Input type="date" value={fuFormSubEnd} onChange={e => setFuFormSubEnd(e.target.value)} className="rounded-xl h-10 border-[#06B6D4]/30" /></div>
           </div>
         </div>
-        <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#A0522D] to-[#CD853F] text-white w-full" onClick={async () => {
+        <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white w-full" onClick={async () => {
           if (!editingFollowUpId) return
           try {
             await apiFetch(`/follow-up/records/${editingFollowUpId}`, { method: 'PUT', body: JSON.stringify({ hasSubscription: true, subscriptionType: fuFormSubType, subscriptionPrice: parseFloat(fuFormSubPrice) || 0, sessionsIncluded: parseInt(fuFormSubSessions) || 0, subscriptionStart: fuFormSubStart || undefined, subscriptionEnd: fuFormSubEnd || undefined }) })
