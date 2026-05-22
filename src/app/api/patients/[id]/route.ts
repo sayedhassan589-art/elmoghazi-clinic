@@ -8,16 +8,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const patient = await db.patient.findUnique({
       where: { id },
       include: {
-        visits: { orderBy: { date: 'desc' }, take: 20 },
-        sessions: { orderBy: { date: 'desc' }, take: 20, include: { service: true } },
+        visits: { orderBy: { date: 'desc' }, take: 100000 },
+        sessions: { orderBy: { date: 'desc' }, take: 100000, include: { service: true } },
         alerts: { where: { active: true }, orderBy: { createdAt: 'desc' } },
-        patientNotes: { orderBy: { createdAt: 'desc' }, take: 20 },
+        patientNotes: { orderBy: { createdAt: 'desc' }, take: 50000 },
         laserRecords: { include: { laserSessions: { orderBy: { sessionNumber: 'desc' } } } },
-        appointments: { orderBy: { date: 'desc' }, take: 10 },
-        photos: { orderBy: { createdAt: 'desc' }, take: 20 },
+        appointments: { orderBy: { date: 'desc' }, take: 10000 },
+        photos: { orderBy: { createdAt: 'desc' }, take: 10000 },
         treatmentPlans: { include: { phases: { include: { sessions: true }, orderBy: { order: 'asc' } } } },
-        prescriptions: { orderBy: { date: 'desc' }, take: 10, include: { items: { include: { medication: true } } } },
-        reminders: { orderBy: { date: 'desc' }, take: 10 },
+        prescriptions: { orderBy: { date: 'desc' }, take: 10000, include: { items: { include: { medication: true } } } },
+        reminders: { orderBy: { date: 'desc' }, take: 5000 },
         _count: { select: { visits: true, sessions: true, alerts: true, photos: true, prescriptions: true } },
       },
     })

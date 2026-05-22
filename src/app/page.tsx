@@ -496,17 +496,17 @@ export default function Home() {
     setLoading(true)
     try {
       const results = await Promise.allSettled([
-        apiFetch('/patients?limit=200'), apiFetch('/visits?limit=200'), apiFetch('/sessions?limit=200'),
-        apiFetch('/services?limit=100'), apiFetch('/notes?limit=200'), apiFetch('/alerts?limit=100'),
-        apiFetch('/reminders?limit=100'), apiFetch('/laser/records?limit=200'), apiFetch('/laser/packages?limit=50'),
-        apiFetch('/laser/settings?limit=50'), apiFetch('/finance/transactions?limit=200'), apiFetch('/appointments?limit=200'),
-        apiFetch('/waiting?limit=50'), apiFetch('/inventory/items?limit=100'), apiFetch('/medications?limit=200'),
-        apiFetch('/prescriptions?limit=100'), apiFetch('/backups?limit=20'), apiFetch('/notifications?limit=50'),
-        apiFetch('/doctors?limit=50'),
-        apiFetch('/follow-up/records?limit=200'),
-        apiFetch('/finance/transactions?category=personal&limit=200'),
-        apiFetch('/notes?section=personal&limit=200'),
-        apiFetch('/reminders?type=personal&limit=200'),
+        apiFetch('/patients?limit=50000'), apiFetch('/visits?limit=100000'), apiFetch('/sessions?limit=100000'),
+        apiFetch('/services?limit=1000'), apiFetch('/notes?limit=50000'), apiFetch('/alerts?limit=5000'),
+        apiFetch('/reminders?limit=5000'), apiFetch('/laser/records?limit=50000'), apiFetch('/laser/packages?limit=500'),
+        apiFetch('/laser/settings?limit=500'), apiFetch('/finance/transactions?limit=100000'), apiFetch('/appointments?limit=10000'),
+        apiFetch('/waiting?limit=1000'), apiFetch('/inventory/items?limit=5000'), apiFetch('/medications?limit=5000'),
+        apiFetch('/prescriptions?limit=10000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=5000'),
+        apiFetch('/doctors?limit=500'),
+        apiFetch('/follow-up/records?limit=50000'),
+        apiFetch('/finance/transactions?category=personal&limit=50000'),
+        apiFetch('/notes?section=personal&limit=10000'),
+        apiFetch('/reminders?type=personal&limit=5000'),
       ])
       const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
       setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
@@ -4885,7 +4885,7 @@ export default function Home() {
       <Dialog open={showAddLaserRecord} onOpenChange={(open) => {
         setShowAddLaserRecord(open)
         if (open) {
-          apiFetch<any>('/patients?limit=200').then(res => {
+          apiFetch<any>('/patients?limit=50000').then(res => {
             const pList = res?.patients || res?.data || (Array.isArray(res) ? res : [])
             if (Array.isArray(pList) && pList.length > 0) setPatients(pList)
           }).catch(() => {})
@@ -5171,14 +5171,14 @@ export default function Home() {
                 const patientCheck = await apiFetch<any>(`/patients/${laserFormPatientId}`)
                 if (!patientCheck?.id && !patientCheck?.patient?.id) {
                   toast.error('المريض غير موجود في قاعدة البيانات. قم بتحديث الصفحة وحاول مرة أخرى')
-                  const freshPatients = await apiFetch<any>('/patients?limit=200')
+                  const freshPatients = await apiFetch<any>('/patients?limit=50000')
                   const pList = freshPatients?.patients || freshPatients?.data || freshPatients || []
                   if (Array.isArray(pList)) setPatients(pList)
                   return
                 }
               } catch {
                 toast.error('المريض غير موجود. قم بتحديث الصفحة وحاول مرة أخرى')
-                const freshPatients = await apiFetch<any>('/patients?limit=200')
+                const freshPatients = await apiFetch<any>('/patients?limit=50000')
                 const pList = freshPatients?.patients || freshPatients?.data || freshPatients || []
                 if (Array.isArray(pList)) setPatients(pList)
                 return

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const doctorId = searchParams.get('doctorId') || ''
     const type = searchParams.get('type') || ''
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const limit = parseInt(searchParams.get('limit') || '100000')
     const skip = (page - 1) * limit
 
     const where: Record<string, unknown> = {}
