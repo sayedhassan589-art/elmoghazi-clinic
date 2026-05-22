@@ -53,6 +53,7 @@ model Patient {
   reminders       Reminder[]
   waitingQueue    WaitingQueue[]
   prescriptions   Prescription[]
+  followUpRecords FollowUpRecord[]
 }
 
 model Service {
@@ -439,4 +440,69 @@ model PartnerDoctor {
   notes               String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+// ============ FOLLOW-UP SYSTEM ============
+
+model FollowUpRecord {
+  id                String   @id @default(cuid())
+  patientId         String
+  condition         String                     // الحالة المزمنة / المرض
+  conditionCategory String?                     // جلدية، داخلية، أخرى
+  severity          String   @default("moderate") // mild, moderate, severe, critical
+  status            String   @default("active")   // active, paused, completed, discharged
+  // Follow-up schedule
+  frequency         String   @default("monthly")  // weekly, biweekly, monthly, quarterly, custom
+  customDays        Int?                        // أيام مخصصة لو frequency = custom
+  nextVisitDate     DateTime?                   // تاريخ الزيارة القادمة
+  lastVisitDate     DateTime?                   // تاريخ آخر زيارة
+  // Subscription / Package
+  hasSubscription   Boolean  @default(false)        // عنده باقة متابعة؟
+  subscriptionType  String?                     // monthly, quarterly, yearly, session_based
+  subscriptionPrice Float    @default(0)             // سعر الباقة
+  subscriptionStart DateTime?                     // بداية الباقة
+  subscriptionEnd   DateTime?                     // نهاية الباقة
+  sessionsIncluded  Int      @default(0)             // عدد الجلسات في الباقة
+  sessionsUsed      Int      @default(0)             // عدد الجلسات المستخدمة
+  // Medical info
+  diagnosis         String?                     // التشخيص
+  treatmentPlan     String?                     // خطة العلاج
+  medications       String?                     // الأدوية الحالية (JSON string)
+  notes             String?                     // ملاحظات
+  // Reminder
+  reminderEnabled   Boolean  @default(true)       // تذكير تلقائي
+  reminderDaysBefore Int     @default(1)           // كم يوم قبل الموعد
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  patient           Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  followUpVisits    FollowUpVisit[]
+}
+
+model FollowUpVisit {
+  id              String   @id @default(cuid())
+  followUpId      String
+  visitNumber     Int                        // رقم الزيارة
+  // Visit details
+  visitDate       DateTime @default(now())
+  type            String   @default("followup") // followup, checkup, emergency
+  // Clinical findings
+  findings        String?                    // النتائج السريرية
+  vitals          String?                    // العلامات الحيوية (JSON)
+  diagnosis       String?                    // التشخيص
+  treatmentNotes  String?                    // ملاحظات العلاج
+  medications     String?                    // الأدوية الموصوفة (JSON string)
+  instructions    String?                    // التعليمات للمريض
+  // Payment
+  paid            Boolean  @default(false)
+  price           Float    @default(0)
+  // Next visit
+  nextVisitDate   DateTime?                  // تاريخ الزيارة القادمة
+  // Status
+  status          String   @default("completed") // completed, no_show, cancelled
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  followUp        FollowUpRecord @relation(fields: [followUpId], references: [id], onDelete: Cascade)
 }
