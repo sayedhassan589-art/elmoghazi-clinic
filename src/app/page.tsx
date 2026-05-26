@@ -21,7 +21,7 @@ import {
   Wallet, TrendingDown, StickyNote, Coffee, Home as HomeIcon,
   GraduationCap, Shirt, Flame, Gift, Award, Building2, Car,
   Utensils, Gamepad2, HeartPulse, PiggyBank, CheckCircle2,
-  Lightbulb, Sparkle
+  Lightbulb, Sparkle, Copy
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -194,7 +194,7 @@ const VISIT_TYPES = [
 // ─── Main App ───────────────────────────────────────────────────────────────
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
-  const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup } = useClinicStore()
+  const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords } = useClinicStore()
   const [darkMode, setDarkMode] = useState(false)
   const [smartSearchOpen, setSmartSearchOpen] = useState(false)
   const [smartSearchQuery, setSmartSearchQuery] = useState('')
@@ -346,8 +346,7 @@ export default function Home() {
   const [editingLaserRecordId, setEditingLaserRecordId] = useState<string | null>(null)
   const [editLaserRecordForm, setEditLaserRecordForm] = useState({ bodyArea: '', skinType: '', hairColor: '', hairDensity: '', totalSessions: '', price: '', totalPrice: '', paid: false, machineName: '', energy: '', pulse: '', status: '', notes: '' })
 
-  // Role & Password system (userRole is now persisted in auth store)
-  const [sectionPasswords, setSectionPasswords] = useState<Record<string, string>>({})
+  // Role & Password system (userRole is now persisted in auth store, sectionPasswords in clinic store)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState('')
   const [passwordInput, setPasswordInput] = useState('')
@@ -480,6 +479,9 @@ export default function Home() {
   const [deleteFollowUpConfirmId, setDeleteFollowUpConfirmId] = useState<string | null>(null)
   const [editingFollowUpId, setEditingFollowUpId] = useState<string | null>(null)
 
+  // Patient Copy Search
+  const [patientCopySearch, setPatientCopySearch] = useState('')
+
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
 
@@ -488,7 +490,18 @@ export default function Home() {
   useEffect(() => { if (!seeded) { apiFetch('/seed', { method: 'POST' }).then(() => setSeeded(true)).catch(() => setSeeded(true)) } }, [seeded])
   useEffect(() => {
     if (!autoBackup) return
-    const interval = setInterval(async () => { try { await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'auto' }) }); setLastBackup(new Date().toISOString()); toast.success('تم النسخ الاحتياطي التلقائي') } catch {} }, backupInterval * 60 * 1000)
+    // Run first backup immediately on enable
+    const runBackup = async () => {
+      try {
+        await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'auto' }) })
+        setLastBackup(new Date().toISOString())
+        toast.success('تم النسخ الاحتياطي التلقائي ✓')
+      } catch (e) {
+        console.error('Auto backup failed:', e)
+      }
+    }
+    runBackup()
+    const interval = setInterval(runBackup, backupInterval * 60 * 1000)
     return () => clearInterval(interval)
   }, [autoBackup, backupInterval, setLastBackup])
 
@@ -564,9 +577,9 @@ export default function Home() {
   const personalMonthlyChart = useMemo(() => {
     const months: Record<string, { month: string; income: number; expense: number }> = {}
     personalTransactions.forEach(t => {
-      const d = new Date(t.date)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const label = `${d.getMonth() + 1}/${d.getFullYear()}`
+      const parts = getCairoDateParts(t.date)
+      const key = `${parts.year}-${String(parts.month).padStart(2, '0')}`
+      const label = `${parts.month}/${parts.year}`
       if (!months[key]) months[key] = { month: label, income: 0, expense: 0 }
       if (t.type === 'income') months[key].income += t.amount || 0
       else months[key].expense += t.amount || 0
@@ -877,6 +890,24 @@ export default function Home() {
     try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
   }
 
+  // Mark session as paid + create finance transaction (fixes: "pay" button was not recording revenue)
+  const markSessionPaid = async (s: Session) => {
+    try {
+      await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) })
+      // Create corresponding finance transaction
+      const patientName = patients.find(p => p.id === s.patientId)?.name || 'مريض'
+      const svc = services.find(sv => sv.id === s.serviceId)
+      const category = s.notes?.includes('ليزر') ? 'ليزر' : 'جلسات'
+      const description = `${svc?.name || (category === 'ليزر' ? 'جلسة ليزر' : 'جلسة')} - ${patientName}`
+      try {
+        await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category, amount: s.price, description, date: s.date || new Date().toISOString() }) })
+        setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: s.date || new Date().toISOString() }])
+      } catch { /* finance txn creation failed silently */ }
+      setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss))
+      toast.success('تم الدفع ✅')
+    } catch { toast.error('خطأ') }
+  }
+
   // Delete patient with full finance cleanup
   const deletePatientWithFinance = async (patient: Patient) => {
     try {
@@ -1000,8 +1031,8 @@ export default function Home() {
   // ─── Computed ─────────────────────────────────────────────────────────
   const todayStr = getLocalDateStr() // Cairo timezone
   const todayVisits = visits.filter(v => v.date?.startsWith(todayStr))
-  const todayIncome = transactions.filter(t => t.type === 'income' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
-  const todayExpense = transactions.filter(t => t.type === 'expense' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
+  const todayIncome = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
+  const todayExpense = transactions.filter(t => t.type === 'expense' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
   const todayNetProfit = todayIncome - todayExpense
 
   // Daily finance data - grouped by real date (Cairo timezone)
@@ -1023,68 +1054,73 @@ export default function Home() {
   // Daily visit/session stats for reports (Cairo timezone)
   const dailyVisitStats = useMemo(() => {
     const dayMap: Record<string, { date: string; checkupCount: number; revisitCount: number; sessionCount: number; checkupRevenue: number; revisitRevenue: number; sessionRevenue: number }> = {}
-    // Process visits
+    // Process visits (counts only, NOT revenue - revenue comes from transactions)
     visits.forEach(v => {
       const key = getLocalDateStr(v.date)
       if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
-      if (v.type === 'checkup') dayMap[key].checkupCount++
-      else if (v.type === 'revisit') dayMap[key].revisitCount++
+      if (v.type === 'checkup' || v.type === 'checkup_session') dayMap[key].checkupCount++
+      else if (v.type === 'revisit' || v.type === 'revisit_session') dayMap[key].revisitCount++
     })
-    // Process completed sessions
+    // Count completed sessions (counts only, NOT revenue - to avoid double-counting with transactions)
     sessions.filter(s => s.status === 'completed').forEach(s => {
       const key = getLocalDateStr(s.date)
       if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
       dayMap[key].sessionCount++
-      dayMap[key].sessionRevenue += s.price || 0
     })
-    // Process revenue from transactions
+    // Process ALL revenue from transactions ONLY (single source of truth - matches Finance section)
     transactions.filter(t => t.category !== 'personal').forEach(t => {
       const key = getLocalDateStr(t.date)
       if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
       if (t.type === 'income' && t.category === 'كشف') dayMap[key].checkupRevenue += t.amount || 0
       else if (t.type === 'income' && t.category === 'إعادة') dayMap[key].revisitRevenue += t.amount || 0
-      else if (t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر')) dayMap[key].sessionRevenue += t.amount || 0
+      else if (t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة')) dayMap[key].sessionRevenue += t.amount || 0
     })
     return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
   }, [visits, sessions, transactions])
   const lowStockItems = inventoryItems.filter(i => i.quantity <= i.minQuantity)
   const maleCount = patients.filter(p => p.gender === 'male').length
   const femaleCount = patients.filter(p => p.gender === 'female').length
-  const revenueChartData = useMemo(() => { const days: any[] = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = getLocalDateStr(d); days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: transactions.filter(t => t.type === 'income' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0), مصروف: transactions.filter(t => t.type === 'expense' && t.date?.startsWith(ds)).reduce((s, t) => s + t.amount, 0) }) } return days }, [transactions])
+  const revenueChartData = useMemo(() => { const days: any[] = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = getLocalDateStr(d); days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: transactions.filter(t => t.type === 'income' && t.category !== 'personal' && getLocalDateStr(t.date) === ds).reduce((s, t) => s + t.amount, 0), مصروف: transactions.filter(t => t.type === 'expense' && t.category !== 'personal' && getLocalDateStr(t.date) === ds).reduce((s, t) => s + t.amount, 0) }) } return days }, [transactions])
   const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
   const filteredPatients = useMemo(() => { let list = patients; if (searchQuery) list = list.filter(p => p.name.includes(searchQuery) || p.phone?.includes(searchQuery) || p.fileNumber?.includes(searchQuery)); if (patientFilter === 'starred') list = list.filter(p => p.starred); if (patientFilter === 'improved') list = list.filter(p => p.improved); return list }, [patients, searchQuery, patientFilter])
 
   // ─── Financial Computed Values ──────────────────────────────
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  // All clinic financials EXCLUDE personal transactions (category !== 'personal')
+  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
+  const totalIncome = clinicTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = clinicTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const netProfit = totalIncome - totalExpense
-  const checkupRevenue = transactions.filter(t => t.type === 'income' && t.category === 'كشف').reduce((s, t) => s + t.amount, 0)
-  const revisitRevenue = transactions.filter(t => t.type === 'income' && t.category === 'إعادة').reduce((s, t) => s + t.amount, 0)
-  const sessionRevenue = transactions.filter(t => t.type === 'income' && t.category === 'جلسات').reduce((s, t) => s + t.amount, 0)
-  const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue
+  const checkupRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'كشف').reduce((s, t) => s + t.amount, 0)
+  const revisitRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'إعادة').reduce((s, t) => s + t.amount, 0)
+  const laserRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'ليزر').reduce((s, t) => s + t.amount, 0)
+  const followUpRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'متابعة').reduce((s, t) => s + t.amount, 0)
+  const sessionRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'جلسات').reduce((s, t) => s + t.amount, 0)
+  const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue - laserRevenue - followUpRevenue
   const unpaidTotal = sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0)
-  const thisMonthIncome = transactions.filter(t => { const td = getCairoDateParts(t.date); const now = getCairoDateParts(); return t.type === 'income' && td.year === now.year && td.month === now.month }).reduce((s, t) => s + t.amount, 0)
+  const thisMonthIncome = clinicTransactions.filter(t => { const td = getCairoDateParts(t.date); const now = getCairoDateParts(); return t.type === 'income' && td.year === now.year && td.month === now.month }).reduce((s, t) => s + t.amount, 0)
   const thisWeekIncome = revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0)
   const revenueByCategory = useMemo(() => [
     { name: 'كشف', value: checkupRevenue || 0 },
     { name: 'إعادة', value: revisitRevenue || 0 },
     { name: 'جلسات', value: sessionRevenue || 0 },
+    { name: 'ليزر', value: laserRevenue || 0 },
+    { name: 'متابعة', value: followUpRevenue || 0 },
     { name: 'أخرى', value: otherRevenue || 0 },
-  ].filter(d => d.value > 0), [transactions])
+  ].filter(d => d.value > 0), [checkupRevenue, revisitRevenue, sessionRevenue, laserRevenue, followUpRevenue, otherRevenue])
 
   // ─── Weekly Revenue Comparison ───
   const weeklyComparison = useMemo(() => {
     const cairoToday = getLocalDateStr()
     const todayDate = new Date(cairoToday + 'T00:00:00')
     // This week: last 7 days
-    const thisWeekTxns = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && t.date?.startsWith(getLocalDateStr(t.date)) && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 0 && diff < 7 })())
+    const thisWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 0 && diff < 7 })())
     const thisWeekTotal = thisWeekTxns.reduce((s, t) => s + t.amount, 0)
     // Last week: 7-14 days ago
-    const lastWeekTxns = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 7 && diff < 14 })())
+    const lastWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 7 && diff < 14 })())
     const lastWeekTotal = lastWeekTxns.reduce((s, t) => s + t.amount, 0)
     const changePercent = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : thisWeekTotal > 0 ? 100 : 0
     return { thisWeekTotal, lastWeekTotal, changePercent, isUp: thisWeekTotal >= lastWeekTotal }
-  }, [transactions])
+  }, [clinicTransactions])
 
   // ─── Top Patients by Visits ───
   const topPatientsByVisits = useMemo(() => {
@@ -1139,8 +1175,8 @@ export default function Home() {
     } catch { return false }
   }), [sessions, services])
 
-  // Laser financial computed values - based on actual paid laser sessions for accuracy
-  const laserRevenue = useMemo(() => laserRecords.flatMap(r => (r.laserSessions || []).filter(s => s.paid)).reduce((s, sess) => s + (sess.price || 0), 0), [laserRecords])
+  // Laser financial computed values - based on transactions for accuracy (avoids double-counting)
+  // laserRevenue is already defined above from clinicTransactions
   const laserRevenueByArea = useMemo(() => {
     const areaMap: Record<string, number> = {}
     laserRecords.forEach(r => {
@@ -1330,12 +1366,27 @@ export default function Home() {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
     }
+    // Check section password protection
+    if (sectionPasswords[tab]) {
+      setPendingTab(tab)
+      setPasswordTarget(tab)
+      setPasswordInput('')
+      setPasswordDialogOpen(true)
+      return
+    }
     setActiveTab(tab)
     if (tab === 'patients') setSelectedPatient(null)
   }
   const verifyPassword = () => {
-    // Password verification is now server-side only
-    toast.error('يرجى تسجيل الخروج وإعادة الدخول')
+    const storedPassword = sectionPasswords[passwordTarget]
+    if (passwordInput === storedPassword) {
+      setPasswordDialogOpen(false)
+      setActiveTab(pendingTab)
+      if (pendingTab === 'patients') setSelectedPatient(null)
+      toast.success('تم التحقق بنجاح ✓')
+    } else {
+      toast.error('كلمة السر غير صحيحة')
+    }
   }
 
   // ─── Doctor financial calculations ────────────────────────────────────
@@ -1483,9 +1534,9 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="relative z-10">
                       {(() => {
-                        const todayCheckupRev = transactions.filter(t => t.type === 'income' && t.category === 'كشف' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
-                        const todayRevisitRev = transactions.filter(t => t.type === 'income' && t.category === 'إعادة' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
-                        const todaySessionRev = transactions.filter(t => t.type === 'income' && t.category === 'جلسات' && t.date?.startsWith(todayStr)).reduce((s, t) => s + t.amount, 0)
+                        const todayCheckupRev = transactions.filter(t => t.type === 'income' && t.category === 'كشف' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
+                        const todayRevisitRev = transactions.filter(t => t.type === 'income' && t.category === 'إعادة' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
+                        const todaySessionRev = transactions.filter(t => t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة') && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
                         const todayUnpaid = sessions.filter(s => !s.paid && s.date?.startsWith(todayStr)).reduce((s, ses) => s + ses.price, 0)
                         const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && s.date?.startsWith(todayStr)).length
                         return (
@@ -1697,7 +1748,7 @@ export default function Home() {
                       </motion.div>
                     )}
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد جلسات</p>}
-                    {sessions.filter(s => s.patientId === selectedPatient.id).map(s => { const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="border border-slate-200 dark:border-slate-800 p-3">{editingSessionId === s.id ? (<div className="space-y-2 p-2 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-300"><div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px]">السعر</Label><Input type="number" value={editSessionForm.price} onChange={e => setEditSessionForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div><div><Label className="text-[10px]">الحالة</Label><Select value={editSessionForm.status} onValueChange={val => setEditSessionForm(f => ({ ...f, status: val }))}><SelectTrigger className="rounded-xl h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">مجدولة</SelectItem><SelectItem value="completed">مكتملة</SelectItem><SelectItem value="cancelled">ملغاة</SelectItem></SelectContent></Select></div></div><Input value={editSessionForm.notes} onChange={e => setEditSessionForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-8 text-xs" /><div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white text-xs h-7" onClick={async () => { try { const newPrice = parseFloat(editSessionForm.price) || s.price; await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined }) }); const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر')); if (relatedTx && newPrice !== s.price) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, amount: newPrice } : t)); } setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined } : ss)); setEditingSessionId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditingSessionId(null)}>إلغاء</Button></div></div>) : (<div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className={cn('p-2 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={14} /> : <Clock className="text-amber-600" size={14} />}</div><div><p className="font-bold text-xs">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[8px]">{s.status === 'completed' ? 'مكتملة' : s.status === 'cancelled' ? 'ملغاة' : 'مجدولة'}</Badge>{s.paid ? <span className="text-[8px] text-emerald-600 font-bold">مدفوعة</span> : <span className="text-[8px] text-amber-600 font-bold">غير مدفوعة</span>}</div>{s.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{s.notes}</p>}</div></div><div className="flex items-center gap-1"><div className="text-left"><p className="font-black text-xs text-orange-600">{formatCurrency(s.price)}</p><p className="text-[9px] text-muted-foreground">{formatDate(s.date)}</p>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-1.5 py-0.5 rounded bg-emerald-500 text-white text-[8px] font-bold mt-0.5">دفع</motion.button>}</div><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingSessionId(s.id); setEditSessionForm({ price: String(s.price), notes: s.notes || '', status: s.status, paid: s.paid }) }}><Edit3 size={9} className="text-orange-500" /></Button><Button variant="ghost" size="icon" className="h-5 w-5" onClick={async () => { try { const sDateStr = s.date ? new Date(s.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) : ''; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر') && t.amount === s.price && (sDateStr ? new Date(t.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) === sDateStr : true)); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); setSessions(prev => prev.filter(ss => ss.id !== s.id)); toast.success('تم الحذف') } catch { toast.error('خطأ') } }}><Trash2 size={9} className="text-red-500" /></Button></div></div>)}</Card> })}
+                    {sessions.filter(s => s.patientId === selectedPatient.id).map(s => { const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="border border-slate-200 dark:border-slate-800 p-3">{editingSessionId === s.id ? (<div className="space-y-2 p-2 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-300"><div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px]">السعر</Label><Input type="number" value={editSessionForm.price} onChange={e => setEditSessionForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div><div><Label className="text-[10px]">الحالة</Label><Select value={editSessionForm.status} onValueChange={val => setEditSessionForm(f => ({ ...f, status: val }))}><SelectTrigger className="rounded-xl h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">مجدولة</SelectItem><SelectItem value="completed">مكتملة</SelectItem><SelectItem value="cancelled">ملغاة</SelectItem></SelectContent></Select></div></div><Input value={editSessionForm.notes} onChange={e => setEditSessionForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-8 text-xs" /><div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white text-xs h-7" onClick={async () => { try { const newPrice = parseFloat(editSessionForm.price) || s.price; await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined }) }); const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر')); if (relatedTx && newPrice !== s.price) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, amount: newPrice } : t)); } setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined } : ss)); setEditingSessionId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditingSessionId(null)}>إلغاء</Button></div></div>) : (<div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className={cn('p-2 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={14} /> : <Clock className="text-amber-600" size={14} />}</div><div><p className="font-bold text-xs">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[8px]">{s.status === 'completed' ? 'مكتملة' : s.status === 'cancelled' ? 'ملغاة' : 'مجدولة'}</Badge>{s.paid ? <span className="text-[8px] text-emerald-600 font-bold">مدفوعة</span> : <span className="text-[8px] text-amber-600 font-bold">غير مدفوعة</span>}</div>{s.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{s.notes}</p>}</div></div><div className="flex items-center gap-1"><div className="text-left"><p className="font-black text-xs text-orange-600">{formatCurrency(s.price)}</p><p className="text-[9px] text-muted-foreground">{formatDate(s.date)}</p>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-1.5 py-0.5 rounded bg-emerald-500 text-white text-[8px] font-bold mt-0.5">دفع</motion.button>}</div><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingSessionId(s.id); setEditSessionForm({ price: String(s.price), notes: s.notes || '', status: s.status, paid: s.paid }) }}><Edit3 size={9} className="text-orange-500" /></Button><Button variant="ghost" size="icon" className="h-5 w-5" onClick={async () => { try { const sDateStr = s.date ? new Date(s.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) : ''; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر') && t.amount === s.price && (sDateStr ? new Date(t.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) === sDateStr : true)); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); setSessions(prev => prev.filter(ss => ss.id !== s.id)); toast.success('تم الحذف') } catch { toast.error('خطأ') } }}><Trash2 size={9} className="text-red-500" /></Button></div></div>)}</Card> })}
                   </TabsContent>
 
                   {/* ═══ LASER ═══ */}
@@ -2342,7 +2393,7 @@ export default function Home() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-sm">{formatCurrency(s.price)}</span>
-                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-200">دفع</motion.button>}
+                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-200">دفع</motion.button>}
                               </div>
                             </div>
                           </Card>
@@ -2430,7 +2481,7 @@ export default function Home() {
                     </CardContent></Card>
                     {/* Unpaid Dues */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
-                      {laserHairSessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة ليزر'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
+                      {laserHairSessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة ليزر'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
                       {laserHairSessions.filter(s => !s.paid).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
                     </CardContent></Card>
                     </>) })()}
@@ -3004,7 +3055,7 @@ export default function Home() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-black text-sm bg-gradient-to-l from-violet-600 to-purple-600 bg-clip-text text-transparent">{formatCurrency(s.price)}</span>
-                                  {!s.paid && <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.05 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-3 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md hover:shadow-lg transition-shadow">💰 دفع</motion.button>}
+                                  {!s.paid && <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.05 }} onClick={() => markSessionPaid(s)} className="px-3 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md hover:shadow-lg transition-shadow">💰 دفع</motion.button>}
                                 </div>
                               </motion.div>
                             )
@@ -3043,7 +3094,7 @@ export default function Home() {
                               <div className="flex items-center gap-2">
                                 <span className="font-black text-sm">{formatCurrency(s.price)}</span>
                                 <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => { const pt = patients.find(pp => pp.id === s.patientId); if (pt) { setSelectedPatient(pt); setActiveTab('patients') } }}><Eye size={10} /></Button>
-                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
+                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
                               </div>
                             </motion.div>
                           )
@@ -3072,7 +3123,7 @@ export default function Home() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-red-600">{formatCurrency(s.price)}</span>
-                                  <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss)); toast.success('تم الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2.5 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md">تأكيد الدفع</motion.button>
+                                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2.5 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md">تأكيد الدفع</motion.button>
                                 </div>
                               </motion.div>
                             )
@@ -3749,7 +3800,7 @@ export default function Home() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-900/20"><p className="text-xs text-muted-foreground">سجلات نشطة</p><p className="text-lg font-bold text-cyan-600">{laserRecords.filter(r => r.status === 'active').length}</p></div>
                       <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-lg font-bold text-violet-600">{laserRecords.filter(r => r.status === 'completed').length}</p></div>
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إيراد الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(sessionRevenue)}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">إيراد الليزر</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(laserRevenue)}</p></div>
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">مرضى الليزر</p><p className="text-lg font-bold text-blue-600">{new Set(laserRecords.map(r => r.patientId)).size}</p></div>
                     </div>
                   </CardContent></Card>
@@ -3817,6 +3868,84 @@ export default function Home() {
 
                 {/* Backup Sub-tab */}
                 {moreSubTab === 'backup' && (<div className="space-y-4">
+                  {/* Patient Data Copy Section */}
+                  <Card className="card-luxury border-2 border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-cyan-50/50 dark:from-teal-950/20 dark:to-cyan-950/20">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck size={20} className="text-teal-600" /> نسخ بيانات المرضى</CardTitle><CardDescription>نسخ بيانات المريض بسهولة (الاسم، العنوان، التشخيص، الملاحظات)</CardDescription></CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-500" />
+                          <Input placeholder="بحث عن مريض بالاسم أو رقم الملف..." className="input-luxury rounded-xl h-10 pr-9 border-teal-200 dark:border-teal-800 focus:border-teal-500" value={patientCopySearch} onChange={e => setPatientCopySearch(e.target.value)} />
+                        </div>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={async () => {
+                          const allText = patients.filter(p => {
+                            if (!patientCopySearch.trim()) return true
+                            const q = patientCopySearch.toLowerCase()
+                            return p.name.toLowerCase().includes(q) || p.fileNumber?.toLowerCase().includes(q) || p.phone?.includes(q)
+                          }).slice(0, 100).map(p => {
+                            const pv = visits.filter(v => v.patientId === p.id)
+                            const diag = pv.length > 0 ? pv[pv.length - 1]?.diagnosis || '' : ''
+                            return `الاسم: ${p.name}${p.address ? ' | العنوان: ' + p.address : ''}${diag ? ' | التشخيص: ' + diag : ''}${p.notes ? ' | الملاحظات: ' + p.notes : ''}`
+                          }).join('\n')
+                          if (!allText) return toast.error('لا توجد بيانات للنسخ')
+                          try { await navigator.clipboard.writeText(allText); toast.success('تم نسخ بيانات جميع المرضى ✓') } catch {
+                            const textarea = document.createElement('textarea'); textarea.value = allText; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); toast.success('تم نسخ بيانات جميع المرضى ✓')
+                          }
+                        }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-xs font-bold hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-all whitespace-nowrap">
+                          <Copy size={14} /> نسخ الكل
+                        </motion.button>
+                      </div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {patients.filter(p => {
+                          if (!patientCopySearch.trim()) return true
+                          const q = patientCopySearch.toLowerCase()
+                          return p.name.toLowerCase().includes(q) || p.fileNumber?.toLowerCase().includes(q) || p.phone?.includes(q)
+                        }).slice(0, 50).map(p => {
+                          const patientVisits = visits.filter(v => v.patientId === p.id)
+                          const latestDiagnosis = patientVisits.length > 0 ? patientVisits[patientVisits.length - 1]?.diagnosis || '' : ''
+                          const copyText = `الاسم: ${p.name}${p.address ? '\nالعنوان: ' + p.address : ''}${latestDiagnosis ? '\nالتشخيص: ' + latestDiagnosis : ''}${p.notes ? '\nالملاحظات: ' + p.notes : ''}`
+                          const wp = p.phone ? waPhone(p.phone) : ''
+                          return (
+                            <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-teal-100 dark:border-teal-900/50 hover:border-teal-300 dark:hover:border-teal-700 transition-all">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold truncate">{p.name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{p.address || 'لا يوجد عنوان'} {latestDiagnosis && `| ${latestDiagnosis}`}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {wp && <motion.button whileTap={{ scale: 0.9 }} onClick={() => {
+                                  const msg = encodeURIComponent(copyText)
+                                  window.open(`https://wa.me/${wp}?text=${msg}`, '_blank')
+                                }} className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold hover:bg-green-200 dark:hover:bg-green-900/50 transition-all">
+                                  <Send size={10} /> واتساب
+                                </motion.button>}
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(copyText)
+                                    toast.success(`تم نسخ بيانات ${p.name} ✓`)
+                                  } catch {
+                                    const textarea = document.createElement('textarea')
+                                    textarea.value = copyText
+                                    document.body.appendChild(textarea)
+                                    textarea.select()
+                                    document.execCommand('copy')
+                                    document.body.removeChild(textarea)
+                                    toast.success(`تم نسخ بيانات ${p.name} ✓`)
+                                  }
+                                }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-xs font-bold hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-all">
+                                  <Copy size={10} /> نسخ
+                                </motion.button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {patients.length === 0 && <div className="text-center py-6 text-muted-foreground"><Users size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm">لا يوجد مرضى</p></div>}
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-[10px] text-muted-foreground">
+                        <span>يتم نسخ: الاسم + العنوان + التشخيص + الملاحظات</span>
+                        <Badge variant="outline" className="text-[9px] border-teal-300 text-teal-600">{patients.length} مريض</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Database size={20} /> النسخ الاحتياطي</CardTitle></CardHeader><CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30"><Timer className="text-blue-600" size={18} /></div><div><p className="font-medium text-sm">نسخ تلقائي</p><p className="text-xs text-muted-foreground">كل فترة محددة</p></div></div><Switch checked={autoBackup} onCheckedChange={setAutoBackup} /></div>
                     {autoBackup && <Select value={String(backupInterval)} onValueChange={v => setBackupInterval(Number(v))}><SelectTrigger className="w-40 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="15">15 دقيقة</SelectItem><SelectItem value="30">30 دقيقة</SelectItem><SelectItem value="60">ساعة</SelectItem><SelectItem value="360">6 ساعات</SelectItem><SelectItem value="1440">يومياً</SelectItem></SelectContent></Select>}
@@ -3937,8 +4066,8 @@ export default function Home() {
                       <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
                         <div className="flex items-center gap-2"><span className="text-lg">{s.emoji}</span><div><p className="text-sm font-medium">{s.label}</p><p className="text-[9px] text-muted-foreground">{(sectionPasswords as Record<string,string>)[s.key] ? 'محمي بكلمة سر' : 'غير محمي'}</p></div></div>
                         <div className="flex items-center gap-2">
-                          <Input type="password" value={(sectionPasswords as Record<string,string>)[s.key] || ''} onChange={e => setSectionPasswords(prev => ({ ...prev, [s.key]: e.target.value }))} placeholder="كلمة السر" className="w-28 h-8 text-xs rounded-lg" />
-                          {(sectionPasswords as Record<string,string>)[s.key] && <Button variant="ghost" size="sm" className="h-8 text-[10px] text-red-500" onClick={() => setSectionPasswords(prev => ({ ...prev, [s.key]: '' }))}>إلغاء</Button>}
+                          <Input type="password" value={(sectionPasswords as Record<string,string>)[s.key] || ''} onChange={e => setSectionPasswords({ ...sectionPasswords, [s.key]: e.target.value })} placeholder="كلمة السر" className="w-28 h-8 text-xs rounded-lg" />
+                          {(sectionPasswords as Record<string,string>)[s.key] && <Button variant="ghost" size="sm" className="h-8 text-[10px] text-red-500" onClick={() => setSectionPasswords({ ...sectionPasswords, [s.key]: '' })}>إلغاء</Button>}
                         </div>
                       </div>
                     ))}

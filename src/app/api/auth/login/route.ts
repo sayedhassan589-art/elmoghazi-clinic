@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // Server-side password verification - never exposed to client
-const VALID_PASSWORD = '1300'
+const VALID_PASSWORD = '2137'
 
 export async function POST(request: Request) {
   try {

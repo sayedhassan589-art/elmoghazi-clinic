@@ -36,6 +36,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Get backup type from request body
+    let backupType = 'manual'
+    try {
+      const body = await request.clone().json()
+      if (body?.type) backupType = body.type
+    } catch {}
+
     // Serialize all data as JSON for backup
     const [
       users,
@@ -131,7 +138,7 @@ export async function POST(request: Request) {
 
     const backup = await db.backup.create({
       data: {
-        type: 'manual',
+        type: backupType,
         size: backupData.length,
         status: 'completed',
         data: backupData,
@@ -153,7 +160,7 @@ export async function POST(request: Request) {
     try {
       await db.backup.create({
         data: {
-          type: 'manual',
+          type: backupType,
           size: 0,
           status: 'failed',
           data: '{}',

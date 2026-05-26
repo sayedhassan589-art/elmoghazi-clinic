@@ -62,12 +62,14 @@ interface ClinicSettingsState {
   autoBackup: boolean
   backupInterval: number // in minutes
   lastBackup: string | null
+  sectionPasswords: Record<string, string>
   setTheme: (theme: ClinicTheme) => void
   setActiveTab: (tab: string) => void
   setStatusColors: (colors: StatusColorConfig) => void
   setAutoBackup: (enabled: boolean) => void
   setBackupInterval: (minutes: number) => void
   setLastBackup: (date: string) => void
+  setSectionPasswords: (passwords: Record<string, string>) => void
 }
 
 // ─── Auth Store ──────────────────────────────────────────────────────────────
@@ -108,12 +110,14 @@ export const useClinicStore = create<ClinicSettingsState>()(
       autoBackup: false,
       backupInterval: 60,
       lastBackup: null,
+      sectionPasswords: {},
       setTheme: (theme: ClinicTheme) => set({ theme }),
       setActiveTab: (tab: string) => set({ activeTab: tab }),
       setStatusColors: (colors: StatusColorConfig) => set({ statusColors: colors }),
       setAutoBackup: (enabled: boolean) => set({ autoBackup: enabled }),
       setBackupInterval: (minutes: number) => set({ backupInterval: minutes }),
       setLastBackup: (date: string) => set({ lastBackup: date }),
+      setSectionPasswords: (passwords: Record<string, string>) => set({ sectionPasswords: passwords }),
     }),
     {
       name: 'elmoghazi-clinic-settings',
