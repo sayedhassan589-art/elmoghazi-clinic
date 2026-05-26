@@ -3868,34 +3868,105 @@ export default function Home() {
 
                 {/* Backup Sub-tab */}
                 {moreSubTab === 'backup' && (<div className="space-y-4">
-                  {/* Patient Data Copy Section */}
+                  {/* Patient Data Copy Section - CSV & JSON Export */}
                   <Card className="card-luxury border-2 border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-cyan-50/50 dark:from-teal-950/20 dark:to-cyan-950/20">
-                    <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck size={20} className="text-teal-600" /> نسخ بيانات المرضى</CardTitle><CardDescription>نسخ بيانات المريض بسهولة (الاسم، العنوان، التشخيص، الملاحظات)</CardDescription></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck size={20} className="text-teal-600" /> نسخ بيانات المرضى</CardTitle><CardDescription>تصدير بيانات المرضى بصيغة CSV أو JSON (الاسم، العنوان، التشخيص، الملاحظات)</CardDescription></CardHeader>
                     <CardContent className="space-y-3">
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-500" />
-                          <Input placeholder="بحث عن مريض بالاسم أو رقم الملف..." className="input-luxury rounded-xl h-10 pr-9 border-teal-200 dark:border-teal-800 focus:border-teal-500" value={patientCopySearch} onChange={e => setPatientCopySearch(e.target.value)} />
-                        </div>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={async () => {
-                          const allText = patients.filter(p => {
+                      {/* Search */}
+                      <div className="relative">
+                        <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-500" />
+                        <Input placeholder="بحث عن مريض بالاسم أو رقم الملف أو الموبايل..." className="input-luxury rounded-xl h-10 pr-9 border-teal-200 dark:border-teal-800 focus:border-teal-500" value={patientCopySearch} onChange={e => setPatientCopySearch(e.target.value)} />
+                      </div>
+                      {/* Export Buttons */}
+                      <div className="flex gap-2 flex-wrap">
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
+                          const filtered = patients.filter(p => {
                             if (!patientCopySearch.trim()) return true
                             const q = patientCopySearch.toLowerCase()
                             return p.name.toLowerCase().includes(q) || p.fileNumber?.toLowerCase().includes(q) || p.phone?.includes(q)
-                          }).slice(0, 100).map(p => {
+                          })
+                          if (filtered.length === 0) return toast.error('لا توجد بيانات للتصدير')
+                          const headers = ['رقم الملف', 'الاسم', 'الموبايل', 'الموبايل ٢', 'العنوان', 'العمر', 'الجنس', 'التشخيص', 'الملاحظات', 'الحساسية', 'التاريخ المرضي', 'تاريخ التسجيل']
+                          const rows = filtered.map(p => {
+                            const pv = visits.filter(v => v.patientId === p.id)
+                            const diag = pv.length > 0 ? pv[pv.length - 1]?.diagnosis || '' : ''
+                            return [
+                              p.fileNumber || '',
+                              p.name || '',
+                              p.phone || '',
+                              p.phone2 || '',
+                              p.address || '',
+                              p.age?.toString() || '',
+                              p.gender || '',
+                              diag,
+                              p.notes || '',
+                              p.allergies || '',
+                              p.medicalHistory || '',
+                              p.createdAt ? formatDate(p.createdAt) : ''
+                            ].map(v => `"${(v || '').replace(/"/g, '""')}"`)
+                          })
+                          const csv = '\uFEFF' + headers.map(h => `"${h}"`).join(',') + '\n' + rows.map(r => r.join(',')).join('\n')
+                          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-patients-${todayStr}.csv`; a.click(); URL.revokeObjectURL(url)
+                          toast.success(`تم تصدير ${filtered.length} مريض بصيغة CSV ✓`)
+                        }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-l from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-lg hover:shadow-xl transition-all">
+                          <FileDown size={14} /> تصدير CSV
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
+                          const filtered = patients.filter(p => {
+                            if (!patientCopySearch.trim()) return true
+                            const q = patientCopySearch.toLowerCase()
+                            return p.name.toLowerCase().includes(q) || p.fileNumber?.toLowerCase().includes(q) || p.phone?.includes(q)
+                          })
+                          if (filtered.length === 0) return toast.error('لا توجد بيانات للتصدير')
+                          const jsonData = filtered.map(p => {
+                            const pv = visits.filter(v => v.patientId === p.id)
+                            const diag = pv.length > 0 ? pv[pv.length - 1]?.diagnosis || '' : ''
+                            return {
+                              fileNumber: p.fileNumber || '',
+                              name: p.name,
+                              phone: p.phone || '',
+                              phone2: p.phone2 || '',
+                              address: p.address || '',
+                              age: p.age || null,
+                              gender: p.gender || '',
+                              diagnosis: diag,
+                              notes: p.notes || '',
+                              allergies: p.allergies || '',
+                              medicalHistory: p.medicalHistory || '',
+                              createdAt: p.createdAt || ''
+                            }
+                          })
+                          const json = JSON.stringify({ exportedAt: new Date().toISOString(), totalPatients: jsonData.length, patients: jsonData }, null, 2)
+                          const blob = new Blob([json], { type: 'application/json;charset=utf-8;' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-patients-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+                          toast.success(`تم تصدير ${filtered.length} مريض بصيغة JSON ✓`)
+                        }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-l from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-lg hover:shadow-xl transition-all">
+                          <FileDown size={14} /> تصدير JSON
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={async () => {
+                          const filtered = patients.filter(p => {
+                            if (!patientCopySearch.trim()) return true
+                            const q = patientCopySearch.toLowerCase()
+                            return p.name.toLowerCase().includes(q) || p.fileNumber?.toLowerCase().includes(q) || p.phone?.includes(q)
+                          })
+                          if (filtered.length === 0) return toast.error('لا توجد بيانات للنسخ')
+                          const allText = filtered.map(p => {
                             const pv = visits.filter(v => v.patientId === p.id)
                             const diag = pv.length > 0 ? pv[pv.length - 1]?.diagnosis || '' : ''
                             return `الاسم: ${p.name}${p.address ? ' | العنوان: ' + p.address : ''}${diag ? ' | التشخيص: ' + diag : ''}${p.notes ? ' | الملاحظات: ' + p.notes : ''}`
                           }).join('\n')
-                          if (!allText) return toast.error('لا توجد بيانات للنسخ')
                           try { await navigator.clipboard.writeText(allText); toast.success('تم نسخ بيانات جميع المرضى ✓') } catch {
-                            const textarea = document.createElement('textarea'); textarea.value = allText; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); toast.success('تم نسخ بيانات جميع المرضى ✓')
+                            const ta = document.createElement('textarea'); ta.value = allText; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast.success('تم نسخ بيانات جميع المرضى ✓')
                           }
-                        }} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-xs font-bold hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-all whitespace-nowrap">
-                          <Copy size={14} /> نسخ الكل
+                        }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-l from-teal-400 to-cyan-500 text-white text-xs font-bold shadow-lg hover:shadow-xl transition-all">
+                          <Copy size={14} /> نسخ نصي
                         </motion.button>
                       </div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {/* Patient List */}
+                      <div className="space-y-2 max-h-72 overflow-y-auto">
                         {patients.filter(p => {
                           if (!patientCopySearch.trim()) return true
                           const q = patientCopySearch.toLowerCase()
@@ -3908,31 +3979,29 @@ export default function Home() {
                           return (
                             <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-teal-100 dark:border-teal-900/50 hover:border-teal-300 dark:hover:border-teal-700 transition-all">
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold truncate">{p.name}</p>
-                                <p className="text-[10px] text-muted-foreground truncate">{p.address || 'لا يوجد عنوان'} {latestDiagnosis && `| ${latestDiagnosis}`}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-bold truncate">{p.name}</p>
+                                  <Badge variant="outline" className="text-[8px] h-4 border-teal-300 text-teal-600">{p.fileNumber}</Badge>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                  {p.phone && <span>📞 {p.phone}</span>}
+                                  {p.address && <span className="mr-2">📍 {p.address}</span>}
+                                  {latestDiagnosis && <span className="mr-2">🩺 {latestDiagnosis}</span>}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1">
                                 {wp && <motion.button whileTap={{ scale: 0.9 }} onClick={() => {
                                   const msg = encodeURIComponent(copyText)
                                   window.open(`https://wa.me/${wp}?text=${msg}`, '_blank')
-                                }} className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold hover:bg-green-200 dark:hover:bg-green-900/50 transition-all">
-                                  <Send size={10} /> واتساب
+                                }} className="h-7 w-7 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 transition-all" title="إرسال واتساب">
+                                  <Send size={12} />
                                 </motion.button>}
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(copyText)
-                                    toast.success(`تم نسخ بيانات ${p.name} ✓`)
-                                  } catch {
-                                    const textarea = document.createElement('textarea')
-                                    textarea.value = copyText
-                                    document.body.appendChild(textarea)
-                                    textarea.select()
-                                    document.execCommand('copy')
-                                    document.body.removeChild(textarea)
-                                    toast.success(`تم نسخ بيانات ${p.name} ✓`)
+                                  try { await navigator.clipboard.writeText(copyText); toast.success(`تم نسخ بيانات ${p.name} ✓`) } catch {
+                                    const ta = document.createElement('textarea'); ta.value = copyText; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast.success(`تم نسخ بيانات ${p.name} ✓`)
                                   }
-                                }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-xs font-bold hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-all">
-                                  <Copy size={10} /> نسخ
+                                }} className="h-7 w-7 rounded-lg flex items-center justify-center bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-200 transition-all" title="نسخ البيانات">
+                                  <Copy size={12} />
                                 </motion.button>
                               </div>
                             </div>
@@ -3941,8 +4010,12 @@ export default function Home() {
                         {patients.length === 0 && <div className="text-center py-6 text-muted-foreground"><Users size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm">لا يوجد مرضى</p></div>}
                       </div>
                       <div className="flex items-center justify-between p-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-[10px] text-muted-foreground">
-                        <span>يتم نسخ: الاسم + العنوان + التشخيص + الملاحظات</span>
-                        <Badge variant="outline" className="text-[9px] border-teal-300 text-teal-600">{patients.length} مريض</Badge>
+                        <span>يتم التصدير: رقم الملف + الاسم + الموبايل + العنوان + التشخيص + الملاحظات + الحساسية + التاريخ المرضي</span>
+                        <Badge variant="outline" className="text-[9px] border-teal-300 text-teal-600">{patients.filter(p => {
+                          if (!patientCopySearch.trim()) return true
+                          const q = patientCopySearch.toLowerCase()
+                          return p.name.toLowerCase().includes(q) || p.fileNumber?.toLowerCase().includes(q) || p.phone?.includes(q)
+                        }).length} مريض</Badge>
                       </div>
                     </CardContent>
                   </Card>
