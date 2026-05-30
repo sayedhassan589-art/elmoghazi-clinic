@@ -4148,16 +4148,40 @@ export default function Home() {
 
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><RefreshCw size={20} className="text-blue-500" /> حالة المزامنة</CardTitle></CardHeader><CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="text-xl">🔄</motion.div><div><p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">متصل</p><p className="text-[9px] text-muted-foreground">قاعدة البيانات محلية (SQLite)</p></div></div>
+                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="text-xl">🔄</motion.div><div><p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">متصل</p><p className="text-[9px] text-muted-foreground">CockroachDB - سحابي (Vercel)</p></div></div>
                       <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">نشط ✓</Badge>
+                    </div>
+                    {/* Database Details */}
+                    <div className="space-y-2 p-3 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
+                      <div className="flex items-center gap-2 mb-2"><Database size={14} className="text-blue-500" /><p className="text-xs font-bold text-blue-700 dark:text-blue-300">تفاصيل قاعدة البيانات</p></div>
+                      <div className="grid grid-cols-1 gap-1.5 text-[10px]">
+                        <div className="flex justify-between p-1.5 rounded-lg bg-white/60 dark:bg-black/10"><span className="text-muted-foreground">نوع القاعدة</span><span className="font-bold">CockroachDB (سحابي)</span></div>
+                        <div className="flex justify-between p-1.5 rounded-lg bg-white/60 dark:bg-black/10"><span className="text-muted-foreground">المزود</span><span className="font-bold">Vercel Postgres</span></div>
+                        <div className="flex justify-between p-1.5 rounded-lg bg-white/60 dark:bg-black/10"><span className="text-muted-foreground">الموقع</span><span className="font-bold">سحابي (أونلاين)</span></div>
+                        <div className="flex justify-between p-1.5 rounded-lg bg-white/60 dark:bg-black/10"><span className="text-muted-foreground">المزامنة</span><span className="font-bold text-emerald-600">تلقائية (فوري)</span></div>
+                        <div className="flex justify-between p-1.5 rounded-lg bg-white/60 dark:bg-black/10"><span className="text-muted-foreground">الإتصال</span><span className="font-bold text-emerald-600">HTTPS مشفر</span></div>
+                      </div>
+                    </div>
+                    {/* How Sync Works */}
+                    <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
+                      <div className="flex items-center gap-2 mb-2"><Lightbulb size={14} className="text-amber-500" /><p className="text-xs font-bold text-amber-700 dark:text-amber-300">كيف تعمل المزامنة؟</p></div>
+                      <div className="space-y-1.5 text-[10px] text-muted-foreground">
+                        <p>• البيانات محفوظة على السحابة مباشرة في قاعدة CockroachDB</p>
+                        <p>• أي تعديل من أي جهاز يتحدث فوراً في القاعدة السحابية</p>
+                        <p>• لما تفتح التطبيق من أي جهاز تاني، بتحمل أحدث البيانات تلقائي</p>
+                        <p>• النسخ الاحتياطي بيعمل نسخة من كل البيانات ويحفظها في القاعدة</p>
+                        <p>• ممكن تصدر نسخة احتياطية كملف JSON أو CSV وتحمّلها على جهازك</p>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center"><p className="text-[9px] text-muted-foreground">المرضى</p><p className="text-sm font-bold text-blue-600">{patients.length}</p></div>
                       <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-center"><p className="text-[9px] text-muted-foreground">الزيارات</p><p className="text-sm font-bold text-violet-600">{visits.length}</p></div>
                       <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-center"><p className="text-[9px] text-muted-foreground">الجلسات</p><p className="text-sm font-bold text-orange-600">{sessions.length}</p></div>
                       <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-center"><p className="text-[9px] text-muted-foreground">المعاملات</p><p className="text-sm font-bold text-emerald-600">{transactions.length}</p></div>
+                      <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center"><p className="text-[9px] text-muted-foreground">سجلات الليزر</p><p className="text-sm font-bold text-purple-600">{laserRecords.length}</p></div>
+                      <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-center"><p className="text-[9px] text-muted-foreground">المتابعات</p><p className="text-sm font-bold text-cyan-600">{followUpRecords.length}</p></div>
                     </div>
-                    {lastBackup && <p className="text-[10px] text-muted-foreground text-center">آخر مزامنة: {formatDate(lastBackup)}</p>}
+                    {lastBackup && <p className="text-[10px] text-muted-foreground text-center">آخر نسخة احتياطية: {formatDate(lastBackup)}</p>}
                   </CardContent></Card>
 
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Palette size={20} /> ألوان التطبيق</CardTitle><CardDescription>10 ألوان مميزة</CardDescription></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <motion.button key={tc.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</motion.button>)}</div></CardContent></Card>
