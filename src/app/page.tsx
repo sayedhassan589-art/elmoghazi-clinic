@@ -447,6 +447,9 @@ export default function Home() {
   const [editingPersonalNoteContent, setEditingPersonalNoteContent] = useState('')
   const [personalTxnFilter, setPersonalTxnFilter] = useState<'all' | 'income' | 'expense'>('all')
   const [personalTxnCategoryFilter, setPersonalTxnCategoryFilter] = useState('all')
+  const [personalDateFrom, setPersonalDateFrom] = useState('')
+  const [personalDateTo, setPersonalDateTo] = useState('')
+  const [reportPeriod, setReportPeriod] = useState<'all' | 'weekly' | 'monthly'>('all')
   const [celebratingPersonalId, setCelebratingPersonalId] = useState<string | null>(null)
 
   // Follow-up System States
@@ -570,8 +573,27 @@ export default function Home() {
   const PERSONAL_EXPENSE_CATS = ['طعام', 'مواصلات', 'سكن', 'ترفيه', 'صحة', 'تعليم', 'ملابس', 'فواتير', 'أخرى']
   const PERSONAL_REMINDER_TYPES = ['شخصي', 'عمل', 'عائلي', 'صحي', 'مالي', 'مهم', 'أخرى']
 
-  const personalTotalIncome = useMemo(() => personalTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
-  const personalTotalExpense = useMemo(() => personalTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+  const personalTotalIncomeAll = useMemo(() => personalTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+  const personalTotalExpenseAll = useMemo(() => personalTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+
+  const filteredPersonalTxns = useMemo(() => {
+    return personalTransactions.filter(t => {
+      if (personalTxnFilter !== 'all' && t.type !== personalTxnFilter) return false
+      if (personalTxnCategoryFilter !== 'all' && t.category !== personalTxnCategoryFilter) return false
+      if (personalDateFrom) {
+        const tDate = getLocalDateStr(t.date)
+        if (tDate < personalDateFrom) return false
+      }
+      if (personalDateTo) {
+        const tDate = getLocalDateStr(t.date)
+        if (tDate > personalDateTo) return false
+      }
+      return true
+    })
+  }, [personalTransactions, personalTxnFilter, personalTxnCategoryFilter, personalDateFrom, personalDateTo])
+
+  const personalTotalIncome = useMemo(() => filteredPersonalTxns.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [filteredPersonalTxns])
+  const personalTotalExpense = useMemo(() => filteredPersonalTxns.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [filteredPersonalTxns])
   const personalNetBalance = personalTotalIncome - personalTotalExpense
 
   const personalMonthlyChart = useMemo(() => {
@@ -586,14 +608,6 @@ export default function Home() {
     })
     return Object.values(months).sort((a, b) => a.month.localeCompare(b.month)).slice(-6)
   }, [personalTransactions])
-
-  const filteredPersonalTxns = useMemo(() => {
-    return personalTransactions.filter(t => {
-      if (personalTxnFilter !== 'all' && t.type !== personalTxnFilter) return false
-      if (personalTxnCategoryFilter !== 'all' && t.category !== personalTxnCategoryFilter) return false
-      return true
-    })
-  }, [personalTransactions, personalTxnFilter, personalTxnCategoryFilter])
 
   const personalSearchResults = useMemo(() => {
     if (!personalSearchQuery.trim()) return []
@@ -1584,32 +1598,64 @@ export default function Home() {
             {/* ═══ PATIENTS ═══ */}
             {activeTab === 'patients' && !selectedPatient && (
               <div className="space-y-5">
-                <div className="section-header-animated rounded-2xl bg-blue-50 dark:bg-blue-950/30">
+                <div className="section-header-animated rounded-2xl bg-gradient-to-l from-blue-50 via-indigo-50 to-violet-50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-violet-950/30 relative overflow-hidden">
+                  {/* Floating decorative dots */}
+                  <div className="float-dot w-3 h-3 bg-blue-400 dark:bg-blue-500 top-3 right-10" style={{animationDelay: '0s'}} />
+                  <div className="float-dot w-2 h-2 bg-indigo-400 dark:bg-indigo-500 top-8 right-24" style={{animationDelay: '1s'}} />
+                  <div className="float-dot w-4 h-4 bg-violet-300 dark:bg-violet-600 bottom-3 left-16" style={{animationDelay: '2s'}} />
+                  <div className="float-dot w-2 h-2 bg-pink-400 dark:bg-pink-500 bottom-6 left-8" style={{animationDelay: '0.5s'}} />
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">👥</motion.div><div><h1 className="text-2xl font-bold">إدارة المرضى</h1><p className="text-muted-foreground text-sm">{patients.length} مريض</p></div></div>
-                    <Button className="btn-luxury bg-gradient-to-l from-blue-600 to-blue-700 text-white shadow-lg" onClick={() => setShowAddPatient(true)}><UserPlus size={16} className="ml-2" /> تسجيل مريض</Button>
+                    <div className="flex items-center gap-4">
+                      <div className="header-3d-icon">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/30" style={{transformStyle: 'preserve-3d'}}>
+                          <Users size={28} className="text-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <h1 className="text-2xl font-bold">إدارة المرضى</h1>
+                        <p className="text-sm"><span className="patient-count-animated font-black text-lg">{patients.length}</span> <span className="text-muted-foreground">مريض</span></p>
+                      </div>
+                    </div>
+                    <Button className="btn-luxury bg-gradient-to-l from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-shadow" onClick={() => setShowAddPatient(true)}>
+                      <UserPlus size={16} className="ml-2" /> تسجيل مريض
+                    </Button>
                   </div>
                 </div>
                 {/* Search + Filter Buttons */}
                 <div className="space-y-2">
                   <div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} /><Input placeholder="بحث بالاسم أو الهاتف أو رقم الملف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 input-luxury rounded-xl h-12" /></div>
                   <div className="flex items-center gap-2">
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ الحالات المميزة</motion.button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</motion.button>
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
                     {patientFilter !== 'all' && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPatientFilter('all')}>إلغاء الفلتر</Button>}
                   </div>
                 </div>
                 <div className="space-y-2">
                   {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : 'لا توجد نتائج'}</p></Card>}
-                  {filteredPatients.map(p => (
-                    <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="section-card p-4 cursor-pointer" onClick={() => setSelectedPatient(p)}>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12 border-2" style={{ borderColor: p.colorTag || (p.gender === 'female' ? '#ec4899' : '#3b82f6') }}><AvatarFallback className="bg-blue-500/10 text-blue-600 font-bold">{p.name?.charAt(0)}</AvatarFallback></Avatar>
-                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="font-bold truncate">{safeName(p.name)}</p>{p.starred && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}>⭐</motion.span>}{p.improved && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity, repeatDelay: 2, delay: 0.5 }}>💗</motion.span>}</div><div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="flex items-center gap-1"><Hash size={10} />{p.fileNumber}</span>{p.phone && <span className="flex items-center gap-1"><Phone size={10} />{p.phone}</span>}{p.age && <span>{p.age} سنة</span>}</div></div>
-                        {p.gender && <Badge className="text-[10px] bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">{p.gender}</Badge>}
-                      </div>
-                    </motion.div>
-                  ))}
+                  {filteredPatients.map(p => {
+                    const stripeGradient = p.gender === 'female' ? 'bg-gradient-to-b from-pink-400 to-rose-500' : p.gender === 'male' ? 'bg-gradient-to-b from-blue-400 to-indigo-500' : 'bg-gradient-to-b from-gray-400 to-gray-500'
+                    return (
+                      <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="patient-card-3d rounded-2xl border border-border bg-card text-card-foreground p-4 cursor-pointer relative" onClick={() => setSelectedPatient(p)}>
+                        <div className={`patient-stripe ${stripeGradient}`} />
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12 border-2 shadow-md" style={{ borderColor: p.colorTag || (p.gender === 'female' ? '#ec4899' : '#3b82f6') }}><AvatarFallback className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 font-bold text-lg">{p.name?.charAt(0)}</AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold truncate">{safeName(p.name)}</p>
+                              {p.starred && <span className="badge-glow text-amber-500 text-sm">⭐</span>}
+                              {p.improved && <span className="badge-glow text-pink-500 text-sm" style={{animationDelay: '0.5s'}}>💗</span>}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                              <span className="flex items-center gap-1 icon-3d px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px]"><Hash size={9} />{p.fileNumber}</span>
+                              {p.phone && <span className="flex items-center gap-1 icon-3d px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px]"><Phone size={9} />{p.phone}</span>}
+                              {p.age && <span className="flex items-center gap-1 icon-3d px-1.5 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 text-[10px]">🎂 {p.age} سنة</span>}
+                            </div>
+                          </div>
+                          {p.gender && <Badge className={cn('text-[10px] font-bold', p.gender === 'female' ? 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 dark:from-pink-900/30 dark:to-rose-900/30 dark:text-pink-400' : 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400')}>{p.gender === 'female' ? '♀' : '♂'} {p.gender}</Badge>}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
                 </div>
                 {renderQuickNotes('patients')}
               </div>
@@ -3864,6 +3910,202 @@ export default function Home() {
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp size={18} className="text-emerald-600" /> الإيرادات الأسبوعية</CardTitle></CardHeader><CardContent>
                     <ResponsiveContainer width="100%" height={260}><BarChart data={revenueChartData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} /><YAxis stroke="var(--muted-foreground)" fontSize={12} /><RechartsTooltip /><Bar dataKey="إيراد" fill="#047857" radius={[4,4,0,0]} /><Bar dataKey="مصروف" fill="#D4A843" radius={[4,4,0,0]} /></BarChart></ResponsiveContainer>
                   </CardContent></Card>
+
+                  {/* ═══ NEW: Most Common Session Types ═══ */}
+                  <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Zap size={18} className="text-violet-600" /> أكثر أنواع الجلسات</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {(() => {
+                        const sessionByType: Record<string, { count: number; revenue: number }> = {}
+                        sessions.forEach(s => {
+                          const svc = services.find(sv => sv.id === s.serviceId)
+                          const label = svc?.name || s.notes?.split('|')[0]?.trim() || 'جلسة عامة'
+                          if (!sessionByType[label]) sessionByType[label] = { count: 0, revenue: 0 }
+                          sessionByType[label].count++
+                          if (s.paid) sessionByType[label].revenue += s.price || 0
+                        })
+                        const sorted = Object.entries(sessionByType).sort((a, b) => b[1].count - a[1].count).slice(0, 8)
+                        const maxCount = sorted.length > 0 ? sorted[0][1].count : 1
+                        if (sorted.length === 0) return <p className="text-center text-muted-foreground text-sm py-4">لا توجد جلسات بعد</p>
+                        return sorted.map(([name, data], idx) => (
+                          <div key={name} className="p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs', idx < 3 ? 'bg-gradient-to-br from-violet-500 to-purple-600' : 'bg-gradient-to-br from-gray-400 to-gray-500')}>{idx + 1}</div>
+                                <span className="text-sm font-bold truncate max-w-[140px]">{name}</span>
+                              </div>
+                              <div className="text-left">
+                                <span className="text-xs font-bold text-violet-600">{data.count} جلسة</span>
+                                <span className="text-[10px] text-emerald-600 mr-1">{formatCurrency(data.revenue)}</span>
+                              </div>
+                            </div>
+                            <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${(data.count / maxCount) * 100}%` }} transition={{ duration: 0.8, delay: idx * 0.1 }} className={cn('absolute inset-y-0 right-0 rounded-full', idx === 0 ? 'bg-violet-500' : idx === 1 ? 'bg-purple-400' : idx === 2 ? 'bg-fuchsia-400' : 'bg-gray-400')} />
+                            </div>
+                          </div>
+                        ))
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ NEW: Detailed Weekly Report ═══ */}
+                  <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><CalendarCheck size={18} className="text-emerald-600" /> تقرير أسبوعي مفصل</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {(() => {
+                        const last7Days = dailyVisitStats.slice(0, 7)
+                        const weekTotalCases = last7Days.reduce((s, d) => s + d.checkupCount + d.revisitCount + d.sessionCount, 0)
+                        const weekTotalRevenue = last7Days.reduce((s, d) => s + d.checkupRevenue + d.revisitRevenue + d.sessionRevenue, 0)
+                        if (last7Days.length === 0) return <p className="text-center text-muted-foreground text-sm py-4">لا توجد بيانات بعد</p>
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center">
+                                <p className="text-[10px] text-muted-foreground">إجمالي حالات الأسبوع</p>
+                                <p className="text-xl font-black text-emerald-600">{weekTotalCases}</p>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-center">
+                                <p className="text-[10px] text-muted-foreground">إيراد الأسبوع</p>
+                                <p className="text-xl font-black text-amber-600">{formatCurrency(weekTotalRevenue)}</p>
+                              </div>
+                            </div>
+                            {last7Days.map(day => {
+                              const totalCases = day.checkupCount + day.revisitCount + day.sessionCount
+                              const totalRev = day.checkupRevenue + day.revisitRevenue + day.sessionRevenue
+                              const dayDate = new Date(day.date + 'T00:00:00')
+                              const dayName = dayDate.toLocaleDateString('ar-EG', { weekday: 'short' })
+                              return (
+                                <div key={day.date} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{dayName}</span>
+                                    <span className="text-[10px] text-muted-foreground">{dayDate.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-bold">{totalCases} حالة</span>
+                                    <span className="text-[10px] font-bold text-emerald-600">{formatCurrency(totalRev)}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </>
+                        )
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ NEW: Detailed Monthly Report ═══ */}
+                  <Card className="card-luxury border-2 border-blue-200 dark:border-blue-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Calendar size={18} className="text-blue-600" /> تقرير شهري مفصل</CardTitle></CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const cairoNow = getCairoDateParts()
+                        const thisMonthPatients = patients.filter(p => { const pd = getCairoDateParts(p.createdAt); return pd.year === cairoNow.year && pd.month === cairoNow.month }).length
+                        const thisMonthVisits = visits.filter(v => { const vd = getCairoDateParts(v.date); return vd.year === cairoNow.year && vd.month === cairoNow.month }).length
+                        const thisMonthSessions = sessions.filter(s => { const sd = getCairoDateParts(s.date); return sd.year === cairoNow.year && sd.month === cairoNow.month }).length
+                        const lastMonth = cairoNow.month === 1 ? 12 : cairoNow.month - 1
+                        const lastMonthYear = cairoNow.month === 1 ? cairoNow.year - 1 : cairoNow.year
+                        const lastMonthIncome = clinicTransactions.filter(t => { const td = getCairoDateParts(t.date); return t.type === 'income' && td.year === lastMonthYear && td.month === lastMonth }).reduce((s, t) => s + t.amount, 0)
+                        const incomeChange = lastMonthIncome > 0 ? ((thisMonthIncome - lastMonthIncome) / lastMonthIncome * 100) : 0
+                        const thisMonthExpenses = clinicTransactions.filter(t => { const td = getCairoDateParts(t.date); return t.type === 'expense' && td.year === cairoNow.year && td.month === cairoNow.month }).reduce((s, t) => s + t.amount, 0)
+                        return (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                              <p className="text-[10px] text-muted-foreground">مرضى جدد الشهر</p>
+                              <p className="text-lg font-black text-blue-600">{thisMonthPatients}</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-violet-50 dark:bg-violet-900/20">
+                              <p className="text-[10px] text-muted-foreground">زيارات الشهر</p>
+                              <p className="text-lg font-black text-violet-600">{thisMonthVisits}</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/20">
+                              <p className="text-[10px] text-muted-foreground">جلسات الشهر</p>
+                              <p className="text-lg font-black text-orange-600">{thisMonthSessions}</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
+                              <p className="text-[10px] text-muted-foreground">إيراد الشهر</p>
+                              <p className="text-lg font-black text-emerald-600">{formatCurrency(thisMonthIncome)}</p>
+                              {incomeChange !== 0 && (
+                                <div className={cn('flex items-center gap-1 text-[10px] font-bold', incomeChange > 0 ? 'text-emerald-600' : 'text-red-600')}>
+                                  {incomeChange > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                  {Math.abs(incomeChange).toFixed(0)}% عن الشهر السابق
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20">
+                              <p className="text-[10px] text-muted-foreground">مصروفات الشهر</p>
+                              <p className="text-lg font-black text-red-600">{formatCurrency(thisMonthExpenses)}</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-cyan-50 dark:bg-cyan-900/20">
+                              <p className="text-[10px] text-muted-foreground">صافي ربح الشهر</p>
+                              <p className={cn('text-lg font-black', thisMonthIncome - thisMonthExpenses >= 0 ? 'text-cyan-600' : 'text-red-600')}>{formatCurrency(thisMonthIncome - thisMonthExpenses)}</p>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ NEW: Patient Age Distribution ═══ */}
+                  <Card className="card-luxury border-2 border-amber-200 dark:border-amber-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Activity size={18} className="text-amber-600" /> توزيع المرضى حسب العمر</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {(() => {
+                        const ageRanges = [
+                          { label: '0-18', min: 0, max: 18, color: 'bg-sky-500' },
+                          { label: '19-30', min: 19, max: 30, color: 'bg-emerald-500' },
+                          { label: '31-45', min: 31, max: 45, color: 'bg-amber-500' },
+                          { label: '46-60', min: 46, max: 60, color: 'bg-orange-500' },
+                          { label: '60+', min: 61, max: 200, color: 'bg-rose-500' },
+                        ]
+                        const withData = ageRanges.map(range => {
+                          const count = patients.filter(p => p.age && p.age >= range.min && p.age <= range.max).length
+                          return { ...range, count, percent: patients.length > 0 ? (count / patients.length * 100) : 0 }
+                        })
+                        const maxCount = Math.max(...withData.map(r => r.count), 1)
+                        return withData.map(range => (
+                          <div key={range.label} className="p-2 rounded-xl bg-muted/50">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold">{range.label} سنة</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold">{range.count}</span>
+                                <span className="text-[10px] text-muted-foreground">({range.percent.toFixed(0)}%)</span>
+                              </div>
+                            </div>
+                            <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${(range.count / maxCount) * 100}%` }} transition={{ duration: 0.6 }} className={cn('absolute inset-y-0 right-0 rounded-full', range.color)} />
+                            </div>
+                          </div>
+                        ))
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ NEW: Diagnosis Distribution ═══ */}
+                  <Card className="card-luxury border-2 border-rose-200 dark:border-rose-800">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><FileText size={18} className="text-rose-600" /> أكثر التشخيصات شيوعاً</CardTitle></CardHeader>
+                    <CardContent className="space-y-2">
+                      {(() => {
+                        const diagMap: Record<string, number> = {}
+                        visits.forEach(v => {
+                          if (v.diagnosis) {
+                            v.diagnosis.split(/[,،]/).forEach(d => {
+                              const trimmed = d.trim()
+                              if (trimmed) diagMap[trimmed] = (diagMap[trimmed] || 0) + 1
+                            })
+                          }
+                        })
+                        const sorted = Object.entries(diagMap).sort((a, b) => b[1] - a[1]).slice(0, 10)
+                        if (sorted.length === 0) return <p className="text-center text-muted-foreground text-sm py-4">لا توجد تشخيصات بعد</p>
+                        return sorted.map(([diag, count], idx) => (
+                          <div key={diag} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                            <div className={cn('w-6 h-6 rounded-md flex items-center justify-center text-white font-bold text-[10px]', idx < 3 ? 'bg-gradient-to-br from-rose-500 to-pink-600' : 'bg-gradient-to-br from-gray-400 to-gray-500')}>{idx + 1}</div>
+                            <span className="text-xs font-medium truncate flex-1">{diag}</span>
+                            <span className="text-xs font-bold text-rose-600">{count}</span>
+                          </div>
+                        ))
+                      })()}
+                    </CardContent>
+                  </Card>
                 </div>)}
 
                 {/* Backup Sub-tab */}
@@ -4302,6 +4544,21 @@ export default function Home() {
                       <Button className="mr-auto bg-gradient-to-l from-orange-500 to-amber-500 text-white rounded-xl" onClick={() => { setEditingPersonalTxnId(null); setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' }); setShowAddPersonalTxn(true) }}>
                         <Plus size={14} className="ml-1" /> معاملة
                       </Button>
+                    </div>
+                    {/* Date Range Filter */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar size={14} className="text-orange-500" />
+                        <span className="text-xs text-muted-foreground">من:</span>
+                        <Input type="date" value={personalDateFrom} onChange={e => setPersonalDateFrom(e.target.value)} className="h-8 text-xs rounded-lg w-36" />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">إلى:</span>
+                        <Input type="date" value={personalDateTo} onChange={e => setPersonalDateTo(e.target.value)} className="h-8 text-xs rounded-lg w-36" />
+                      </div>
+                      {(personalDateFrom || personalDateTo) && (
+                        <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setPersonalDateFrom(''); setPersonalDateTo('') }}>مسح التاريخ</Button>
+                      )}
                     </div>
 
                     {/* Transaction List */}
