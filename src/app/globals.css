@@ -1073,3 +1073,94 @@
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* ── Improvement Ring Gauge ── */
+.improvement-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.improvement-ring:hover {
+  transform: scale(1.08);
+}
+
+.improvement-ring svg {
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 2px 6px oklch(0.15 0.02 260 / 15%));
+}
+
+.improvement-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.improvement-ring-label .score {
+  font-weight: 900;
+  line-height: 1;
+}
+
+.improvement-ring-label .emoji {
+  font-size: 14px;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* Celebration particles */
+@keyframes confetti-fall {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.3); }
+}
+
+.confetti-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: confetti-fall 1s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Improvement trend arrow */
+.improvement-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 6px;
+}
+
+/* Improvement history timeline */
+.improvement-timeline-item {
+  position: relative;
+  padding-right: 24px;
+  padding-bottom: 12px;
+}
+
+.improvement-timeline-item::before {
+  content: '';
+  position: absolute;
+  right: 7px;
+  top: 20px;
+  bottom: 0;
+  width: 2px;
+  background: oklch(0.90 0.01 80);
+}
+
+.improvement-timeline-item:last-child::before {
+  display: none;
+}
+
+.dark .improvement-timeline-item::before {
+  background: oklch(0.30 0.02 260);
+}

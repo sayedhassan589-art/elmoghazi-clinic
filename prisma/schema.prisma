@@ -39,6 +39,8 @@ model Patient {
   starred         Boolean  @default(false)
   improved        Boolean  @default(false)
   colorTag        String?  // custom color tag for patient status
+  improvementScore Int?    // مؤشر التحسن من 1 إلى 10
+  improvementHistory String? // سجل تغييرات التحسن (JSON string)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

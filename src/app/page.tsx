@@ -42,7 +42,8 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; colorTag?: string; bloodType?: string; createdAt: string; }
+interface ImprovementEntry { score: number; date: string; note?: string }
+interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; colorTag?: string; bloodType?: string; improvementScore?: number; improvementHistory?: string; createdAt: string; }
 interface Visit { id: string; patientId: string; doctorId?: string; type: string; diagnosis?: string; notes?: string; date: string; }
 interface Session { id: string; patientId: string; serviceId?: string; doctorId?: string; status: string; notes?: string; date: string; price: number; paid: boolean; }
 interface Service { id: string; name: string; category?: string; price: number; duration?: number; active: boolean; }
@@ -181,6 +182,28 @@ const HAIR_COLORS = [
   { id: 'white', label: 'أبيض', color: 'bg-gray-100' },
   { id: 'mixed', label: 'مختلط', color: 'bg-gray-500' },
 ]
+
+// Improvement Score helpers
+const getImprovementColor = (score: number) => {
+  if (score <= 3) return { ring: '#ef4444', bg: 'bg-red-500', text: 'text-red-600', label: 'سيء' }
+  if (score <= 5) return { ring: '#f97316', bg: 'bg-orange-500', text: 'text-orange-600', label: 'متوسط' }
+  if (score <= 7) return { ring: '#eab308', bg: 'bg-yellow-500', text: 'text-yellow-600', label: 'جيد' }
+  if (score <= 9) return { ring: '#22c55e', bg: 'bg-emerald-500', text: 'text-emerald-600', label: 'ممتاز' }
+  return { ring: '#047857', bg: 'bg-emerald-700', text: 'text-emerald-700', label: 'مثالي' }
+}
+
+const getImprovementEmoji = (score: number) => {
+  if (score <= 3) return '😟'
+  if (score <= 5) return '😐'
+  if (score <= 7) return '🙂'
+  if (score <= 9) return '😊'
+  return '🤩'
+}
+
+const getImprovementHistory = (historyStr?: string): ImprovementEntry[] => {
+  if (!historyStr) return []
+  try { return JSON.parse(historyStr) } catch { return [] }
+}
 
 // Visit type config with colors + combo types
 const VISIT_TYPES = [
@@ -484,6 +507,10 @@ export default function Home() {
 
   // Patient Copy Search
   const [patientCopySearch, setPatientCopySearch] = useState('')
+  const [showImprovementSlider, setShowImprovementSlider] = useState(false)
+  const [improvementSliderValue, setImprovementSliderValue] = useState(5)
+  const [improvementNote, setImprovementNote] = useState('')
+  const [celebratingImprovement, setCelebratingImprovement] = useState(false)
 
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
@@ -1676,7 +1703,37 @@ export default function Home() {
                         {selectedPatient.improved && <span className="absolute -bottom-1 -right-1 text-lg">💗</span>}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">{safeName(selectedPatient.name)}</h2>
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">{safeName(selectedPatient.name)}</h2>
+                          {/* Improvement Ring */}
+                          {(() => {
+                            const score = selectedPatient.improvementScore || 0
+                            const colors = getImprovementColor(score)
+                            const history = getImprovementHistory(selectedPatient.improvementHistory)
+                            const prevScore = history.length >= 2 ? history[history.length - 2]?.score : undefined
+                            const trend = prevScore !== undefined ? (score > prevScore ? 'up' : score < prevScore ? 'down' : 'same') : undefined
+                            const radius = 28
+                            const circumference = 2 * Math.PI * radius
+                            const progress = score > 0 ? (score / 10) * circumference : 0
+                            return (
+                              <div className="improvement-ring" style={{ width: 68, height: 68 }} onClick={() => { setImprovementSliderValue(score || 5); setImprovementNote(''); setShowImprovementSlider(true) }}>
+                                <svg width="68" height="68" viewBox="0 0 68 68">
+                                  <circle cx="34" cy="34" r={radius} fill="none" stroke="var(--muted)" strokeWidth="5" />
+                                  {score > 0 && <motion.circle cx="34" cy="34" r={radius} fill="none" stroke={colors.ring} strokeWidth="5" strokeLinecap="round" strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: circumference - progress }} transition={{ duration: 1, ease: 'easeOut' }} />}
+                                </svg>
+                                <div className="improvement-ring-label">
+                                  <span className="emoji">{score > 0 ? getImprovementEmoji(score) : '➕'}</span>
+                                  <span className="score text-sm" style={{ color: score > 0 ? colors.ring : 'var(--muted-foreground)' }}>{score > 0 ? score : '-'}</span>
+                                </div>
+                                {trend && (
+                                  <span className={cn('improvement-trend absolute -top-1 -left-1', trend === 'up' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : trend === 'down' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400')}>
+                                    {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })()}
+                        </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
                           <span className="flex items-center gap-1 bg-blue-100/80 dark:bg-blue-900/30 px-2 py-0.5 rounded-lg font-semibold text-blue-700 dark:text-blue-300 text-xs"><Hash size={10} />{selectedPatient.fileNumber}</span>
                           {selectedPatient.phone && <span className="flex items-center gap-1 text-xs"><Phone size={10} />{selectedPatient.phone}</span>}
@@ -1717,8 +1774,125 @@ export default function Home() {
                         <button key={c} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ colorTag: c }) }); const u = { ...selectedPatient, colorTag: c }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success('تم تغيير اللون') } catch { toast.error('خطأ') } }} className={cn('w-6 h-6 rounded-full border-2 transition-all hover:scale-110', selectedPatient.colorTag === c ? 'border-foreground scale-110 shadow' : 'border-transparent')} style={{ backgroundColor: c }} />
                       ))}
                     </div>
+                    {/* Improvement History Timeline */}
+                    {(() => {
+                      const history = getImprovementHistory(selectedPatient.improvementHistory)
+                      if (history.length === 0) return null
+                      return (
+                        <div className="mt-3 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Activity size={14} className="text-emerald-600" />
+                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">سجل مؤشر التحسن</span>
+                          </div>
+                          <div className="max-h-32 overflow-y-auto custom-scrollbar space-y-0">
+                            {history.slice().reverse().map((entry, idx) => {
+                              const entryColor = getImprovementColor(entry.score)
+                              return (
+                                <div key={idx} className="improvement-timeline-item">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-800 shadow-sm flex-shrink-0" style={{ backgroundColor: entryColor.ring }} />
+                                    <span className="text-xs font-bold" style={{ color: entryColor.ring }}>{entry.score}/10</span>
+                                    <span className="text-[10px]">{getImprovementEmoji(entry.score)}</span>
+                                    <span className="text-[10px] text-muted-foreground">{formatDate(entry.date)}</span>
+                                    {entry.note && <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">- {entry.note}</span>}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </motion.div>
+
+                {/* Improvement Score Slider Dialog */}
+                <Dialog open={showImprovementSlider} onOpenChange={setShowImprovementSlider}>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Activity size={18} className="text-emerald-600" /> مؤشر التحسن
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                      {/* Preview Ring */}
+                      {(() => {
+                        const previewColors = getImprovementColor(improvementSliderValue)
+                        const pRadius = 44
+                        const pCircumference = 2 * Math.PI * pRadius
+                        const pProgress = (improvementSliderValue / 10) * pCircumference
+                        return (
+                          <div className="flex justify-center">
+                            <div className="improvement-ring" style={{ width: 100, height: 100 }}>
+                              <svg width="100" height="100" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r={pRadius} fill="none" stroke="var(--muted)" strokeWidth="7" />
+                                <motion.circle cx="50" cy="50" r={pRadius} fill="none" stroke={previewColors.ring} strokeWidth="7" strokeLinecap="round" strokeDasharray={pCircumference} animate={{ strokeDashoffset: pCircumference - pProgress }} transition={{ duration: 0.4 }} />
+                              </svg>
+                              <div className="improvement-ring-label">
+                                <span className="text-2xl">{getImprovementEmoji(improvementSliderValue)}</span>
+                                <span className="score text-2xl" style={{ color: previewColors.ring }}>{improvementSliderValue}</span>
+                                <span className="text-[10px] font-bold" style={{ color: previewColors.ring }}>{previewColors.label}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      {/* Score Buttons 1-10 */}
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+                          const nColors = getImprovementColor(n)
+                          return (
+                            <motion.button key={n} whileTap={{ scale: 0.9 }} onClick={() => setImprovementSliderValue(n)}
+                              className={cn('w-9 h-9 rounded-xl text-sm font-black transition-all border-2', improvementSliderValue === n ? 'text-white shadow-lg scale-110' : 'bg-white dark:bg-slate-800 border-border text-muted-foreground hover:scale-105')}
+                              style={improvementSliderValue === n ? { backgroundColor: nColors.ring, borderColor: nColors.ring } : {}}>
+                              {n}
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                      {/* Note */}
+                      <div>
+                        <Label className="text-xs font-bold">ملاحظة (اختياري)</Label>
+                        <Input value={improvementNote} onChange={e => setImprovementNote(e.target.value)} placeholder="سبب التغيير..." className="input-luxury rounded-xl h-9 mt-1" />
+                      </div>
+                      <Button className="w-full rounded-xl bg-gradient-to-l from-emerald-600 to-emerald-700 text-white shadow-lg" onClick={async () => {
+                        try {
+                          const history = getImprovementHistory(selectedPatient.improvementHistory)
+                          const newEntry: ImprovementEntry = { score: improvementSliderValue, date: new Date().toISOString(), note: improvementNote || undefined }
+                          const newHistory = [...history, newEntry]
+                          const historyStr = JSON.stringify(newHistory)
+                          await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improvementScore: improvementSliderValue, improvementHistory: historyStr }) })
+                          const u = { ...selectedPatient, improvementScore: improvementSliderValue, improvementHistory: historyStr }
+                          setSelectedPatient(u)
+                          setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p))
+                          if (improvementSliderValue >= 8) {
+                            setCelebratingImprovement(true)
+                            setTimeout(() => setCelebratingImprovement(false), 2000)
+                            toast.success(`🎉 مؤشر التحسن: ${improvementSliderValue}/10 - ممتاز!`)
+                          } else {
+                            toast.success(`تم تحديث مؤشر التحسن: ${improvementSliderValue}/10`)
+                          }
+                          setShowImprovementSlider(false)
+                        } catch { toast.error('خطأ في التحديث') }
+                      }}>
+                        حفظ مؤشر التحسن
+                      </Button>
+                    </div>
+                    {/* Celebration Effect */}
+                    {celebratingImprovement && (
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        {Array.from({ length: 12 }).map((_, i) => (
+                          <div key={i} className="confetti-particle" style={{
+                            left: `${Math.random() * 100}%`,
+                            top: `${30 + Math.random() * 40}%`,
+                            backgroundColor: ['#22c55e', '#eab308', '#3b82f6', '#ec4899', '#f97316', '#8b5cf6'][i % 6],
+                            animationDelay: `${i * 0.08}s`,
+                          }} />
+                        ))}
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
 
                 {/* Delete Patient Confirmation */}
                 <AlertDialog open={deletePatientConfirmOpen} onOpenChange={setDeletePatientConfirmOpen}>
