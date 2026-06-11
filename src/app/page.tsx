@@ -84,9 +84,15 @@ const waPhone = (phone?: string) => {
 }
 
 // Helper: get local date string in Cairo timezone (fixes UTC offset issue)
+const _dateCache = new Map<string, string>()
 const getLocalDateStr = (date?: Date | string) => {
   const d = date ? new Date(date) : new Date()
-  return d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) // en-CA gives YYYY-MM-DD format
+  const key = d.toISOString().slice(0, 10)
+  const cached = _dateCache.get(key)
+  if (cached) return cached
+  const result = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
+  _dateCache.set(key, result)
+  return result
 }
 
 // Helper: get Cairo timezone date parts (year, month, day) — avoids UTC offset on Vercel
@@ -205,6 +211,63 @@ const getImprovementHistory = (historyStr?: string): ImprovementEntry[] => {
   try { return JSON.parse(historyStr) } catch { return [] }
 }
 
+// ─── Smart Search Helpers ────────────────────────────────────────────
+function useDebouncedValue<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+  return debounced
+}
+
+// Arabic text normalization: remove diacritics, normalize alef/yaa/taa
+const normalizeArabic = (text: string): string => {
+  return text
+    .replace(/[أإآا]/g, 'ا')  // normalize alef variants
+    .replace(/[ة]/g, 'ه')      // taa marbuta → haa
+    .replace(/[ى]/g, 'ي')      // alef maqsura → yaa
+    .replace(/[\u064B-\u065F\u0670]/g, '') // remove diacritics/tashkeel
+    .replace(/\s+/g, ' ')      // normalize whitespace
+    .trim()
+    .toLowerCase()
+}
+
+// Fuzzy match: checks if query characters appear in order in target
+const fuzzyMatch = (query: string, target: string): boolean => {
+  const nq = normalizeArabic(query)
+  const nt = normalizeArabic(target)
+  if (nt.includes(nq)) return true // direct substring match (normalized)
+  // Character-by-character fuzzy match
+  let qi = 0
+  for (let ti = 0; ti < nt.length && qi < nq.length; ti++) {
+    if (nt[ti] === nq[qi]) qi++
+  }
+  return qi === nq.length
+}
+
+// Smart search: tries exact, then normalized, then fuzzy
+const smartSearch = (query: string, fields: (string | undefined)[]): { match: boolean; score: number } => {
+  if (!query.trim()) return { match: false, score: 0 }
+  const nq = normalizeArabic(query)
+  let bestScore = 0
+  for (const field of fields) {
+    if (!field) continue
+    const nf = normalizeArabic(field)
+    // Exact substring (highest score)
+    if (nf.includes(nq)) {
+      const score = nq.length / nf.length + 1 // prefer longer matches
+      if (score > bestScore) bestScore = score
+    }
+    // Fuzzy match (lower score)
+    else if (fuzzyMatch(query, field)) {
+      const score = 0.5
+      if (score > bestScore) bestScore = score
+    }
+  }
+  return { match: bestScore > 0, score: bestScore }
+}
+
 // Visit type config with colors + combo types
 const VISIT_TYPES = [
   { id: 'checkup', label: 'كشف', emoji: '🩺', bg: 'bg-emerald-500', hoverBg: 'hover:bg-emerald-600', ring: 'ring-emerald-300' },
@@ -222,6 +285,7 @@ export default function Home() {
   const [smartSearchOpen, setSmartSearchOpen] = useState(false)
   const [smartSearchQuery, setSmartSearchQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [patientDisplayCount, setPatientDisplayCount] = useState(50)
 
   // Data
   const [patients, setPatients] = useState<Patient[]>([])
@@ -547,14 +611,14 @@ export default function Home() {
         apiFetch('/prescriptions?limit=10000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=5000'),
         apiFetch('/doctors?limit=500'),
         apiFetch('/follow-up/records?limit=50000'),
-        apiFetch('/finance/transactions?category=personal&limit=50000'),
-        apiFetch('/notes?section=personal&limit=10000'),
-        apiFetch('/reminders?type=personal&limit=5000'),
       ])
       const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
       setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
       setFollowUpRecords(u(results[19]))
-      setPersonalTransactions(u(results[20])); setPersonalNotes(u(results[21])); setPersonalReminders(u(results[22]))
+      // Derive personal data from main datasets (no duplicate API calls)
+      const allTxns = u(results[10]); setPersonalTransactions(allTxns.filter((t: any) => t.category === 'personal'))
+      const allNotes = u(results[4]); setPersonalNotes(allNotes.filter((n: any) => n.section === 'personal'))
+      const allReminders = u(results[6]); setPersonalReminders(allReminders.filter((r: any) => r.type === 'شخصي' || r.type === 'personal'))
     } catch (e) { console.error(e) }
     setLoading(false)
   }, [])
@@ -1070,11 +1134,22 @@ export default function Home() {
   }
 
   // ─── Computed ─────────────────────────────────────────────────────────
-  const todayStr = getLocalDateStr() // Cairo timezone
-  const todayVisits = visits.filter(v => v.date?.startsWith(todayStr))
-  const todayIncome = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-  const todayExpense = transactions.filter(t => t.type === 'expense' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-  const todayNetProfit = todayIncome - todayExpense
+  const todayStr = useMemo(() => getLocalDateStr(), []) // Cairo timezone - computed once per mount
+  const todayStats = useMemo(() => {
+    let todayIncome = 0, todayExpense = 0
+    for (const t of transactions) {
+      if (t.category === 'personal') continue
+      if (getLocalDateStr(t.date) === todayStr) {
+        if (t.type === 'income') todayIncome += t.amount
+        else todayExpense += t.amount
+      }
+    }
+    return { todayIncome, todayExpense, todayNetProfit: todayIncome - todayExpense }
+  }, [transactions, todayStr])
+  const todayIncome = todayStats.todayIncome
+  const todayExpense = todayStats.todayExpense
+  const todayNetProfit = todayStats.todayNetProfit
+  const todayVisits = useMemo(() => visits.filter(v => v.date?.startsWith(todayStr)), [visits, todayStr])
 
   // Daily finance data - grouped by real date (Cairo timezone)
   const dailyFinanceData = useMemo(() => {
@@ -1089,8 +1164,8 @@ export default function Home() {
     })
     return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
   }, [transactions])
-  const todayAppointments = appointments.filter(a => a.date?.startsWith(todayStr))
-  const activeAlerts = alerts.filter(a => a.active)
+  const todayAppointments = useMemo(() => appointments.filter(a => a.date?.startsWith(todayStr)), [appointments, todayStr])
+  const activeAlerts = useMemo(() => alerts.filter(a => a.active), [alerts])
 
   // Daily visit/session stats for reports (Cairo timezone)
   const dailyVisitStats = useMemo(() => {
@@ -1118,27 +1193,79 @@ export default function Home() {
     })
     return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
   }, [visits, sessions, transactions])
-  const lowStockItems = inventoryItems.filter(i => i.quantity <= i.minQuantity)
-  const maleCount = patients.filter(p => p.gender === 'male').length
-  const femaleCount = patients.filter(p => p.gender === 'female').length
-  const revenueChartData = useMemo(() => { const days: any[] = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const ds = getLocalDateStr(d); days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: transactions.filter(t => t.type === 'income' && t.category !== 'personal' && getLocalDateStr(t.date) === ds).reduce((s, t) => s + t.amount, 0), مصروف: transactions.filter(t => t.type === 'expense' && t.category !== 'personal' && getLocalDateStr(t.date) === ds).reduce((s, t) => s + t.amount, 0) }) } return days }, [transactions])
+  const lowStockItems = useMemo(() => inventoryItems.filter(i => i.quantity <= i.minQuantity), [inventoryItems])
+  const patientGenderCounts = useMemo(() => ({ male: patients.filter(p => p.gender === 'male').length, female: patients.filter(p => p.gender === 'female').length }), [patients])
+  const maleCount = patientGenderCounts.male
+  const femaleCount = patientGenderCounts.female
+  const revenueChartData = useMemo(() => {
+    // Pre-compute transaction date map for O(1) lookup
+    const txByDate: Record<string, { income: number; expense: number }> = {}
+    for (const t of transactions) {
+      if (t.category === 'personal') continue
+      const ds = getLocalDateStr(t.date)
+      if (!txByDate[ds]) txByDate[ds] = { income: 0, expense: 0 }
+      if (t.type === 'income') txByDate[ds].income += t.amount
+      else txByDate[ds].expense += t.amount
+    }
+    const days: { name: string; إيراد: number; مصروف: number }[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      const ds = getLocalDateStr(d)
+      const dayData = txByDate[ds] || { income: 0, expense: 0 }
+      days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: dayData.income, مصروف: dayData.expense })
+    }
+    return days
+  }, [transactions])
   const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
-  const filteredPatients = useMemo(() => { let list = patients; if (searchQuery) list = list.filter(p => p.name.includes(searchQuery) || p.phone?.includes(searchQuery) || p.fileNumber?.includes(searchQuery)); if (patientFilter === 'starred') list = list.filter(p => p.starred); if (patientFilter === 'improved') list = list.filter(p => p.improved); return list }, [patients, searchQuery, patientFilter])
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 250)
+  const filteredPatients = useMemo(() => {
+    let list = patients
+    if (debouncedSearchQuery) {
+      const results = patients.map(p => {
+        const { match, score } = smartSearch(debouncedSearchQuery, [p.name, p.phone, p.phone2, p.fileNumber, p.notes, p.address, p.diagnosis])
+        return { patient: p, match, score }
+      }).filter(r => r.match).sort((a, b) => b.score - a.score).map(r => r.patient)
+      list = results
+    }
+    if (patientFilter === 'starred') list = list.filter(p => p.starred)
+    if (patientFilter === 'improved') list = list.filter(p => p.improved)
+    return list
+  }, [patients, debouncedSearchQuery, patientFilter])
+  useEffect(() => { setPatientDisplayCount(50) }, [debouncedSearchQuery])
 
   // ─── Financial Computed Values ──────────────────────────────
   // All clinic financials EXCLUDE personal transactions (category !== 'personal')
   const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
-  const totalIncome = clinicTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = clinicTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const clinicFinancials = useMemo(() => {
+    const now = getCairoDateParts()
+    let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
+    for (const t of clinicTransactions) {
+      if (t.type === 'income') {
+        totalIncome += t.amount
+        if (t.category === 'كشف') checkupRev += t.amount
+        else if (t.category === 'إعادة') revisitRev += t.amount
+        else if (t.category === 'ليزر') laserRev += t.amount
+        else if (t.category === 'متابعة') followUpRev += t.amount
+        else if (t.category === 'جلسات') sessionRev += t.amount
+        const td = getCairoDateParts(t.date)
+        if (td.year === now.year && td.month === now.month) monthIncome += t.amount
+      } else {
+        totalExpense += t.amount
+      }
+    }
+    return { totalIncome, totalExpense, checkupRevenue: checkupRev, revisitRevenue: revisitRev, laserRevenue: laserRev, followUpRevenue: followUpRev, sessionRevenue: sessionRev, thisMonthIncome: monthIncome }
+  }, [clinicTransactions])
+  const totalIncome = clinicFinancials.totalIncome
+  const totalExpense = clinicFinancials.totalExpense
   const netProfit = totalIncome - totalExpense
-  const checkupRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'كشف').reduce((s, t) => s + t.amount, 0)
-  const revisitRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'إعادة').reduce((s, t) => s + t.amount, 0)
-  const laserRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'ليزر').reduce((s, t) => s + t.amount, 0)
-  const followUpRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'متابعة').reduce((s, t) => s + t.amount, 0)
-  const sessionRevenue = clinicTransactions.filter(t => t.type === 'income' && t.category === 'جلسات').reduce((s, t) => s + t.amount, 0)
+  const checkupRevenue = clinicFinancials.checkupRevenue
+  const revisitRevenue = clinicFinancials.revisitRevenue
+  const laserRevenue = clinicFinancials.laserRevenue
+  const followUpRevenue = clinicFinancials.followUpRevenue
+  const sessionRevenue = clinicFinancials.sessionRevenue
   const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue - laserRevenue - followUpRevenue
-  const unpaidTotal = sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0)
-  const thisMonthIncome = clinicTransactions.filter(t => { const td = getCairoDateParts(t.date); const now = getCairoDateParts(); return t.type === 'income' && td.year === now.year && td.month === now.month }).reduce((s, t) => s + t.amount, 0)
+  const thisMonthIncome = clinicFinancials.thisMonthIncome
+  const unpaidTotal = useMemo(() => sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0), [sessions])
   const thisWeekIncome = revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0)
   const revenueByCategory = useMemo(() => [
     { name: 'كشف', value: checkupRevenue || 0 },
@@ -1650,7 +1777,17 @@ export default function Home() {
                 </div>
                 {/* Search + Filter Buttons */}
                 <div className="space-y-2">
-                  <div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} /><Input placeholder="بحث بالاسم أو الهاتف أو رقم الملف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 input-luxury rounded-xl h-12" /></div>
+                  <div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} /><Input placeholder="بحث ذكي... الاسم أو الهاتف أو رقم الملف" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 input-luxury rounded-xl h-12" /></div>
+                  {searchQuery && debouncedSearchQuery !== searchQuery && <p className="text-[10px] text-muted-foreground animate-pulse">جاري البحث...</p>}
+                  {debouncedSearchQuery && filteredPatients.length === 0 && patients.length > 0 && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <Search size={14} className="text-amber-500" />
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400">لا توجد نتائج لـ &quot;{debouncedSearchQuery}&quot; — يتم البحث بتصحيح تلقائي</p>
+                    </div>
+                  )}
+                  {debouncedSearchQuery && filteredPatients.length > 0 && filteredPatients.length < patients.length && (
+                    <p className="text-[10px] text-muted-foreground">عُثر على {filteredPatients.length} نتيجة</p>
+                  )}
                   <div className="flex items-center gap-2">
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</motion.button>
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
@@ -1659,7 +1796,7 @@ export default function Home() {
                 </div>
                 <div className="space-y-2">
                   {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : 'لا توجد نتائج'}</p></Card>}
-                  {filteredPatients.map(p => {
+                  {filteredPatients.slice(0, patientDisplayCount).map(p => {
                     const stripeGradient = p.gender === 'female' ? 'bg-gradient-to-b from-pink-400 to-rose-500' : p.gender === 'male' ? 'bg-gradient-to-b from-blue-400 to-indigo-500' : 'bg-gradient-to-b from-gray-400 to-gray-500'
                     return (
                       <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="patient-card-3d rounded-2xl border border-border bg-card text-card-foreground p-4 cursor-pointer relative" onClick={() => setSelectedPatient(p)}>
@@ -1684,6 +1821,11 @@ export default function Home() {
                     )
                   })}
                 </div>
+                {filteredPatients.length > patientDisplayCount && (
+                  <Button variant="outline" className="w-full rounded-xl text-sm font-bold" onClick={() => setPatientDisplayCount(c => c + 50)}>
+                    عرض المزيد ({filteredPatients.length - patientDisplayCount} متبقي)
+                  </Button>
+                )}
                 {renderQuickNotes('patients')}
               </div>
             )}
