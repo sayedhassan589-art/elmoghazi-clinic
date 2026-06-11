@@ -402,6 +402,8 @@ export default function Home() {
   const [profileVisitType, setProfileVisitType] = useState('checkup')
   const [profileVisitPrice, setProfileVisitPrice] = useState('')
   const [profileVisitNotes, setProfileVisitNotes] = useState('')
+  const [profileVisitDate, setProfileVisitDate] = useState('')
+  const [profileSessionDate, setProfileSessionDate] = useState('')
 
   // Partner Doctors
   const [doctors, setDoctors] = useState<PartnerDoctor[]>([])
@@ -569,6 +571,9 @@ export default function Home() {
   const [deleteFollowUpConfirmId, setDeleteFollowUpConfirmId] = useState<string | null>(null)
   const [editingFollowUpId, setEditingFollowUpId] = useState<string | null>(null)
 
+  // Patient registration date override
+  const [newPatientDate, setNewPatientDate] = useState('')
+
   // Patient Copy Search
   const [patientCopySearch, setPatientCopySearch] = useState('')
   const [showImprovementSlider, setShowImprovementSlider] = useState(false)
@@ -725,22 +730,22 @@ export default function Home() {
 
   // Personal reports computed values
   const personalReportData = useMemo(() => {
-    const cairoNow = getCairoDateParts()
-    const todayStr = cairoNow.dateStr
+    const _cairoNow = getCairoDateParts()
+    const _todayStr = _cairoNow.dateStr
 
     const filterByPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
       return personalTransactions.filter(t => {
         const tCairo = getCairoDateParts(t.date)
         const tDateStr = tCairo.dateStr
-        if (period === 'daily') return tDateStr === todayStr
+        if (period === 'daily') return tDateStr === _todayStr
         if (period === 'weekly') {
-          const todayDate = new Date(todayStr + 'T00:00:00')
+          const todayDate = new Date(_todayStr + 'T00:00:00')
           const tDate = new Date(tDateStr + 'T00:00:00')
           const diffDays = (todayDate.getTime() - tDate.getTime()) / (24 * 60 * 60 * 1000)
           return diffDays >= 0 && diffDays < 7
         }
         // monthly
-        return tCairo.year === cairoNow.year && tCairo.month === cairoNow.month
+        return tCairo.year === _cairoNow.year && tCairo.month === _cairoNow.month
       })
     }
 
@@ -759,14 +764,14 @@ export default function Home() {
     // Reminders stats
     const periodReminders = personalReminders.filter(r => {
       const rCairo = getCairoDateParts(r.date)
-      if (personalReportPeriod === 'daily') return rCairo.dateStr === todayStr
+      if (personalReportPeriod === 'daily') return rCairo.dateStr === _todayStr
       if (personalReportPeriod === 'weekly') {
-        const todayDate = new Date(todayStr + 'T00:00:00')
+        const todayDate = new Date(_todayStr + 'T00:00:00')
         const rDate = new Date(rCairo.dateStr + 'T00:00:00')
         const diffDays = (todayDate.getTime() - rDate.getTime()) / (24 * 60 * 60 * 1000)
         return diffDays >= 0 && diffDays < 7
       }
-      return rCairo.year === cairoNow.year && rCairo.month === cairoNow.month
+      return rCairo.year === _cairoNow.year && rCairo.month === _cairoNow.month
     })
     const doneReminders = periodReminders.filter(r => r.status === 'done').length
     const pendingReminders = periodReminders.filter(r => r.status !== 'done').length
@@ -774,14 +779,14 @@ export default function Home() {
     // Notes stats
     const periodNotes = personalNotes.filter(n => {
       const nCairo = getCairoDateParts(n.createdAt)
-      if (personalReportPeriod === 'daily') return nCairo.dateStr === todayStr
+      if (personalReportPeriod === 'daily') return nCairo.dateStr === _todayStr
       if (personalReportPeriod === 'weekly') {
-        const todayDate = new Date(todayStr + 'T00:00:00')
+        const todayDate = new Date(_todayStr + 'T00:00:00')
         const nDate = new Date(nCairo.dateStr + 'T00:00:00')
         const diffDays = (todayDate.getTime() - nDate.getTime()) / (24 * 60 * 60 * 1000)
         return diffDays >= 0 && diffDays < 7
       }
-      return nCairo.year === cairoNow.year && nCairo.month === cairoNow.month
+      return nCairo.year === _cairoNow.year && nCairo.month === _cairoNow.month
     })
     const importantNotes = periodNotes.filter(n => n.important).length
 
@@ -800,7 +805,7 @@ export default function Home() {
     } else if (personalReportPeriod === 'weekly') {
       // Last 4 weeks
       for (let i = 3; i >= 0; i--) {
-        const todayDate = new Date(todayStr + 'T00:00:00')
+        const todayDate = new Date(_todayStr + 'T00:00:00')
         const weekEnd = new Date(todayDate)
         weekEnd.setDate(weekEnd.getDate() - i * 7)
         const weekStart = new Date(weekEnd)
@@ -812,8 +817,8 @@ export default function Home() {
     } else {
       // Last 6 months
       for (let i = 5; i >= 0; i--) {
-        const m = cairoNow.month - i
-        const year = cairoNow.year + Math.floor((m - 1) / 12)
+        const m = _cairoNow.month - i
+        const year = _cairoNow.year + Math.floor((m - 1) / 12)
         const month = ((m - 1) % 12 + 12) % 12 + 1
         const monthIncome = income.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month }).reduce((s, t) => s + (t.amount || 0), 0)
         const monthExpense = expense.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month }).reduce((s, t) => s + (t.amount || 0), 0)
@@ -1135,6 +1140,8 @@ export default function Home() {
 
   // ─── Computed ─────────────────────────────────────────────────────────
   const todayStr = useMemo(() => getLocalDateStr(), []) // Cairo timezone - computed once per mount
+  // Memoized Cairo date parts for "now" — avoids calling getCairoDateParts()/getLocalDateStr() with new Date() in every useMemo/render
+  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr]) // recomputes when todayStr changes (i.e. on mount)
   const todayStats = useMemo(() => {
     let todayIncome = 0, todayExpense = 0
     for (const t of transactions) {
@@ -1237,7 +1244,6 @@ export default function Home() {
   // All clinic financials EXCLUDE personal transactions (category !== 'personal')
   const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
   const clinicFinancials = useMemo(() => {
-    const now = getCairoDateParts()
     let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
     for (const t of clinicTransactions) {
       if (t.type === 'income') {
@@ -1248,13 +1254,13 @@ export default function Home() {
         else if (t.category === 'متابعة') followUpRev += t.amount
         else if (t.category === 'جلسات') sessionRev += t.amount
         const td = getCairoDateParts(t.date)
-        if (td.year === now.year && td.month === now.month) monthIncome += t.amount
+        if (td.year === cairoNow.year && td.month === cairoNow.month) monthIncome += t.amount
       } else {
         totalExpense += t.amount
       }
     }
     return { totalIncome, totalExpense, checkupRevenue: checkupRev, revisitRevenue: revisitRev, laserRevenue: laserRev, followUpRevenue: followUpRev, sessionRevenue: sessionRev, thisMonthIncome: monthIncome }
-  }, [clinicTransactions])
+  }, [clinicTransactions, cairoNow])
   const totalIncome = clinicFinancials.totalIncome
   const totalExpense = clinicFinancials.totalExpense
   const netProfit = totalIncome - totalExpense
@@ -1278,8 +1284,7 @@ export default function Home() {
 
   // ─── Weekly Revenue Comparison ───
   const weeklyComparison = useMemo(() => {
-    const cairoToday = getLocalDateStr()
-    const todayDate = new Date(cairoToday + 'T00:00:00')
+    const todayDate = new Date(todayStr + 'T00:00:00')
     // This week: last 7 days
     const thisWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 0 && diff < 7 })())
     const thisWeekTotal = thisWeekTxns.reduce((s, t) => s + t.amount, 0)
@@ -1288,7 +1293,7 @@ export default function Home() {
     const lastWeekTotal = lastWeekTxns.reduce((s, t) => s + t.amount, 0)
     const changePercent = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : thisWeekTotal > 0 ? 100 : 0
     return { thisWeekTotal, lastWeekTotal, changePercent, isUp: thisWeekTotal >= lastWeekTotal }
-  }, [clinicTransactions])
+  }, [clinicTransactions, todayStr])
 
   // ─── Top Patients by Visits ───
   const topPatientsByVisits = useMemo(() => {
@@ -1446,7 +1451,8 @@ export default function Home() {
     if (!patient) return
 
     const patientId = patient.id
-    const now = new Date().toISOString()
+    // Use custom date if provided, otherwise use now (Cairo timezone)
+    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00').toISOString() : new Date().toISOString()
     const vPrice = parseFloat(visitPrice) || 0
     const sPrice = parseFloat(customServicePrice) || 0
 
@@ -1458,27 +1464,27 @@ export default function Home() {
 
     // Create visit if needed + financial transaction for كشف/إعادة
     if (needsVisit && (visitType === 'checkup' || visitType === 'revisit')) {
-      await addItem('/visits', { patientId, type: visitType, date: now }, setVisits)
+      await addItem('/visits', { patientId, type: visitType, date: customDate }, setVisits)
       // Auto-create income transaction for كشف/إعادة
       if (vPrice > 0) {
-        await addItem('/finance/transactions', { type: 'income', category: visitCategory, amount: vPrice, description: `${visitCategory} - ${newPatientName}`, date: now }, setTransactions)
+        await addItem('/finance/transactions', { type: 'income', category: visitCategory, amount: vPrice, description: `${visitCategory} - ${newPatientName}`, date: customDate }, setTransactions)
       }
     }
 
     // Create sessions for selected services - use custom price entered by user
     if (needsSession && selectedServiceIds.length > 0) {
       for (const serviceId of selectedServiceIds) {
-        await addItem('/sessions', { patientId, serviceId, status: 'completed', price: sPrice, paid: true, date: now }, setSessions)
+        await addItem('/sessions', { patientId, serviceId, status: 'completed', price: sPrice, paid: true, date: customDate }, setSessions)
       }
       // Auto-create income transaction for sessions
       if (sPrice > 0) {
         const svcNames = selectedServiceIds.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(', ')
-        await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcNames || 'جلسة'} - ${newPatientName}`, date: now }, setTransactions)
+        await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcNames || 'جلسة'} - ${newPatientName}`, date: customDate }, setTransactions)
       }
     }
 
     // Reset form
-    setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientDiagnosis(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setShowAddPatient(false)
+    setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientDiagnosis(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setNewPatientDate(''); setShowAddPatient(false)
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
@@ -2092,7 +2098,8 @@ export default function Home() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 space-y-2">
                         <div className="grid grid-cols-2 gap-2">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setProfileVisitType(vt.id)} className={cn('flex items-center gap-1.5 p-2 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700' : 'border-transparent bg-muted/50 text-muted-foreground')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div>
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileVisitPrice} onChange={e => setProfileVisitPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileVisitNotes} onChange={e => setProfileVisitNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const now = new Date().toISOString(); await addItem('/visits', { patientId: selectedPatient.id, type: profileVisitType, notes: profileVisitNotes || undefined, date: now }, setVisits); const vPrice = parseFloat(profileVisitPrice) || 0; if (vPrice > 0) { const cat = profileVisitType === 'checkup' ? 'كشف' : 'إعادة'; await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${selectedPatient.name}`, date: now }, setTransactions); } setShowAddVisitProfile(false); setProfileVisitPrice(''); setProfileVisitNotes(''); toast.success('تم إضافة الزيارة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
+                        <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الزيارة (اختياري)</Label><Input type="date" value={profileVisitDate} onChange={e => setProfileVisitDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const vDate = profileVisitDate ? new Date(profileVisitDate + 'T00:00:00').toISOString() : new Date().toISOString(); await addItem('/visits', { patientId: selectedPatient.id, type: profileVisitType, notes: profileVisitNotes || undefined, date: vDate }, setVisits); const vPrice = parseFloat(profileVisitPrice) || 0; if (vPrice > 0) { const cat = profileVisitType === 'checkup' ? 'كشف' : 'إعادة'; await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${selectedPatient.name}`, date: vDate }, setTransactions); } setShowAddVisitProfile(false); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); toast.success('تم إضافة الزيارة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {visits.filter(v => v.patientId === selectedPatient.id).length === 0 && !showAddVisitProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد زيارات</p>}
@@ -2106,7 +2113,8 @@ export default function Home() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20 space-y-2">
                         {services.length > 0 && <div><Label className="text-[10px] font-bold">الخدمة</Label><Select value={profileSessionServiceId} onValueChange={setProfileSessionServiceId}><SelectTrigger className="rounded-xl h-9 mt-0.5 text-xs"><SelectValue placeholder="اختر الخدمة..." /></SelectTrigger><SelectContent>{services.filter(s => s.active).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>}
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileSessionPrice} onChange={e => setProfileSessionPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileSessionNotes} onChange={e => setProfileSessionNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const now = new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: now }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: now }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
+                        <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الجلسة (اختياري)</Label><Input type="date" value={profileSessionDate} onChange={e => setProfileSessionDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const sDate = profileSessionDate ? new Date(profileSessionDate + 'T00:00:00').toISOString() : new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: sDate }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: sDate }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); setProfileSessionDate(''); toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد جلسات</p>}
@@ -3795,7 +3803,7 @@ export default function Home() {
                         const now = new Date()
                         if (bookingFilterDate === 'today' && !a.date?.startsWith(todayStr)) return false
                         if (bookingFilterDate === 'week') { const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); if (aDate < weekStart) return false }
-                        if (bookingFilterDate === 'month') { const ad = getCairoDateParts(a.date); const nd = getCairoDateParts(); if (ad.year !== nd.year || ad.month !== nd.month) return false }
+                        if (bookingFilterDate === 'month') { const ad = getCairoDateParts(a.date); if (ad.year !== cairoNow.year || ad.month !== cairoNow.month) return false }
                       }
                       return true
                     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -4141,7 +4149,7 @@ export default function Home() {
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Users size={18} className="text-blue-600" /> إحصائيات المرضى</CardTitle></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">إجمالي المرضى</p><p className="text-lg font-bold text-blue-600">{patients.length}</p></div>
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const pd = getCairoDateParts(p.createdAt); const now = getCairoDateParts(); return pd.year === now.year && pd.month === now.month }).length}</p></div>
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const pd = getCairoDateParts(p.createdAt); return pd.year === cairoNow.year && pd.month === cairoNow.month }).length}</p></div>
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
                       <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
                     </div>
@@ -5473,6 +5481,22 @@ export default function Home() {
               <Label className="text-sm font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1"><FileText size={14} /> ملاحظات</Label>
               <Textarea value={newPatientNotes} onChange={e => setNewPatientNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1 border-purple-300 dark:border-purple-800 focus:border-purple-500 min-h-[60px] bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:from-purple-950/10 dark:to-fuchsia-950/10" />
             </div>
+
+            {/* ─── 6.5. CUSTOM DATE - Optional date override ─── */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-3 rounded-2xl border-2 border-dashed border-cyan-300 dark:border-cyan-700 bg-gradient-to-br from-cyan-50/50 to-sky-50/50 dark:from-cyan-950/10 dark:to-sky-950/10">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={14} className="text-cyan-600 dark:text-cyan-400" />
+                <Label className="text-xs font-bold text-cyan-700 dark:text-cyan-400">تاريخ الزيارة (اختياري)</Label>
+              </div>
+              <Input type="date" value={newPatientDate} onChange={e => setNewPatientDate(e.target.value)} className="rounded-xl h-10 border-cyan-200 dark:border-cyan-800 bg-white dark:bg-black/20 text-sm" />
+              <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
+                <CalendarCheck size={10} />
+                {newPatientDate
+                  ? <span className="text-cyan-600 dark:text-cyan-400 font-bold">سيتم التسجيل بتاريخ {newPatientDate} بدلاً من اليوم</span>
+                  : <span>اتركه فارغاً للتسجيل بتاريخ اليوم تلقائياً — أو اختر تاريخ إذا تأخرت السكرتيرة في التسجيل</span>
+                }
+              </p>
+            </motion.div>
 
             {/* ─── 7. SERVICES - AT THE BOTTOM, ELEGANT ─── */}
             {['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType) && (
