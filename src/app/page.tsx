@@ -821,25 +821,35 @@ export default function Home() {
     // Chart data for daily breakdown (Cairo timezone)
     let chartData: { label: string; income: number; expense: number }[] = []
     if (personalReportPeriod === 'daily') {
-      // Last 7 days
+      // Last 7 days using Cairo timezone
       for (let i = 6; i >= 0; i--) {
         const d = new Date()
-        d.setDate(d.getDate() - i)
-        const ds = getLocalDateStr(d)
+        const cairoDate = new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+        cairoDate.setDate(cairoDate.getDate() - i)
+        const ds = cairoDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
         const dayIncome = income.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
         const dayExpense = expense.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
-        chartData.push({ label: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), income: dayIncome, expense: dayExpense })
+        chartData.push({ label: cairoDate.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), income: dayIncome, expense: dayExpense })
       }
     } else if (personalReportPeriod === 'weekly') {
-      // Last 4 weeks
+      // Last 4 weeks (Saturday–Friday Egyptian weeks)
       for (let i = 3; i >= 0; i--) {
-        const todayDate = new Date(_todayStr + 'T00:00:00')
-        const weekEnd = new Date(todayDate)
-        weekEnd.setDate(weekEnd.getDate() - i * 7)
-        const weekStart = new Date(weekEnd)
-        weekStart.setDate(weekStart.getDate() - 7)
-        const weekIncome = income.filter(t => { const td = getLocalDateStr(t.date); const tDate = new Date(td + 'T00:00:00'); return tDate >= weekStart && tDate < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
-        const weekExpense = expense.filter(t => { const td = getLocalDateStr(t.date); const tDate = new Date(td + 'T00:00:00'); return tDate >= weekStart && tDate < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+        const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+        const dayOfWeek = nowCairo.getDay()
+        const daysSinceSaturday = (dayOfWeek + 1) % 7
+        // End of the target week (Friday + end offset)
+        const weekEndDate = new Date(nowCairo)
+        weekEndDate.setDate(nowCairo.getDate() - (i * 7) + (6 - daysSinceSaturday))
+        const weekStartDate = new Date(weekEndDate)
+        weekStartDate.setDate(weekEndDate.getDate() - 6) // 7 days including start
+        const weekDays = new Set<string>()
+        for (let d = 0; d < 7; d++) {
+          const day = new Date(weekStartDate)
+          day.setDate(weekStartDate.getDate() + d)
+          weekDays.add(day.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }))
+        }
+        const weekIncome = income.filter(t => weekDays.has(getLocalDateStr(t.date))).reduce((s, t) => s + (t.amount || 0), 0)
+        const weekExpense = expense.filter(t => weekDays.has(getLocalDateStr(t.date))).reduce((s, t) => s + (t.amount || 0), 0)
         chartData.push({ label: `أسبوع ${4 - i}`, income: weekIncome, expense: weekExpense })
       }
     } else {
@@ -1249,11 +1259,15 @@ export default function Home() {
       else txByDate[ds].expense += t.amount
     }
     const days: { name: string; إيراد: number; مصروف: number }[] = []
+    // Use Cairo-based date iteration instead of new Date() which uses UTC on Vercel
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i)
-      const ds = getLocalDateStr(d)
+      const d = new Date()
+      // Subtract i days in Cairo timezone
+      const cairoDate = new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+      cairoDate.setDate(cairoDate.getDate() - i)
+      const ds = cairoDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
       const dayData = txByDate[ds] || { income: 0, expense: 0 }
-      days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: dayData.income, مصروف: dayData.expense })
+      days.push({ name: cairoDate.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: dayData.income, مصروف: dayData.expense })
     }
     return days
   }, [transactions])
@@ -1316,18 +1330,33 @@ export default function Home() {
     { name: 'أخرى', value: otherRevenue || 0 },
   ].filter(d => d.value > 0), [checkupRevenue, revisitRevenue, sessionRevenue, laserRevenue, followUpRevenue, otherRevenue])
 
-  // ─── Weekly Revenue Comparison ───
+  // ─── Weekly Revenue Comparison (Saturday–Friday Egyptian week) ───
   const weeklyComparison = useMemo(() => {
-    const todayDate = new Date(todayStr + 'T00:00:00')
-    // This week: last 7 days
-    const thisWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 0 && diff < 7 })())
+    // Calculate Saturday-to-Friday week boundaries in Cairo timezone
+    const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+    const dayOfWeek = nowCairo.getDay() // 0=Sun, 6=Sat
+    const daysSinceSaturday = (dayOfWeek + 1) % 7 // Sat=0, Sun=1, ..., Fri=6
+    // This week: from Saturday to today
+    const thisWeekDays = new Set<string>()
+    for (let i = daysSinceSaturday; i >= 0; i--) {
+      const d = new Date(nowCairo)
+      d.setDate(d.getDate() - i)
+      thisWeekDays.add(d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }))
+    }
+    // Last week: the 7 days before this Saturday
+    const lastWeekDays = new Set<string>()
+    for (let i = daysSinceSaturday + 1; i <= daysSinceSaturday + 7; i++) {
+      const d = new Date(nowCairo)
+      d.setDate(d.getDate() - i)
+      lastWeekDays.add(d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }))
+    }
+    const thisWeekTxns = clinicTransactions.filter(t => t.type === 'income' && thisWeekDays.has(getLocalDateStr(t.date)))
     const thisWeekTotal = thisWeekTxns.reduce((s, t) => s + t.amount, 0)
-    // Last week: 7-14 days ago
-    const lastWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 7 && diff < 14 })())
+    const lastWeekTxns = clinicTransactions.filter(t => t.type === 'income' && lastWeekDays.has(getLocalDateStr(t.date)))
     const lastWeekTotal = lastWeekTxns.reduce((s, t) => s + t.amount, 0)
     const changePercent = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : thisWeekTotal > 0 ? 100 : 0
     return { thisWeekTotal, lastWeekTotal, changePercent, isUp: thisWeekTotal >= lastWeekTotal }
-  }, [clinicTransactions, todayStr])
+  }, [clinicTransactions])
 
   // ─── Top Patients by Visits ───
   const topPatientsByVisits = useMemo(() => {
@@ -3003,7 +3032,7 @@ export default function Home() {
                       const isToday = day.date === todayStr
                       const isExpanded = expandedFinanceDay === day.date
                       const dayDate = new Date(day.date + 'T00:00:00')
-                      const dayName = dayDate.toLocaleDateString('ar-EG', { weekday: 'long' })
+                      const dayName = new Date(day.date + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'Africa/Cairo' })
                       const dayLabel = dayDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
                       return (
                         <div key={day.date} className={cn('rounded-xl border-2 overflow-hidden transition-all', isToday ? 'border-amber-400 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-950/20' : 'border-border bg-card')}>
@@ -3826,7 +3855,7 @@ export default function Home() {
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                       <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 p-3 text-center">
                         <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="text-2xl mb-1">📆</motion.div>
-                        <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{(() => { const now = new Date(); const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); return appointments.filter(a => new Date(a.date) >= weekStart && new Date(a.date) <= now).length })()}</p>
+                        <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{(() => { const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })); const dayOfWeek = nowCairo.getDay(); const daysSinceSaturday = (dayOfWeek + 1) % 7; const satDate = new Date(nowCairo); satDate.setDate(nowCairo.getDate() - daysSinceSaturday); const weekStartStr = satDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); return appointments.filter(a => getLocalDateStr(a.date) >= weekStartStr).length })()}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">هذا الأسبوع</p>
                       </Card>
                     </motion.div>
@@ -3861,7 +3890,7 @@ export default function Home() {
                         const aDate = new Date(a.date)
                         const now = new Date()
                         if (bookingFilterDate === 'today' && getLocalDateStr(a.date) !== todayStr) return false
-                        if (bookingFilterDate === 'week') { const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); if (aDate < weekStart) return false }
+                        if (bookingFilterDate === 'week') { const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })); const daysSinceSat = (nowCairo.getDay() + 1) % 7; const satDate = new Date(nowCairo); satDate.setDate(nowCairo.getDate() - daysSinceSat); const weekStartStr = satDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); if (getLocalDateStr(a.date) < weekStartStr) return false }
                         if (bookingFilterDate === 'month') { const ad = getCairoDateParts(a.date); if (ad.year !== cairoNow.year || ad.month !== cairoNow.month) return false }
                       }
                       return true
@@ -4126,7 +4155,7 @@ export default function Home() {
                     {dailyVisitStats.map(day => {
                       const isToday = day.date === todayStr
                       const dayDate = new Date(day.date + 'T00:00:00')
-                      const dayName = dayDate.toLocaleDateString('ar-EG', { weekday: 'long' })
+                      const dayName = new Date(day.date + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'long', timeZone: 'Africa/Cairo' })
                       const dayLabel = dayDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
                       const totalCases = day.checkupCount + day.revisitCount + day.sessionCount
                       const totalRev = day.checkupRevenue + day.revisitRevenue + day.sessionRevenue
@@ -4356,7 +4385,7 @@ export default function Home() {
                               const totalCases = day.checkupCount + day.revisitCount + day.sessionCount
                               const totalRev = day.checkupRevenue + day.revisitRevenue + day.sessionRevenue
                               const dayDate = new Date(day.date + 'T00:00:00')
-                              const dayName = dayDate.toLocaleDateString('ar-EG', { weekday: 'short' })
+                              const dayName = new Date(day.date + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' })
                               return (
                                 <div key={day.date} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                                   <div className="flex items-center gap-2">
