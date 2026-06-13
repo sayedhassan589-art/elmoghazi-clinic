@@ -32,23 +32,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'الملف لا يحتوي على بيانات صالحة للاستعادة' }, { status: 400 })
     }
 
-    // Helper: safely create records one by one to handle duplicates and bad data
-    // SQLite doesn't support skipDuplicates in createMany, so we insert one-by-one
+    // Helper: safely create records, skipping duplicates
+    // CockroachDB supports skipDuplicates in createMany
     const safeCreateMany = async (model: string, records: any[]) => {
       if (!records?.length) return 0
-      let count = 0
-      for (const record of records) {
-        try {
-          await (db as any)[model].create({ data: record })
-          count++
-        } catch (err: any) {
-          // Skip duplicates and bad records silently
-          if (!err?.message?.includes('Unique') && !err?.message?.includes('unique')) {
-            console.error(`Error restoring ${model}:`, err.message?.substring(0, 100))
+      try {
+        const result = await (db as any)[model].createMany({
+          data: records,
+          skipDuplicates: true,
+        })
+        return result.count
+      } catch (err: any) {
+        console.error(`Error restoring ${model} with createMany:`, err.message?.substring(0, 150))
+        // Fallback: try one-by-one for records that fail
+        let count = 0
+        for (const record of records) {
+          try {
+            await (db as any)[model].create({ data: record })
+            count++
+          } catch {
+            // Skip duplicates and bad records
           }
         }
+        return count
       }
-      return count
     }
 
     // Delete existing data in reverse dependency order
