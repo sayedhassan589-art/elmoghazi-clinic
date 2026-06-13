@@ -87,8 +87,7 @@ const waPhone = (phone?: string) => {
 const _dateCache = new Map<string, string>()
 const getLocalDateStr = (date?: Date | string) => {
   const d = date ? new Date(date) : new Date()
-  // Use full ISO including time to avoid cache collisions for dates near midnight UTC
-  const key = d.toISOString().slice(0, 16) // e.g. '2026-06-01T22:00'
+  const key = d.toISOString().slice(0, 10)
   const cached = _dateCache.get(key)
   if (cached) return cached
   const result = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
@@ -374,30 +373,6 @@ export default function Home() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
-  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
-
-  // Full restore from backup file — uses dedicated import endpoint
-  // This sends the entire backup JSON to /api/backups/import which restores
-  // directly via Prisma createMany, preserving original IDs and all relationships.
-  const restoreFromBackup = async (backupData: any) => {
-    try {
-      const response = await apiFetch('/backups/import', {
-        method: 'POST',
-        body: JSON.stringify(backupData),
-      })
-      const result = await response.json()
-      if (!response.ok) {
-        throw new Error(result.error || result.details || 'فشل الاستعادة')
-      }
-      await loadAllData()
-      setRestoreConfirmOpen(false)
-      setPendingRestoreData(null)
-      toast.success(`تمت الاستعادة بنجاح - ${result.totalRestored || ''} عنصر ✓`)
-    } catch (e: any) {
-      toast.error('خطأ في الاستعادة: ' + (e.message || ''))
-    }
-  }
 
   // Service price editing & quick notes
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
@@ -441,7 +416,7 @@ export default function Home() {
   const [deletePatientConfirmOpen, setDeletePatientConfirmOpen] = useState(false)
   const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', phone2: '', age: '', gender: '', address: '', bloodType: '', medicalHistory: '', notes: '' })
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
-  const [editVisitForm, setEditVisitForm] = useState({ type: '', notes: '', price: '', date: '' })
+  const [editVisitForm, setEditVisitForm] = useState({ type: '', notes: '', price: '' })
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editSessionForm, setEditSessionForm] = useState({ price: '', notes: '', status: '', paid: false })
   const [laserFinancePatientId, setLaserFinancePatientId] = useState('')
@@ -592,7 +567,7 @@ export default function Home() {
   const [fuFormSubEnd, setFuFormSubEnd] = useState('')
   const [fuFormSubSessions, setFuFormSubSessions] = useState('')
   const [showAddFollowUpVisit, setShowAddFollowUpVisit] = useState(false)
-  const [fuVisitForm, setFuVisitForm] = useState({ findings: '', vitals: '', diagnosis: '', treatmentNotes: '', medications: '', instructions: '', paid: false, price: '', nextVisitDate: '', notes: '', type: 'followup' })
+  const [fuVisitForm, setFuVisitForm] = useState({ findings: '', vitals: '', diagnosis: '', treatmentNotes: '', medications: '', instructions: '', paid: false, price: '', nextVisitDate: '', notes: '', type: 'followup', date: '' })
   const [deleteFollowUpConfirmId, setDeleteFollowUpConfirmId] = useState<string | null>(null)
   const [editingFollowUpId, setEditingFollowUpId] = useState<string | null>(null)
 
@@ -1034,15 +1009,16 @@ export default function Home() {
       const svc = services.find(sv => sv.id === s.serviceId)
       const category = s.notes?.includes('ليزر') ? 'ليزر' : 'جلسات'
       const description = `${svc?.name || (category === 'ليزر' ? 'جلسة ليزر' : 'جلسة')} - ${patientName}`
+      const txnDate = s.date || new Date().toISOString()
       try {
-        const txnRes = await apiFetch<any>('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category, amount: s.price, description, date: s.date || new Date().toISOString() }) })
-        const txnItem = txnRes?.transaction || txnRes?.data || txnRes
-        if (txnItem?.id) {
-          setTransactions(prev => [txnItem, ...prev])
+        const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category, amount: s.price, description, date: txnDate }) })
+        const newTxn = txnRes?.transaction || txnRes?.data || txnRes
+        if (newTxn?.id) {
+          setTransactions(prev => [newTxn, ...prev])
         } else {
-          setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: s.date || new Date().toISOString() }])
+          setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: txnDate }])
         }
-      } catch { /* finance txn creation failed silently */ }
+      } catch { setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: txnDate }]) }
       setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss))
       toast.success('تم الدفع ✅')
     } catch { toast.error('خطأ') }
@@ -1079,11 +1055,11 @@ export default function Home() {
     try {
       // Find and delete the corresponding finance transaction
       const visitCategory = visit.type === 'checkup' ? 'كشف' : visit.type === 'revisit' ? 'إعادة' : 'جلسات'
-      const visitDateStr = getLocalDateStr(visit.date)
+      const visitDate = visit.date?.split('T')[0]
       const relatedTxn = transactions.find(t =>
         t.description?.includes(patientName) &&
         t.category === visitCategory &&
-        getLocalDateStr(t.date) === visitDateStr
+        t.date?.startsWith(visitDate || '')
       )
       if (relatedTxn) {
         try { await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'DELETE' }) } catch {}
@@ -1097,43 +1073,24 @@ export default function Home() {
   }
 
   // Edit visit with finance sync
-  const editVisitWithFinance = async (visit: Visit, newType: string, newNotes: string, patientName: string, newDate?: string, newPrice?: number) => {
+  const editVisitWithFinance = async (visit: Visit, newType: string, newNotes: string, patientName: string) => {
     try {
       const oldCategory = visit.type === 'checkup' ? 'كشف' : visit.type === 'revisit' ? 'إعادة' : 'جلسات'
       const newCategory = newType === 'checkup' ? 'كشف' : newType === 'revisit' ? 'إعادة' : 'جلسات'
-      // Find related finance transaction using Cairo date matching
-      const visitDateStr = getLocalDateStr(visit.date)
+      // Find related finance transaction
+      const visitDate = visit.date?.split('T')[0]
       const relatedTxn = transactions.find(t =>
         t.description?.includes(patientName) &&
         t.category === oldCategory &&
-        getLocalDateStr(t.date) === visitDateStr
+        t.date?.startsWith(visitDate || '')
       )
-      // Build update payload for visit
-      const visitUpdate: Record<string, unknown> = { type: newType, notes: newNotes || undefined }
-      if (newDate) {
-        // Convert the new date with Cairo timezone offset
-        visitUpdate.date = new Date(newDate + 'T00:00:00+02:00').toISOString()
-      }
       // Update visit
-      await apiFetch(`/visits/${visit.id}`, { method: 'PUT', body: JSON.stringify(visitUpdate) })
-      setVisits(prev => prev.map(v => v.id === visit.id ? { ...v, type: newType, notes: newNotes || undefined, ...(newDate ? { date: visitUpdate.date as string } : {}) } : v))
-      // Update finance transaction if category, price, or date changed
-      if (relatedTxn) {
-        const txnUpdate: Record<string, unknown> = {}
-        if (oldCategory !== newCategory) {
-          txnUpdate.category = newCategory
-          txnUpdate.description = relatedTxn.description?.replace(oldCategory, newCategory)
-        }
-        if (newPrice !== undefined && newPrice > 0) {
-          txnUpdate.amount = newPrice
-        }
-        if (newDate) {
-          txnUpdate.date = visitUpdate.date
-        }
-        if (Object.keys(txnUpdate).length > 0) {
-          await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'PUT', body: JSON.stringify(txnUpdate) })
-          setTransactions(prev => prev.map(t => t.id === relatedTxn.id ? { ...t, ...txnUpdate } : t))
-        }
+      await apiFetch(`/visits/${visit.id}`, { method: 'PUT', body: JSON.stringify({ type: newType, notes: newNotes || undefined }) })
+      setVisits(prev => prev.map(v => v.id === visit.id ? { ...v, type: newType, notes: newNotes } : v))
+      // Update finance transaction if category changed
+      if (relatedTxn && oldCategory !== newCategory) {
+        await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'PUT', body: JSON.stringify({ category: newCategory, description: relatedTxn.description?.replace(oldCategory, newCategory) }) })
+        setTransactions(prev => prev.map(t => t.id === relatedTxn.id ? { ...t, category: newCategory, description: t.description?.replace(oldCategory, newCategory) } : t))
       }
       setEditingVisitId(null)
       toast.success('تم تعديل الزيارة')
@@ -1144,12 +1101,12 @@ export default function Home() {
   const deleteSessionWithFinance = async (session: Session, patientName: string) => {
     try {
       // Find and delete the corresponding finance transaction
-      const sessionDateStr = getLocalDateStr(session.date)
+      const sessionDate = session.date?.split('T')[0]
       const svcName = services.find(sv => sv.id === session.serviceId)?.name || 'جلسة'
       const relatedTxn = transactions.find(t =>
         t.description?.includes(patientName) &&
         (t.category === 'جلسات' || t.category === 'ليزر') &&
-        getLocalDateStr(t.date) === sessionDateStr &&
+        t.date?.startsWith(sessionDate || '') &&
         t.amount === session.price
       )
       if (relatedTxn) {
@@ -1167,11 +1124,11 @@ export default function Home() {
   const editSessionWithFinance = async (session: Session, newPrice: number, newNotes: string, newStatus: string, patientName: string) => {
     try {
       // Find related finance transaction
-      const sessionDateStr = getLocalDateStr(session.date)
+      const sessionDate = session.date?.split('T')[0]
       const relatedTxn = transactions.find(t =>
         t.description?.includes(patientName) &&
         (t.category === 'جلسات' || t.category === 'ليزر') &&
-        getLocalDateStr(t.date) === sessionDateStr &&
+        t.date?.startsWith(sessionDate || '') &&
         t.amount === session.price
       )
       // Update session
@@ -1205,7 +1162,7 @@ export default function Home() {
   const todayIncome = todayStats.todayIncome
   const todayExpense = todayStats.todayExpense
   const todayNetProfit = todayStats.todayNetProfit
-  const todayVisits = useMemo(() => visits.filter(v => v.date && getLocalDateStr(v.date) === todayStr), [visits, todayStr])
+  const todayVisits = useMemo(() => visits.filter(v => v.date?.startsWith(todayStr)), [visits, todayStr])
 
   // Daily finance data - grouped by real date (Cairo timezone)
   const dailyFinanceData = useMemo(() => {
@@ -1220,7 +1177,7 @@ export default function Home() {
     })
     return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
   }, [transactions])
-  const todayAppointments = useMemo(() => appointments.filter(a => a.date && getLocalDateStr(a.date) === todayStr), [appointments, todayStr])
+  const todayAppointments = useMemo(() => appointments.filter(a => a.date?.startsWith(todayStr)), [appointments, todayStr])
   const activeAlerts = useMemo(() => alerts.filter(a => a.active), [alerts])
 
   // Daily visit/session stats for reports (Cairo timezone)
@@ -1263,15 +1220,12 @@ export default function Home() {
       if (t.type === 'income') txByDate[ds].income += t.amount
       else txByDate[ds].expense += t.amount
     }
-    // Show ALL days of the current month (Cairo timezone)
     const days: { name: string; إيراد: number; مصروف: number }[] = []
-    const now = getCairoDateParts()
-    const daysInMonth = new Date(now.year, now.month, 0).getDate()
-    for (let d = 1; d <= daysInMonth; d++) {
-      const ds = `${now.year}-${String(now.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      const ds = getLocalDateStr(d)
       const dayData = txByDate[ds] || { income: 0, expense: 0 }
-      const dayName = d % 2 === 1 || daysInMonth <= 15 ? String(d) : '' // Show every other day label if too many days
-      days.push({ name: dayName, إيراد: dayData.income, مصروف: dayData.expense })
+      days.push({ name: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: dayData.income, مصروف: dayData.expense })
     }
     return days
   }, [transactions])
@@ -1482,69 +1436,16 @@ export default function Home() {
   const createBackup = async () => { try { await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) }); setLastBackup(new Date().toISOString()); toast.success('تم إنشاء نسخة احتياطية'); loadAllData() } catch { toast.error('فشل إنشاء النسخة') } }
   const exportBackup = async (format: string) => {
     try {
-      if (format === 'full') {
-        // Full backup: download all data from the server as a complete JSON file
-        const res = await apiFetch<any>('/backups?limit=1')
-        // Create a fresh full backup first
-        await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) })
-        // Get the latest backup with full data
-        const backupsRes = await apiFetch<any>('/backups?limit=1')
-        const latestBackup = backupsRes?.backups?.[0]
-        if (latestBackup) {
-          // Fetch the backup with its data
-          const backupDetail = await apiFetch<any>(`/backups/${latestBackup.id}`)
-          const backupData = backupDetail?.backup || backupDetail
-          if (backupData?.data) {
-            const content = typeof backupData.data === 'string' ? backupData.data : JSON.stringify(backupData.data, null, 2)
-            const blob = new Blob([content], { type: 'application/json' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-full-backup-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
-            toast.success('تم تصدير نسخة احتياطية كاملة ✓')
-            return
-          }
-        }
-        // Fallback: export from local state
-        const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, laserSettings, inventoryItems, medications, reminders, notes, alerts, followUpRecords, doctors, exportDate: new Date().toISOString(), type: 'full-backup' }
-        const content = JSON.stringify(data, null, 2)
-        const blob = new Blob([content], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-full-backup-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
-        toast.success('تم تصدير نسخة احتياطية كاملة ✓')
-      } else {
-        const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, inventoryItems, medications, reminders, notes, exportDate: new Date().toISOString() }
-        let content: string; let filename: string; let mimeType: string
-        if (format === 'csv') { const headers = Object.keys(patients[0] || {}).join(','); const rows = patients.map(p => Object.values(p).join(',')).join('\n'); content = headers + '\n' + rows; filename = `elmoghazi-${todayStr}.csv`; mimeType = 'text/csv' }
-        else { content = JSON.stringify(data, null, 2); filename = `elmoghazi-${todayStr}.json`; mimeType = 'application/json' }
-        const blob = new Blob([content], { type: mimeType }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`تم تصدير النسخة ${format.toUpperCase()}`)
-      }
+      const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, inventoryItems, medications, reminders, notes, exportDate: new Date().toISOString() }
+      let content: string; let filename: string; let mimeType: string
+      if (format === 'csv') { const headers = Object.keys(patients[0] || {}).join(','); const rows = patients.map(p => Object.values(p).join(',')).join('\n'); content = headers + '\n' + rows; filename = `elmoghazi-${todayStr}.csv`; mimeType = 'text/csv' }
+      else { content = JSON.stringify(data, null, 2); filename = `elmoghazi-${todayStr}.json`; mimeType = 'application/json' }
+      const blob = new Blob([content], { type: mimeType }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`تم تصدير النسخة ${format.toUpperCase()}`)
     } catch { toast.error('فشل التصدير') }
   }
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
-    try {
-      const text = await file.text()
-      if (file.name.endsWith('.json')) {
-        const data = JSON.parse(text)
-        // Support both backup formats:
-        // 1. Full backup with wrapper: { exportedAt, version, data: { ... } }
-        // 2. Direct data format: { patients: [...], visits: [...], ... }
-        const backupData = data?.data || data
-        // Check if this looks like a full backup (has any known data type array)
-        const knownKeys = ['users','patients','services','visits','sessions','transactions','laserRecords','laserSessions','laserNotes','laserPackages','laserSettings','appointments','notes','alerts','reminders','medications','inventoryItems','inventoryTransactions','treatmentPlans','treatmentPhases','treatmentPlanSessions','patientPhotos','prescriptions','prescriptionItems','notifications','auditLogs','partnerDoctors','followUpRecords','followUpVisits']
-        const hasBackupData = knownKeys.some(k => Array.isArray(backupData?.[k]) && backupData[k].length > 0)
-        if (hasBackupData) {
-          // Full backup restore via dedicated import endpoint
-          setRestoreConfirmOpen(true)
-          setPendingRestoreData(backupData)
-        } else if (data?.patients && Array.isArray(data.patients)) {
-          // Simple patient import (only patients, no other data)
-          for (const p of data.patients) await addItem('/patients', p, setPatients)
-          toast.success(`تم استيراد ${data.patients.length} مريض`)
-        } else {
-          toast.error('صيغة الملف غير مدعومة - الملف لا يحتوي على بيانات صالحة')
-        }
-      } else { toast.error('صيغة غير مدعومة - يجب أن يكون الملف بامتداد .json') }
-    } catch (err: any) { toast.error('فشل الاستيراد: ' + (err.message || 'ملف تالف')) }
+    try { const text = await file.text(); if (file.name.endsWith('.json')) { const data = JSON.parse(text); if (data?.patients) for (const p of data.patients) await addItem('/patients', p, setPatients); toast.success(`تم استيراد ${file.name}`) } else { toast.error('صيغة غير مدعومة') } } catch { toast.error('فشل الاستيراد') }
     e.target.value = ''
   }
 
@@ -1557,9 +1458,7 @@ export default function Home() {
 
     const patientId = patient.id
     // Use custom date if provided, otherwise use now (Cairo timezone)
-    // Use explicit Cairo timezone offset (+02:00) so custom dates map to the correct UTC value
-    // e.g. '2026-06-02T00:00:00+02:00' → '2026-06-01T22:00:00.000Z' which getLocalDateStr converts back to '2026-06-02'
-    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00+02:00').toISOString() : new Date().toISOString()
+    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00').toISOString() : new Date().toISOString()
     const vPrice = parseFloat(visitPrice) || 0
     const sPrice = parseFloat(customServicePrice) || 0
 
@@ -1592,6 +1491,8 @@ export default function Home() {
 
     // Reset form
     setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientDiagnosis(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setNewPatientDate(''); setShowAddPatient(false)
+    // Reload transactions from DB to ensure financial data is in sync
+    try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {}
     toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
   }
 
@@ -1782,11 +1683,11 @@ export default function Home() {
                 </div></CardContent></Card>
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => p.createdAt && getLocalDateStr(p.createdAt) === todayStr).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
+                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => p.createdAt?.startsWith(todayStr)).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
                     { icon: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف`, gradient: 'from-emerald-500 to-emerald-700', anim: { rotate: [0, 10, -10, 0] } },
                     { icon: '💰', label: 'إيراد اليوم', value: formatCurrency(todayIncome), sub: `${transactions.filter(t => t.type === 'income').length} معاملة`, gradient: 'from-amber-500 to-amber-700', anim: { scale: [1, 1.2, 1] } },
                     { icon: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${appointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-purple-500 to-purple-700', anim: { y: [0, -5, 0] } },
-                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
+                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => s.date?.startsWith(todayStr)).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
                     { icon: '💎', label: 'سجلات الليزر', value: laserRecords.filter(r => r.status === 'active').length, sub: `${new Set(laserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-700', anim: { scale: [1, 1.1, 1] } },
                   ].map((s, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, type: 'spring' }} className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br', s.gradient)}>
@@ -1818,8 +1719,8 @@ export default function Home() {
                         const todayCheckupRev = transactions.filter(t => t.type === 'income' && t.category === 'كشف' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
                         const todayRevisitRev = transactions.filter(t => t.type === 'income' && t.category === 'إعادة' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
                         const todaySessionRev = transactions.filter(t => t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة') && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-                        const todayUnpaid = sessions.filter(s => !s.paid && s.date && getLocalDateStr(s.date) === todayStr).reduce((s, ses) => s + ses.price, 0)
-                        const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && s.date && getLocalDateStr(s.date) === todayStr).length
+                        const todayUnpaid = sessions.filter(s => !s.paid && s.date?.startsWith(todayStr)).reduce((s, ses) => s + ses.price, 0)
+                        const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && s.date?.startsWith(todayStr)).length
                         return (
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg">
@@ -2206,11 +2107,11 @@ export default function Home() {
                         <div className="grid grid-cols-2 gap-2">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setProfileVisitType(vt.id)} className={cn('flex items-center gap-1.5 p-2 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700' : 'border-transparent bg-muted/50 text-muted-foreground')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div>
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileVisitPrice} onChange={e => setProfileVisitPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileVisitNotes} onChange={e => setProfileVisitNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
                         <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الزيارة (اختياري)</Label><Input type="date" value={profileVisitDate} onChange={e => setProfileVisitDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const vDate = profileVisitDate ? new Date(profileVisitDate + 'T00:00:00+02:00').toISOString() : new Date().toISOString(); await addItem('/visits', { patientId: selectedPatient.id, type: profileVisitType, notes: profileVisitNotes || undefined, date: vDate }, setVisits); const vPrice = parseFloat(profileVisitPrice) || 0; if (vPrice > 0) { const cat = profileVisitType === 'checkup' ? 'كشف' : 'إعادة'; await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${selectedPatient.name}`, date: vDate }, setTransactions); } setShowAddVisitProfile(false); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); toast.success('تم إضافة الزيارة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const vDate = profileVisitDate ? new Date(profileVisitDate + 'T00:00:00').toISOString() : new Date().toISOString(); await addItem('/visits', { patientId: selectedPatient.id, type: profileVisitType, notes: profileVisitNotes || undefined, date: vDate }, setVisits); const vPrice = parseFloat(profileVisitPrice) || 0; if (vPrice > 0) { const cat = profileVisitType === 'checkup' ? 'كشف' : 'إعادة'; await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${selectedPatient.name}`, date: vDate }, setTransactions); } setShowAddVisitProfile(false); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success('تم إضافة الزيارة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {visits.filter(v => v.patientId === selectedPatient.id).length === 0 && !showAddVisitProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد زيارات</p>}
-                    {visits.filter(v => v.patientId === selectedPatient.id).map(v => { const vt = VISIT_TYPES.find(t => t.id === v.type); return <Card key={v.id} className="border border-slate-200 dark:border-slate-800 p-3">{editingVisitId === v.id ? (<div className="space-y-2 p-2 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-300"><div className="grid grid-cols-2 gap-2"><Select value={editVisitForm.type} onValueChange={val => setEditVisitForm(f => ({ ...f, type: val }))}><SelectTrigger className="rounded-xl h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{VISIT_TYPES.slice(0,3).map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.emoji} {vt.label}</SelectItem>)}</SelectContent></Select><Input value={editVisitForm.notes} onChange={e => setEditVisitForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-8 text-xs" /></div><div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px]">السعر</Label><Input type="number" value={editVisitForm.price} onChange={e => setEditVisitForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div><div><Label className="text-[10px]">التاريخ</Label><Input type="date" value={editVisitForm.date} onChange={e => setEditVisitForm(f => ({ ...f, date: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div></div><div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white text-xs h-7" onClick={() => editVisitWithFinance(v, editVisitForm.type, editVisitForm.notes, selectedPatient!.name, editVisitForm.date || undefined, parseFloat(editVisitForm.price) || undefined)}>حفظ</Button><Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div></div>) : (<div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className={cn('p-2 rounded-lg text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-1.5"><Badge className={cn('text-white text-[8px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(v.date)}</span></div>{v.notes && <p className="text-[11px] text-muted-foreground mt-0.5">{v.notes}</p>}</div></div><div className="flex gap-0.5"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingVisitId(v.id); setEditVisitForm({ type: v.type, notes: v.notes || '', price: String(transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === (v.type === 'checkup' ? 'كشف' : 'إعادة'))?.amount || ''), date: v.date ? getLocalDateStr(v.date) : '' }) }}><Edit3 size={10} className="text-violet-500" /></Button><Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { const cat = v.type === 'checkup' ? 'كشف' : 'إعادة'; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === cat); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); setVisits(prev => prev.filter(vv => vv.id !== v.id)); toast.success('تم الحذف') } catch { toast.error('خطأ') } }}><Trash2 size={10} className="text-red-500" /></Button></div></div>)}</Card> })}
+                    {visits.filter(v => v.patientId === selectedPatient.id).map(v => { const vt = VISIT_TYPES.find(t => t.id === v.type); return <Card key={v.id} className="border border-slate-200 dark:border-slate-800 p-3">{editingVisitId === v.id ? (<div className="space-y-2 p-2 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-300"><div className="grid grid-cols-2 gap-2"><Select value={editVisitForm.type} onValueChange={val => setEditVisitForm(f => ({ ...f, type: val }))}><SelectTrigger className="rounded-xl h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{VISIT_TYPES.slice(0,3).map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.emoji} {vt.label}</SelectItem>)}</SelectContent></Select><Input value={editVisitForm.notes} onChange={e => setEditVisitForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-8 text-xs" /></div><div><Label className="text-[10px]">السعر</Label><Input type="number" value={editVisitForm.price} onChange={e => setEditVisitForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div><div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white text-xs h-7" onClick={async () => { try { await apiFetch(`/visits/${v.id}`, { method: 'PUT', body: JSON.stringify({ type: editVisitForm.type, notes: editVisitForm.notes || undefined }) }); const oldCat = v.type === 'checkup' ? 'كشف' : 'إعادة'; const newCat = editVisitForm.type === 'checkup' ? 'كشف' : 'إعادة'; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === oldCat); if (relatedTx) { const newPrice = parseFloat(editVisitForm.price) || relatedTx.amount; await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ category: newCat, amount: newPrice, description: `${newCat} - ${selectedPatient!.name}` }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, category: newCat, amount: newPrice, description: `${newCat} - ${selectedPatient!.name}` } : t)); } setVisits(prev => prev.map(vv => vv.id === v.id ? { ...vv, type: editVisitForm.type, notes: editVisitForm.notes || undefined } : vv)); setEditingVisitId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div></div>) : (<div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className={cn('p-2 rounded-lg text-white', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div><div><div className="flex items-center gap-1.5"><Badge className={cn('text-white text-[8px]', vt?.bg || 'bg-gray-500')}>{vt?.label || v.type}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(v.date)}</span></div>{v.notes && <p className="text-[11px] text-muted-foreground mt-0.5">{v.notes}</p>}</div></div><div className="flex gap-0.5"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingVisitId(v.id); setEditVisitForm({ type: v.type, notes: v.notes || '', price: String(transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === (v.type === 'checkup' ? 'كشف' : 'إعادة'))?.amount || '') }) }}><Edit3 size={10} className="text-violet-500" /></Button><Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => { try { const cat = v.type === 'checkup' ? 'كشف' : 'إعادة'; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && t.category === cat); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); setVisits(prev => prev.filter(vv => vv.id !== v.id)); toast.success('تم الحذف') } catch { toast.error('خطأ') } }}><Trash2 size={10} className="text-red-500" /></Button></div></div>)}</Card> })}
                   </TabsContent>
 
                   {/* ═══ SESSIONS ═══ */}
@@ -2221,7 +2122,7 @@ export default function Home() {
                         {services.length > 0 && <div><Label className="text-[10px] font-bold">الخدمة</Label><Select value={profileSessionServiceId} onValueChange={setProfileSessionServiceId}><SelectTrigger className="rounded-xl h-9 mt-0.5 text-xs"><SelectValue placeholder="اختر الخدمة..." /></SelectTrigger><SelectContent>{services.filter(s => s.active).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>}
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileSessionPrice} onChange={e => setProfileSessionPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileSessionNotes} onChange={e => setProfileSessionNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
                         <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الجلسة (اختياري)</Label><Input type="date" value={profileSessionDate} onChange={e => setProfileSessionDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const sDate = profileSessionDate ? new Date(profileSessionDate + 'T00:00:00+02:00').toISOString() : new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: sDate }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: sDate }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); setProfileSessionDate(''); toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const sDate = profileSessionDate ? new Date(profileSessionDate + 'T00:00:00').toISOString() : new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: sDate }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: sDate }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); setProfileSessionDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد جلسات</p>}
@@ -2353,7 +2254,7 @@ export default function Home() {
                 {/* Laser Stats - 4 cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">سجلات نشطة</p><p className="text-xl font-bold">{laserRecords.filter(r => r.status === 'active').length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.date?.startsWith(todayStr)).length}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد الليزر</p><p className="text-xl font-bold">{formatCurrency(laserRevenue)}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><Package className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">باقات نشطة</p><p className="text-xl font-bold">{laserPackages.filter(p => p.active).length}</p></div></div></motion.div>
                 </div>
@@ -2621,7 +2522,7 @@ export default function Home() {
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                                        {!ls.paid && <motion.div whileTap={{ scale: 0.9 }}><Button size="sm" className="h-7 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-bold shadow-sm" onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: ls.price || rec.price, description: `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`, date: new Date().toISOString() }, setTransactions); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }}>💰 دفع</Button></motion.div>}
+                                        {!ls.paid && <motion.div whileTap={{ scale: 0.9 }}><Button size="sm" className="h-7 px-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-bold shadow-sm" onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); const txnAmount = ls.price || rec.price; const txnDesc = `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`; const txnDate = ls.date || ls.createdAt || new Date().toISOString(); try { const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }) }); const newTxn = txnRes?.transaction || txnRes?.data || txnRes; if (newTxn?.id) { setTransactions(prev => [newTxn, ...prev]); } else { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } } catch { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }}>💰 دفع</Button></motion.div>}
                                         <Button size="sm" variant="outline" className="h-7 px-2.5 rounded-lg text-violet-600 border-violet-200 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[9px] font-bold" onClick={() => { setEditingLaserSessionId(isEditing ? null : ls.id); setEditLaserSessionForm({ energy: String(ls.energy || ''), pulse: ls.pulse || '', painLevel: String(ls.painLevel || ''), reaction: ls.reaction || '', notes: ls.notes || '', date: ls.date ? ls.date.split('T')[0] : '', price: String(ls.price ?? rec.price), paid: ls.paid }) }}><Edit3 size={10} className="ml-0.5" /> تعديل</Button>
                                         <Button size="sm" variant="outline" className="h-7 px-2.5 rounded-lg text-red-500 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-[9px] font-bold" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={10} className="ml-0.5" /> حذف</Button>
                                       </div>
@@ -2683,7 +2584,7 @@ export default function Home() {
                                     </div>
                                     <div><Label className="text-xs font-bold">📝 ملاحظات الجلسة</Label><Textarea value={newLaserSessionForm.notes} onChange={e => setNewLaserSessionForm(p => ({ ...p, notes: e.target.value }))} placeholder="ملاحظات عن الجلسة، استجابة المريض، تعديلات..." className="rounded-xl text-xs mt-1" rows={2} /></div>
                                     <div className="flex gap-2">
-                                      <Button className="rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white flex-1" onClick={async () => { try { const sessionPrice = parseFloat(newLaserSessionForm.price) || rec.price; const res = await apiFetch<any>('/laser/sessions', { method: 'POST', body: JSON.stringify({ laserRecordId: rec.id, energy: parseFloat(newLaserSessionForm.energy) || undefined, pulse: newLaserSessionForm.pulse || undefined, painLevel: parseInt(newLaserSessionForm.painLevel) || undefined, reaction: newLaserSessionForm.reaction || undefined, notes: newLaserSessionForm.notes || undefined, price: sessionPrice, paid: newLaserSessionForm.paid, date: newLaserSessionForm.date || new Date().toISOString() }) }); const newSession = res?.session; if (newSession) { setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: [...(r.laserSessions || []), newSession], _count: { laserSessions: (r._count?.laserSessions || 0) + 1 } } : r)); } toast.success('تم تسجيل الجلسة ✅'); setShowAddLaserSessionForm(false); setNewLaserSessionForm({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '' }) } catch { toast.error('خطأ في تسجيل الجلسة') } }}>تسجيل الجلسة</Button>
+                                      <Button className="rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white flex-1" onClick={async () => { try { const sessionPrice = parseFloat(newLaserSessionForm.price) || rec.price; const res = await apiFetch<any>('/laser/sessions', { method: 'POST', body: JSON.stringify({ laserRecordId: rec.id, energy: parseFloat(newLaserSessionForm.energy) || undefined, pulse: newLaserSessionForm.pulse || undefined, painLevel: parseInt(newLaserSessionForm.painLevel) || undefined, reaction: newLaserSessionForm.reaction || undefined, notes: newLaserSessionForm.notes || undefined, price: sessionPrice, paid: newLaserSessionForm.paid, date: newLaserSessionForm.date || new Date().toISOString() }) }); const newSession = res?.session; if (newSession) { setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: [...(r.laserSessions || []), newSession], _count: { laserSessions: (r._count?.laserSessions || 0) + 1 } } : r)); } if (newLaserSessionForm.paid && sessionPrice > 0) { try { const txnRes = await apiFetch<any>('/finance/transactions?limit=5&page=1'); const latestTxns = txnRes?.transactions || []; if (latestTxns.length > 0) { const newest = latestTxns[0]; if (newest?.id && newest.category === 'ليزر') { setTransactions(prev => [newest, ...prev]); } } } catch {} } toast.success('تم تسجيل الجلسة ✅'); setShowAddLaserSessionForm(false); setNewLaserSessionForm({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '' }) } catch { toast.error('خطأ في تسجيل الجلسة') } }}>تسجيل الجلسة</Button>
                                       <Button variant="outline" className="rounded-xl" onClick={() => setShowAddLaserSessionForm(false)}>إلغاء</Button>
                                     </div>
                                   </CardContent>
@@ -2738,7 +2639,7 @@ export default function Home() {
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                       <span className={cn('font-bold text-sm', ls.paid ? 'text-emerald-600' : 'text-amber-600')}>{formatCurrency(ls.price || rec.price)}</span>
-                                      {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">✅</Badge> : <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: ls.price || rec.price, description: `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`, date: new Date().toISOString() }, setTransactions); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
+                                      {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">✅</Badge> : <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); const txnAmount = ls.price || rec.price; const txnDesc = `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`; const txnDate = ls.date || new Date().toISOString(); try { const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }) }); const newTxn = txnRes?.transaction || txnRes?.data || txnRes; if (newTxn?.id) { setTransactions(prev => [newTxn, ...prev]); } else { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } } catch { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
                                       <Button size="sm" variant="outline" className="h-6 px-1.5 rounded-lg text-red-500 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-[9px]" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={9} className="ml-0.5" /> حذف</Button>
                                     </div>
                                   </motion.div>
@@ -3358,7 +3259,7 @@ export default function Home() {
                                         {v.instructions && <p className="text-xs mt-1 text-muted-foreground"><span className="font-bold">التعليمات:</span> {v.instructions}</p>}
                                         {v.notes && <p className="text-xs mt-1 text-muted-foreground"><span className="font-bold">ملاحظات:</span> {v.notes}</p>}
                                         {!v.paid && v.price > 0 && !fu.hasSubscription && (
-                                          <Button size="sm" className="mt-2 rounded-lg bg-emerald-500 text-white text-[10px] h-7" onClick={async () => { try { await apiFetch(`/follow-up/visits/${v.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); await addItem('/finance/transactions', { type: 'income', category: 'متابعة', amount: v.price, description: `زيارة متابعة #${v.visitNumber} - ${pat?.name || 'مريض'} - ${fu.condition}`, date: new Date().toISOString() }, setTransactions); setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, followUpVisits: (f.followUpVisits || []).map(fv => fv.id === v.id ? { ...fv, paid: true } : fv) } : f)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }}>💰 دفع</Button>
+                                          <Button size="sm" className="mt-2 rounded-lg bg-emerald-500 text-white text-[10px] h-7" onClick={async () => { try { await apiFetch(`/follow-up/visits/${v.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) }); const txnAmount = v.price; const txnDesc = `زيارة متابعة #${v.visitNumber} - ${pat?.name || 'مريض'} - ${fu.condition}`; const txnDate = v.visitDate || new Date().toISOString(); try { const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'متابعة', amount: txnAmount, description: txnDesc, date: txnDate }) }); const newTxn = txnRes?.transaction || txnRes?.data || txnRes; if (newTxn?.id) { setTransactions(prev => [newTxn, ...prev]); } else { setTransactions(prev => [...prev, { id: 'fu-pay-' + Date.now(), type: 'income', category: 'متابعة', amount: txnAmount, description: txnDesc, date: txnDate }]); } } catch { setTransactions(prev => [...prev, { id: 'fu-pay-' + Date.now(), type: 'income', category: 'متابعة', amount: txnAmount, description: txnDesc, date: txnDate }]); } setFollowUpRecords(prev => prev.map(f => f.id === fu.id ? { ...f, followUpVisits: (f.followUpVisits || []).map(fv => fv.id === v.id ? { ...fv, paid: true } : fv) } : f)); toast.success('تم تأكيد الدفع') } catch { toast.error('خطأ') } }}>💰 دفع</Button>
                                         )}
                                       </Card>
                                     ))}
@@ -3451,7 +3352,7 @@ export default function Home() {
                   {/* Animated Stats Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                      { icon: <Activity size={20} />, label: 'جلسات اليوم', value: sessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr).length, gradient: 'from-violet-500 to-purple-600', emoji: '⚡' },
+                      { icon: <Activity size={20} />, label: 'جلسات اليوم', value: sessions.filter(s => s.date?.startsWith(todayStr)).length, gradient: 'from-violet-500 to-purple-600', emoji: '⚡' },
                       { icon: <CheckCircle size={20} />, label: 'مدفوعة', value: sessions.filter(s => s.paid).length, gradient: 'from-emerald-500 to-teal-600', emoji: '✅' },
                       { icon: <Clock size={20} />, label: 'غير مدفوعة', value: sessions.filter(s => !s.paid).length, gradient: 'from-amber-500 to-orange-600', emoji: '⏳' },
                       { icon: <DollarSign size={20} />, label: 'إجمالي الإيرادات', value: formatCurrency(sessions.reduce((s, ses) => s + (ses.price || 0), 0)), gradient: 'from-blue-500 to-indigo-600', emoji: '💰' },
@@ -3473,7 +3374,7 @@ export default function Home() {
                     const total = sessions.length || 1
                     const paidCount = sessions.filter(s => s.paid).length
                     const unpaidCount = sessions.filter(s => !s.paid).length
-                    const todayCount = sessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr).length
+                    const todayCount = sessions.filter(s => s.date?.startsWith(todayStr)).length
                     const paidPct = Math.round((paidCount / total) * 100)
                     const unpaidPct = 100 - paidPct
                     return (
@@ -3507,11 +3408,11 @@ export default function Home() {
                     <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800 overflow-hidden">
                       <div className="bg-gradient-to-l from-violet-500 to-purple-600 p-3 flex items-center justify-between">
                         <div className="flex items-center gap-2"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-xl">📅</motion.div><CardTitle className="text-sm text-white font-bold">جلسات اليوم</CardTitle></div>
-                        <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr).length}</Badge>
+                        <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => s.date?.startsWith(todayStr)).length}</Badge>
                       </div>
                       <CardContent className="p-3 space-y-2">
                         {(() => {
-                          const todaySessions = sessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr)
+                          const todaySessions = sessions.filter(s => s.date?.startsWith(todayStr))
                           if (todaySessions.length === 0) return <div className="text-center py-8"><motion.div animate={{ y: [0, -10, 0], rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">😴</motion.div><p className="text-muted-foreground font-medium">لا توجد جلسات اليوم</p><p className="text-xs text-muted-foreground mt-1">أضف جلسة جديدة من الأعلى</p></div>
                           return todaySessions.map((s, idx) => {
                             const p = patients.find(pt => pt.id === s.patientId)
@@ -3686,8 +3587,7 @@ export default function Home() {
                                     <div className="space-y-2 mt-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
                                       <div><Label className="text-xs font-bold">نوع الزيارة</Label><div className="flex gap-1.5 mt-1">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setEditVisitForm(prev => ({ ...prev, type: vt.id }))} className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-white text-[10px] font-bold transition-all', vt.bg, editVisitForm.type === vt.id ? 'ring-2 ring-white shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div></div>
                                       <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={editVisitForm.notes} onChange={e => setEditVisitForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="ملاحظات الزيارة..." className="input-luxury rounded-xl h-16 text-xs mt-1" /></div>
-                                      <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر</Label><Input type="number" value={editVisitForm.price} onChange={e => setEditVisitForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div><div><Label className="text-[10px] font-bold">التاريخ</Label><Input type="date" value={editVisitForm.date} onChange={e => setEditVisitForm(f => ({ ...f, date: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div></div>
-                                      <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white text-xs" onClick={() => editVisitWithFinance(v, editVisitForm.type, editVisitForm.notes, p?.name || '', editVisitForm.date || undefined, parseFloat(editVisitForm.price) || undefined)}>حفظ</Button><Button variant="ghost" size="sm" className="rounded-xl text-xs" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div>
+                                      <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white text-xs" onClick={() => editVisitWithFinance(v, editVisitForm.type, editVisitForm.notes, p?.name || '')}>حفظ</Button><Button variant="ghost" size="sm" className="rounded-xl text-xs" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div>
                                     </div>
                                   ) : (
                                     <>
@@ -3700,7 +3600,7 @@ export default function Home() {
                               </div>
                               {!isEditing && (
                                 <div className="flex flex-col gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingVisitId(v.id); setEditVisitForm({ type: v.type, notes: v.notes || '', price: '', date: v.date ? getLocalDateStr(v.date) : '' }) }}><Edit3 size={12} className="text-violet-500" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingVisitId(v.id); setEditVisitForm({ type: v.type, notes: v.notes || '', price: '' }) }}><Edit3 size={12} className="text-violet-500" /></Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteVisitConfirmId(v.id)}><Trash2 size={12} className="text-red-500" /></Button>
                                 </div>
                               )}
@@ -3868,7 +3768,7 @@ export default function Home() {
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                       <Card className="border-2 border-sky-200 dark:border-sky-800 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 p-3 text-center">
                         <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">📅</motion.div>
-                        <p className="text-xl font-black text-sky-700 dark:text-sky-300">{appointments.filter(a => a.date && getLocalDateStr(a.date) === todayStr).length}</p>
+                        <p className="text-xl font-black text-sky-700 dark:text-sky-300">{appointments.filter(a => a.date?.startsWith(todayStr)).length}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">حجز اليوم</p>
                       </Card>
                     </motion.div>
@@ -3909,7 +3809,7 @@ export default function Home() {
                       if (bookingFilterDate !== 'all') {
                         const aDate = new Date(a.date)
                         const now = new Date()
-                        if (bookingFilterDate === 'today' && !(a.date && getLocalDateStr(a.date) === todayStr)) return false
+                        if (bookingFilterDate === 'today' && !a.date?.startsWith(todayStr)) return false
                         if (bookingFilterDate === 'week') { const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); if (aDate < weekStart) return false }
                         if (bookingFilterDate === 'month') { const ad = getCairoDateParts(a.date); if (ad.year !== cairoNow.year || ad.month !== cairoNow.month) return false }
                       }
@@ -3932,7 +3832,7 @@ export default function Home() {
                       const tc = typeConfig[apt.type] || typeConfig.consultation
                       const aptDate = new Date(apt.date)
                       const isPast = aptDate < new Date() && apt.status === 'scheduled'
-                      const isToday = apt.date && getLocalDateStr(apt.date) === todayStr
+                      const isToday = apt.date?.startsWith(todayStr)
 
                       return (
                         <motion.div key={apt.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
@@ -3983,7 +3883,7 @@ export default function Home() {
                   
                   {/* Today's Reminders Highlighted Card */}
                   {(() => {
-                    const todayReminders = reminders.filter(r => r.date && getLocalDateStr(r.date) === todayStr && r.status !== 'completed')
+                    const todayReminders = reminders.filter(r => r.date?.startsWith(todayStr) && r.status !== 'completed')
                     if (todayReminders.length === 0) return null
                     return (
                       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
@@ -4699,13 +4599,9 @@ export default function Home() {
                     {lastBackup && <p className="text-xs text-muted-foreground">آخر نسخة: {formatDate(lastBackup)}</p>}
                     <div className="grid grid-cols-2 gap-3">
                       <motion.button whileTap={{ scale: 0.95 }} onClick={createBackup} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800"><HardDrive className="text-emerald-600" size={24} /><span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">إنشاء نسخة</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('full')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 border-2 border-rose-300 dark:border-rose-700"><Download className="text-rose-600" size={24} /><span className="text-sm font-bold text-rose-700 dark:text-rose-400">نسخة احتياطية كاملة</span><span className="text-[9px] text-rose-500">تحميل ملف JSON</span></motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('json')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800"><FileDown className="text-blue-600" size={24} /><span className="text-sm font-medium text-blue-700 dark:text-blue-400">تصدير JSON</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border-2 border-amber-300 dark:border-amber-700"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-bold text-amber-700 dark:text-amber-400">استعادة من ملف</span><span className="text-[9px] text-amber-500">استيراد نسخة احتياطية</span></motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-medium text-amber-700 dark:text-amber-400">استيراد</span></motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('csv')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-800"><Archive className="text-violet-600" size={24} /><span className="text-sm font-medium text-violet-700 dark:text-violet-400">تصدير CSV</span></motion.button>
-                    </div>
-                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800">
-                      <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1"><AlertTriangle size={12} /> مهم: حمل النسخة الاحتياطية الكاملة بانتظام واحفظها على جهازك. النسخ المخزنة في النظام فقط قد تضيع!</p>
                     </div>
                     <input ref={fileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={handleFileImport} />
                     {backups.length > 0 && <div className="space-y-2">{backups.map(b => <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm"><div className="flex items-center gap-2"><Database size={14} className="text-muted-foreground" /><span>{b.type === 'auto' ? 'تلقائي' : 'يدوي'}</span></div><Badge variant="outline" className={b.status === 'completed' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'}>{b.status === 'completed' ? 'مكتمل' : b.status}</Badge></div>)}</div>}
@@ -5727,7 +5623,8 @@ export default function Home() {
               setFollowUpRecords(prev => [fullRec, ...prev])
               if (fuFormHasSubscription && fuFormSubPrice) {
                 const pName = patients.find(p => p.id === fuFormPatientId)?.name || 'مريض'
-                await addItem('/finance/transactions', { type: 'income', category: 'متابعة', amount: parseFloat(fuFormSubPrice) || 0, description: `باقة متابعة - ${pName} - ${fuFormCondition}`, date: new Date().toISOString() }, setTransactions)
+                const subAmount = parseFloat(fuFormSubPrice) || 0
+                try { const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'متابعة', amount: subAmount, description: `باقة متابعة - ${pName} - ${fuFormCondition}`, date: new Date().toISOString() }) }); const newTxn = txnRes?.transaction || txnRes?.data || txnRes; if (newTxn?.id) { setTransactions(prev => [newTxn, ...prev]) } else { setTransactions(prev => [...prev, { id: 'fu-sub-' + Date.now(), type: 'income', category: 'متابعة', amount: subAmount, description: `باقة متابعة - ${pName} - ${fuFormCondition}`, date: new Date().toISOString() }]) } } catch { setTransactions(prev => [...prev, { id: 'fu-sub-' + Date.now(), type: 'income', category: 'متابعة', amount: subAmount, description: `باقة متابعة - ${pName} - ${fuFormCondition}`, date: new Date().toISOString() }]) }
               }
             }
             setShowAddFollowUp(false); toast.success('تم تسجيل حالة المتابعة ✅')
@@ -5754,21 +5651,25 @@ export default function Home() {
             <div><Label className="text-[10px] font-bold">الزيارة القادمة</Label><Input type="date" value={fuVisitForm.nextVisitDate} onChange={e => setFuVisitForm(p => ({ ...p, nextVisitDate: e.target.value }))} className="rounded-lg h-9 text-xs border-[#06B6D4]/30" /></div>
           </div>
           <div className="flex items-center gap-3"><Label className="text-[10px] font-bold">تم الدفع</Label><Switch checked={fuVisitForm.paid} onCheckedChange={v => setFuVisitForm(p => ({ ...p, paid: v }))} /></div>
+          <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الزيارة (اختياري)</Label><Input type="date" value={fuVisitForm.date} onChange={e => setFuVisitForm(p => ({ ...p, date: e.target.value }))} className="rounded-lg h-9 text-xs border-cyan-200 dark:border-cyan-800" /></div>
           <div><Label className="text-[10px] font-bold">ملاحظات</Label><Textarea placeholder="ملاحظات..." value={fuVisitForm.notes} onChange={e => setFuVisitForm(p => ({ ...p, notes: e.target.value }))} className="rounded-lg text-xs border-[#06B6D4]/30" rows={2} /></div>
         </div>
         <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white w-full" onClick={async () => {
           if (!selectedFU) return
           try {
-            const body: Record<string, unknown> = { followUpId: selectedFU.id, findings: fuVisitForm.findings || undefined, treatmentNotes: fuVisitForm.treatmentNotes || undefined, medications: fuVisitForm.medications || undefined, instructions: fuVisitForm.instructions || undefined, diagnosis: fuVisitForm.diagnosis || undefined, paid: fuVisitForm.paid, price: parseFloat(fuVisitForm.price) || 0, nextVisitDate: fuVisitForm.nextVisitDate || undefined, notes: fuVisitForm.notes || undefined }
+            const fuVisitDate = fuVisitForm.date ? new Date(fuVisitForm.date + 'T00:00:00').toISOString() : new Date().toISOString()
+            const body: Record<string, unknown> = { followUpId: selectedFU.id, findings: fuVisitForm.findings || undefined, treatmentNotes: fuVisitForm.treatmentNotes || undefined, medications: fuVisitForm.medications || undefined, instructions: fuVisitForm.instructions || undefined, diagnosis: fuVisitForm.diagnosis || undefined, paid: fuVisitForm.paid, price: parseFloat(fuVisitForm.price) || 0, nextVisitDate: fuVisitForm.nextVisitDate || undefined, notes: fuVisitForm.notes || undefined, visitDate: fuVisitDate }
             const res = await apiFetch<any>('/follow-up/visits', { method: 'POST', body: JSON.stringify(body) })
             const newVisit = res?.visit || res?.data || res
             if (newVisit?.id) {
-              setFollowUpRecords(prev => prev.map(f => f.id === selectedFU.id ? { ...f, followUpVisits: [newVisit, ...(f.followUpVisits || [])], lastVisitDate: new Date().toISOString(), sessionsUsed: f.sessionsUsed + 1, nextVisitDate: fuVisitForm.nextVisitDate || f.nextVisitDate } : f))
+              setFollowUpRecords(prev => prev.map(f => f.id === selectedFU.id ? { ...f, followUpVisits: [newVisit, ...(f.followUpVisits || [])], lastVisitDate: fuVisitDate, sessionsUsed: f.sessionsUsed + 1, nextVisitDate: fuVisitForm.nextVisitDate || f.nextVisitDate } : f))
+              // Server-side already creates a Transaction for paid non-subscription visits.
+              // Reload transactions from DB to include the server-created record.
               if (fuVisitForm.paid && fuVisitForm.price && !selectedFU.hasSubscription) {
-                await addItem('/finance/transactions', { type: 'income', category: 'متابعة', amount: parseFloat(fuVisitForm.price) || 0, description: `زيارة متابعة - ${selectedFU.patient?.name || 'مريض'}`, date: new Date().toISOString() }, setTransactions)
+                try { const txnRes = await apiFetch<any>('/finance/transactions?limit=5&page=1'); const latestTxns = txnRes?.transactions || []; if (latestTxns.length > 0) { const newest = latestTxns[0]; if (newest?.id && newest.category === 'متابعة') { setTransactions(prev => [newest, ...prev.filter(t => !t.id.startsWith('fu-visit-'))]) } } } catch { /* fallback: add locally */ setTransactions(prev => [...prev, { id: 'fu-visit-' + Date.now(), type: 'income', category: 'متابعة', amount: parseFloat(fuVisitForm.price) || 0, description: `زيارة متابعة - ${selectedFU.patient?.name || 'مريض'}`, date: fuVisitDate }]) }
               }
             }
-            setShowAddFollowUpVisit(false); setFuVisitForm({ findings: '', vitals: '', diagnosis: '', treatmentNotes: '', medications: '', instructions: '', paid: false, price: '', nextVisitDate: '', notes: '', type: 'followup' })
+            setShowAddFollowUpVisit(false); setFuVisitForm({ findings: '', vitals: '', diagnosis: '', treatmentNotes: '', medications: '', instructions: '', paid: false, price: '', nextVisitDate: '', notes: '', type: 'followup', date: '' })
             toast.success('تم تسجيل الزيارة ✅')
           } catch { toast.error('خطأ') }
         }}>🩺 تسجيل الزيارة</Button></DialogFooter>
@@ -6496,26 +6397,6 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Restore Backup Confirmation Dialog */}
-      <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle size={18} className="text-amber-500" />
-              استعادة نسخة احتياطية
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              <span className="text-red-600 font-bold">تحذير: سيتم حذف جميع البيانات الحالية واستبدالها ببيانات النسخة الاحتياطية!</span>
-              <br />هذا الإجراء لا يمكن التراجع عنه. هل تريد المتابعة؟
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction className="bg-amber-600" onClick={() => { if (pendingRestoreData) restoreFromBackup(pendingRestoreData) }}>استعادة</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
     </div>
   )

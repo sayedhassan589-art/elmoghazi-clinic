@@ -100,7 +100,7 @@ export async function POST(request: Request) {
               category: 'متابعة',
               amount: body.price,
               description: `زيارة متابعة #${visitNumber} - ${patientName} - ${record.condition}`,
-              date: new Date(),
+              date: body.visitDate ? new Date(body.visitDate) : new Date(),
             },
           })
         } catch (e) { console.error('Failed to create visit transaction:', e) }
