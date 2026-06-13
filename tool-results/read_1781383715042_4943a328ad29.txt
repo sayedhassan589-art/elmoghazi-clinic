@@ -1,0 +1,2002 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+     4→import { useAuthStore, useClinicStore, THEME_CONFIGS } from '@/lib/store'
+     5→import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
+     6→import { toast } from 'sonner'
+     7→import { motion, AnimatePresence } from 'framer-motion'
+     8→import {
+     9→  LayoutDashboard, Users, Stethoscope, Zap, MoreHorizontal,
+    10→  Search, Bell, Moon, Sun, LogOut, Plus, Edit3,
+    11→  Trash2, Star, StarOff, Phone, Calendar, Clock, DollarSign,
+    12→  Package, FileText, Activity, AlertTriangle, CheckCircle,
+    13→  ChevronDown, Settings, Shield, BarChart3, TrendingUp, Eye,
+    14→  Camera, Pill, Heart, Send, Bot, RefreshCw, Download, Upload,
+    15→  Filter, UserPlus, Sparkles, Hash, MapPin, Palette, X,
+    16→  Database, HardDrive, Archive, FileDown, FileUp, Timer, Tag,
+    17→  Scissors, Syringe, Layers, Wand2, ThermometerSun, Lock,
+    18→  CircleDot, Armchair, ScanFace, Hand, Circle,
+    19→  MousePointerClick, Target, ZapOff, BarChart2, Receipt,
+    20→  CalendarCheck, UsersRound, ClipboardCheck, AlertCircle,
+    21→  Wallet, TrendingDown, StickyNote, Coffee, Home as HomeIcon,
+    22→  GraduationCap, Shirt, Flame, Gift, Award, Building2, Car,
+    23→  Utensils, Gamepad2, HeartPulse, PiggyBank, CheckCircle2,
+    24→  Lightbulb, Sparkle, Copy
+    25→} from 'lucide-react'
+    26→import { Button } from '@/components/ui/button'
+    27→import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+    28→import { Input } from '@/components/ui/input'
+    29→import { Textarea } from '@/components/ui/textarea'
+    30→import { Label } from '@/components/ui/label'
+    31→import { Badge } from '@/components/ui/badge'
+    32→import { Separator } from '@/components/ui/separator'
+    33→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    34→import { ScrollArea } from '@/components/ui/scroll-area'
+    35→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    36→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+    37→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+    38→import { Switch } from '@/components/ui/switch'
+    39→import { Progress } from '@/components/ui/progress'
+    40→import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+    41→import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+    42→import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+    43→
+    44→// ─── Types ──────────────────────────────────────────────────────────────────
+    45→interface ImprovementEntry { score: number; date: string; note?: string }
+    46→interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; colorTag?: string; bloodType?: string; improvementScore?: number; improvementHistory?: string; createdAt: string; }
+    47→interface Visit { id: string; patientId: string; doctorId?: string; type: string; diagnosis?: string; notes?: string; date: string; }
+    48→interface Session { id: string; patientId: string; serviceId?: string; doctorId?: string; status: string; notes?: string; date: string; price: number; paid: boolean; }
+    49→interface Service { id: string; name: string; category?: string; price: number; duration?: number; active: boolean; }
+    50→interface Note { id: string; patientId?: string; userId?: string; content: string; important: boolean; section?: string; createdAt: string; }
+    51→interface Alert { id: string; patientId: string; type: string; message: string; active: boolean; }
+    52→interface Reminder { id: string; patientId?: string; title: string; description?: string; date: string; type: string; status: string; }
+    53→interface LaserRecord { id: string; patientId: string; bodyArea: string; skinType?: string; hairColor?: string; hairDensity?: string; totalSessions: number; price: number; totalPrice: number; paid: boolean; machineName?: string; energy?: number; pulse?: string; status: string; notes?: string; createdAt?: string; laserSessions?: LaserSession[]; patient?: { id: string; name: string; fileNumber: string; phone?: string; age?: number; gender?: string; }; _count?: { laserSessions: number; }; }
+    54→interface LaserSession { id: string; laserRecordId: string; sessionNumber: number; energy?: number; pulse?: string; painLevel?: number; reaction?: string; notes?: string; price: number; paid: boolean; date: string; createdAt?: string; }
+    55→interface LaserPackage { id: string; name: string; sessionsCount: number; price: number; bodyArea?: string; active: boolean; }
+    56→interface LaserSetting { id: string; machineName: string; bodyArea: string; defaultEnergy?: number; defaultPulse?: string; }
+    57→interface Transaction { id: string; type: string; category: string; amount: number; description?: string; date: string; }
+    58→interface Appointment { id: string; patientId?: string; date: string; duration: number; type: string; status: string; notes?: string; }
+    59→interface WaitingItem { id: string; patientId?: string; patientName?: string; priority: number; status: string; notes?: string; createdAt: string; }
+    60→interface InventoryItem { id: string; name: string; category?: string; quantity: number; minQuantity: number; unitPrice: number; notes?: string; }
+    61→interface Medication { id: string; name: string; category?: string; description?: string; dosage?: string; instructions?: string; active: boolean; }
+    62→interface Prescription { id: string; patientId: string; doctorId?: string; diagnosis?: string; notes?: string; date: string; }
+    63→interface Notification { id: string; userId?: string; title: string; message: string; type: string; read: boolean; createdAt: string; }
+    64→interface Backup { id: string; type: string; size?: number; status: string; createdAt: string; }
+    65→interface PatientPhoto { id: string; patientId: string; type: string; description?: string; imageData: string; createdAt: string; }
+    66→interface ChatMessage { role: 'user' | 'assistant'; content: string; }
+    67→interface PartnerDoctor { id: string; name: string; phone?: string; specialty?: string; checkupPercentage: number; revisitPercentage: number; laserPercentage: number; sessionPercentage: number; fixedAmount: number; active: boolean; notes?: string; createdAt: string; }
+    68→interface FollowUpRecord { id: string; patientId: string; condition: string; conditionCategory?: string; severity: string; status: string; frequency: string; customDays?: number; nextVisitDate?: string; lastVisitDate?: string; hasSubscription: boolean; subscriptionType?: string; subscriptionPrice: number; subscriptionStart?: string; subscriptionEnd?: string; sessionsIncluded: number; sessionsUsed: number; diagnosis?: string; treatmentPlan?: string; medications?: string; notes?: string; reminderEnabled: boolean; reminderDaysBefore: number; createdAt: string; patient?: Patient; followUpVisits?: FollowUpVisit[]; }
+    69→interface FollowUpVisit { id: string; followUpId: string; visitNumber: number; visitDate: string; type: string; findings?: string; vitals?: string; diagnosis?: string; treatmentNotes?: string; medications?: string; instructions?: string; paid: boolean; price: number; nextVisitDate?: string; status: string; notes?: string; createdAt: string; followUp?: FollowUpRecord & { patient?: Patient }; }
+    70→
+    71→// ─── Helpers ────────────────────────────────────────────────────────────────
+    72→const CHART_COLORS = ['#047857', '#D4A843', '#0EA5E9', '#8B5CF6', '#F59E0B', '#EC4899']
+    73→
+    74→// Helper: format phone for WhatsApp (adds Egypt country code +20 if missing)
+    75→const waPhone = (phone?: string) => {
+    76→  if (!phone) return ''
+    77→  // Convert Arabic/Indic numerals (٠-٩) to Latin (0-9) first
+    78→  const latinized = phone.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+    79→  const digits = latinized.replace(/[^0-9]/g, '')
+    80→  if (!digits || digits.length < 3) return '' // too short to be valid
+    81→  if (digits.startsWith('20')) return digits // already has country code
+    82→  if (digits.startsWith('0')) return '2' + digits // starts with 0 → add 2
+    83→  return '20' + digits // no prefix → add 20
+    84→}
+    85→
+    86→// Helper: get local date string in Cairo timezone (fixes UTC offset issue)
+    87→const _dateCache = new Map<string, string>()
+    88→const getLocalDateStr = (date?: Date | string) => {
+    89→  const d = date ? new Date(date) : new Date()
+    90→  // Use full ISO including time to avoid cache collisions for dates near midnight UTC
+    91→  const key = d.toISOString().slice(0, 16) // e.g. '2026-06-01T22:00'
+    92→  const cached = _dateCache.get(key)
+    93→  if (cached) return cached
+    94→  const result = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
+    95→  _dateCache.set(key, result)
+    96→  return result
+    97→}
+    98→
+    99→// Helper: get Cairo timezone date parts (year, month, day) — avoids UTC offset on Vercel
+   100→const getCairoDateParts = (date?: Date | string) => {
+   101→  const d = date ? new Date(date) : new Date()
+   102→  const parts = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }).split('-').map(Number)
+   103→  return { year: parts[0], month: parts[1], day: parts[2], dateStr: parts.join('-') }
+   104→}
+   105→async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+   106→  const res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
+   107→  if (!res.ok) { const e = await res.text().catch(() => ''); throw new Error(e || `Error ${res.status}`) }
+   108→  if (res.status === 204) return undefined as T
+   109→  return res.json()
+   110→}
+   111→
+   112→// Laser body areas - text only, comprehensive list
+   113→const BODY_AREAS = [
+   114→  { id: 'face', label: 'الوجه', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+   115→  { id: 'forehead', label: 'الجبين', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+   116→  { id: 'cheeks', label: 'الخدود', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
+   117→  { id: 'chin', label: 'الذقن', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
+   118→  { id: 'upper_lip', label: 'الشفاة العليا', color: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' },
+   119→  { id: 'lower_lip', label: 'الشفاة السفلى', color: 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' },
+   120→  { id: 'jawline', label: 'خط الفك', color: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' },
+   121→  { id: 'nose', label: 'الأنف', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+   122→  { id: 'ears', label: 'الأذنين', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+   123→  { id: 'sideburns', label: 'السوالف', color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' },
+   124→  { id: 'neck_front', label: 'الرقبة الأمامية', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
+   125→  { id: 'neck_back', label: 'الرقبة الخلفية', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
+   126→  { id: 'neck', label: 'الرقبة كاملة', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400' },
+   127→  { id: 'shoulders', label: 'الكتفين', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' },
+   128→  { id: 'upper_arms', label: 'الذراعين العلويين', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
+   129→  { id: 'lower_arms', label: 'الذراعين السفليين', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
+   130→  { id: 'arms', label: 'الذراعين كاملة', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
+   131→  { id: 'hands', label: 'اليدين', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
+   132→  { id: 'fingers', label: 'الأصابع', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400' },
+   133→  { id: 'underarms', label: 'الإبط', color: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' },
+   134→  { id: 'chest', label: 'الصدر', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
+   135→  { id: 'chest_between', label: 'بين الثديين', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
+   136→  { id: 'abdomen_upper', label: 'البطن العلوي', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+   137→  { id: 'abdomen_lower', label: 'البطن السفلي', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+   138→  { id: 'abdomen', label: 'البطن كاملة', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+   139→  { id: 'navel_line', label: 'خط السرة', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+   140→  { id: 'back_upper', label: 'الظهر العلوي', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
+   141→  { id: 'back_lower', label: 'الظهر السفلي', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
+   142→  { id: 'back', label: 'الظهر كامل', color: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400' },
+   143→  { id: 'bikini', label: 'البيكيني', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+   144→  { id: 'bikini_full', label: 'البيكيني الكامل', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+   145→  { id: 'buttocks', label: 'الأرداف', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' },
+   146→  { id: 'thighs_front', label: 'الفخذين الأمامي', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+   147→  { id: 'thighs_back', label: 'الفخذين الخلفي', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+   148→  { id: 'thighs', label: 'الفخذين كاملة', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+   149→  { id: 'calves', label: 'الساقين', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+   150→  { id: 'shins', label: 'الساق الأمامية', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+   151→  { id: 'legs', label: 'الرجلين كاملة', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' },
+   152→  { id: 'feet', label: 'القدمين', color: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400' },
+   153→  { id: 'toes', label: 'أصابع القدم', color: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400' },
+   154→  { id: 'full_body', label: 'جسم كامل', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
+   155→  { id: 'half_body_upper', label: 'نصف الجسم العلوي', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
+   156→  { id: 'half_body_lower', label: 'نصف الجسم السفلي', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' },
+   157→]
+   158→
+   159→const SKIN_TYPES = [
+   160→  { id: 'I', label: 'النوع I - أبيض فاتح جداً (Always burns, never tans)', color: 'bg-rose-50 border-rose-300' },
+   161→  { id: 'II', label: 'النوع II - أبيض فاتح (Burns easily, tans minimally)', color: 'bg-orange-50 border-orange-300' },
+   162→  { id: 'III', label: 'النوع III - أبيض متوسط (Burns moderately, tans gradually)', color: 'bg-amber-50 border-amber-300' },
+   163→  { id: 'IV', label: 'النوع IV - حنطي (Burns minimally, tans easily)', color: 'bg-yellow-50 border-yellow-300' },
+   164→  { id: 'V', label: 'النوع V - بني فاتح (Rarely burns, tans darkly)', color: 'bg-emerald-50 border-emerald-300' },
+   165→  { id: 'VI', label: 'النوع VI - بني غامق (Never burns, deeply pigmented)', color: 'bg-stone-50 border-stone-400' },
+   166→  { id: 'sensitive', label: 'بشرة حساسة', color: 'bg-red-50 border-red-300' },
+   167→  { id: 'oily', label: 'بشرة دهنية', color: 'bg-yellow-50 border-yellow-300' },
+   168→  { id: 'dry', label: 'بشرة جافة', color: 'bg-blue-50 border-blue-300' },
+   169→  { id: 'combination', label: 'بشرة مختلطة', color: 'bg-purple-50 border-purple-300' },
+   170→  { id: 'normal', label: 'بشرة عادية', color: 'bg-green-50 border-green-300' },
+   171→  { id: 'acne_prone', label: 'بشرة عرضة لحب الشباب', color: 'bg-pink-50 border-pink-300' },
+   172→]
+   173→
+   174→const HAIR_COLORS = [
+   175→  { id: 'black', label: 'أسود', color: 'bg-gray-800' },
+   176→  { id: 'dark_brown', label: 'بني غامق جداً', color: 'bg-gray-700' },
+   177→  { id: 'brown', label: 'بني غامق', color: 'bg-amber-900' },
+   178→  { id: 'medium_brown', label: 'بني متوسط', color: 'bg-amber-700' },
+   179→  { id: 'light_brown', label: 'بني فاتح', color: 'bg-amber-500' },
+   180→  { id: 'dark_blonde', label: 'أشقر غامق', color: 'bg-amber-400' },
+   181→  { id: 'blonde', label: 'أشقر', color: 'bg-yellow-400' },
+   182→  { id: 'light_blonde', label: 'أشقر فاتح', color: 'bg-yellow-300' },
+   183→  { id: 'platinum', label: 'أشقر بلاتيني', color: 'bg-gray-200' },
+   184→  { id: 'red', label: 'أحمر', color: 'bg-red-600' },
+   185→  { id: 'auburn', label: 'بني محمر', color: 'bg-red-800' },
+   186→  { id: 'strawberry', label: 'أشقر محمر', color: 'bg-red-400' },
+   187→  { id: 'copper', label: 'نحاسي', color: 'bg-orange-600' },
+   188→  { id: 'gray', label: 'رمادي', color: 'bg-gray-400' },
+   189→  { id: 'white', label: 'أبيض', color: 'bg-gray-100' },
+   190→  { id: 'mixed', label: 'مختلط', color: 'bg-gray-500' },
+   191→]
+   192→
+   193→// Improvement Score helpers
+   194→const getImprovementColor = (score: number) => {
+   195→  if (score <= 3) return { ring: '#ef4444', bg: 'bg-red-500', text: 'text-red-600', label: 'سيء' }
+   196→  if (score <= 5) return { ring: '#f97316', bg: 'bg-orange-500', text: 'text-orange-600', label: 'متوسط' }
+   197→  if (score <= 7) return { ring: '#eab308', bg: 'bg-yellow-500', text: 'text-yellow-600', label: 'جيد' }
+   198→  if (score <= 9) return { ring: '#22c55e', bg: 'bg-emerald-500', text: 'text-emerald-600', label: 'ممتاز' }
+   199→  return { ring: '#047857', bg: 'bg-emerald-700', text: 'text-emerald-700', label: 'مثالي' }
+   200→}
+   201→
+   202→const getImprovementEmoji = (score: number) => {
+   203→  if (score <= 3) return '😟'
+   204→  if (score <= 5) return '😐'
+   205→  if (score <= 7) return '🙂'
+   206→  if (score <= 9) return '😊'
+   207→  return '🤩'
+   208→}
+   209→
+   210→const getImprovementHistory = (historyStr?: string): ImprovementEntry[] => {
+   211→  if (!historyStr) return []
+   212→  try { return JSON.parse(historyStr) } catch { return [] }
+   213→}
+   214→
+   215→// ─── Smart Search Helpers ────────────────────────────────────────────
+   216→function useDebouncedValue<T>(value: T, delay = 300): T {
+   217→  const [debounced, setDebounced] = useState(value)
+   218→  useEffect(() => {
+   219→    const timer = setTimeout(() => setDebounced(value), delay)
+   220→    return () => clearTimeout(timer)
+   221→  }, [value, delay])
+   222→  return debounced
+   223→}
+   224→
+   225→// Arabic text normalization: remove diacritics, normalize alef/yaa/taa
+   226→const normalizeArabic = (text: string): string => {
+   227→  return text
+   228→    .replace(/[أإآا]/g, 'ا')  // normalize alef variants
+   229→    .replace(/[ة]/g, 'ه')      // taa marbuta → haa
+   230→    .replace(/[ى]/g, 'ي')      // alef maqsura → yaa
+   231→    .replace(/[\u064B-\u065F\u0670]/g, '') // remove diacritics/tashkeel
+   232→    .replace(/\s+/g, ' ')      // normalize whitespace
+   233→    .trim()
+   234→    .toLowerCase()
+   235→}
+   236→
+   237→// Fuzzy match: checks if query characters appear in order in target
+   238→const fuzzyMatch = (query: string, target: string): boolean => {
+   239→  const nq = normalizeArabic(query)
+   240→  const nt = normalizeArabic(target)
+   241→  if (nt.includes(nq)) return true // direct substring match (normalized)
+   242→  // Character-by-character fuzzy match
+   243→  let qi = 0
+   244→  for (let ti = 0; ti < nt.length && qi < nq.length; ti++) {
+   245→    if (nt[ti] === nq[qi]) qi++
+   246→  }
+   247→  return qi === nq.length
+   248→}
+   249→
+   250→// Smart search: tries exact, then normalized, then fuzzy
+   251→const smartSearch = (query: string, fields: (string | undefined)[]): { match: boolean; score: number } => {
+   252→  if (!query.trim()) return { match: false, score: 0 }
+   253→  const nq = normalizeArabic(query)
+   254→  let bestScore = 0
+   255→  for (const field of fields) {
+   256→    if (!field) continue
+   257→    const nf = normalizeArabic(field)
+   258→    // Exact substring (highest score)
+   259→    if (nf.includes(nq)) {
+   260→      const score = nq.length / nf.length + 1 // prefer longer matches
+   261→      if (score > bestScore) bestScore = score
+   262→    }
+   263→    // Fuzzy match (lower score)
+   264→    else if (fuzzyMatch(query, field)) {
+   265→      const score = 0.5
+   266→      if (score > bestScore) bestScore = score
+   267→    }
+   268→  }
+   269→  return { match: bestScore > 0, score: bestScore }
+   270→}
+   271→
+   272→// Visit type config with colors + combo types
+   273→const VISIT_TYPES = [
+   274→  { id: 'checkup', label: 'كشف', emoji: '🩺', bg: 'bg-emerald-500', hoverBg: 'hover:bg-emerald-600', ring: 'ring-emerald-300' },
+   275→  { id: 'revisit', label: 'إعادة', emoji: '🔄', bg: 'bg-blue-500', hoverBg: 'hover:bg-blue-600', ring: 'ring-blue-300' },
+   276→  { id: 'session', label: 'جلسة', emoji: '⚡', bg: 'bg-violet-500', hoverBg: 'hover:bg-violet-600', ring: 'ring-violet-300' },
+   277→  { id: 'checkup_session', label: 'كشف + جلسة', emoji: '🩺⚡', bg: 'bg-gradient-to-l from-emerald-500 to-violet-500', hoverBg: 'hover:from-emerald-600 hover:to-violet-600', ring: 'ring-emerald-300' },
+   278→  { id: 'revisit_session', label: 'إعادة + جلسة', emoji: '🔄⚡', bg: 'bg-gradient-to-l from-blue-500 to-violet-500', hoverBg: 'hover:from-blue-600 hover:to-violet-600', ring: 'ring-blue-300' },
+   279→]
+   280→
+   281→// ─── Main App ───────────────────────────────────────────────────────────────
+   282→export default function Home() {
+   283→  const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
+   284→  const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords } = useClinicStore()
+   285→  const [darkMode, setDarkMode] = useState(false)
+   286→  const [smartSearchOpen, setSmartSearchOpen] = useState(false)
+   287→  const [smartSearchQuery, setSmartSearchQuery] = useState('')
+   288→  const [searchQuery, setSearchQuery] = useState('')
+   289→  const [patientDisplayCount, setPatientDisplayCount] = useState(50)
+   290→
+   291→  // Data
+   292→  const [patients, setPatients] = useState<Patient[]>([])
+   293→  const [visits, setVisits] = useState<Visit[]>([])
+   294→  const [sessions, setSessions] = useState<Session[]>([])
+   295→  const [services, setServices] = useState<Service[]>([])
+   296→  const [notes, setNotes] = useState<Note[]>([])
+   297→  const [alerts, setAlerts] = useState<Alert[]>([])
+   298→  const [reminders, setReminders] = useState<Reminder[]>([])
+   299→  const [laserRecords, setLaserRecords] = useState<LaserRecord[]>([])
+   300→  const [laserPackages, setLaserPackages] = useState<LaserPackage[]>([])
+   301→  const [laserSettings, setLaserSettings] = useState<LaserSetting[]>([])
+   302→  const [transactions, setTransactions] = useState<Transaction[]>([])
+   303→  const [appointments, setAppointments] = useState<Appointment[]>([])
+   304→  const [waitingQueue, setWaitingQueue] = useState<WaitingItem[]>([])
+   305→  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
+   306→  const [medications, setMedications] = useState<Medication[]>([])
+   307→  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
+   308→  const [backups, setBackups] = useState<Backup[]>([])
+   309→  const [notifications, setNotifications] = useState<Notification[]>([])
+   310→  const [loading, setLoading] = useState(true)
+   311→
+   312→  // UI
+   313→  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+   314→  const [moreSubTab, setMoreSubTab] = useState('services')
+   315→  const [laserSubTab, setLaserSubTab] = useState('records')
+   316→
+   317→  // Smart Patient Form
+   318→  const [newPatientName, setNewPatientName] = useState('')
+   319→  const [newPatientPhone, setNewPatientPhone] = useState('')
+   320→  const [newPatientPhone2, setNewPatientPhone2] = useState('')
+   321→  const [newPatientAddress, setNewPatientAddress] = useState('')
+   322→  const [newPatientAge, setNewPatientAge] = useState('')
+   323→  const [newPatientDiagnosis, setNewPatientDiagnosis] = useState('')
+   324→  const [newPatientNotes, setNewPatientNotes] = useState('')
+   325→  const [selectedVisitType, setSelectedVisitType] = useState<string>('')
+   326→  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
+   327→  const [showAddPatient, setShowAddPatient] = useState(false)
+   328→  const [showAddService, setShowAddService] = useState(false)
+   329→  const [showAddTransaction, setShowAddTransaction] = useState(false)
+   330→  const [expandedFinanceDay, setExpandedFinanceDay] = useState<string | null>(null)
+   331→  const [showAddAppointment, setShowAddAppointment] = useState(false)
+   332→  // Transaction form
+   333→  const [txnFormType, setTxnFormType] = useState<'income' | 'expense'>('income')
+   334→  const [txnFormCategory, setTxnFormCategory] = useState('كشف')
+   335→  const [txnFormAmount, setTxnFormAmount] = useState('')
+   336→  const [txnFormDescription, setTxnFormDescription] = useState('')
+   337→  const [txnFormDate, setTxnFormDate] = useState('')
+   338→  // Service form
+   339→  const [serviceFormName, setServiceFormName] = useState('')
+   340→  const [serviceFormCategory, setServiceFormCategory] = useState('عام')
+   341→  const [serviceFormPrice, setServiceFormPrice] = useState('')
+   342→  const [serviceFormDuration, setServiceFormDuration] = useState('')
+   343→  const [showAddLaserRecord, setShowAddLaserRecord] = useState(false)
+   344→  const [showAddLaserPackage, setShowAddLaserPackage] = useState(false)
+   345→  const [showAddMedication, setShowAddMedication] = useState(false)
+   346→  const [showAddReminder, setShowAddReminder] = useState(false)
+   347→  const [showAddInventory, setShowAddInventory] = useState(false)
+   348→
+   349→  // Laser form
+   350→  const [laserFormArea, setLaserFormArea] = useState('')
+   351→  const [laserFormSkinType, setLaserFormSkinType] = useState('')
+   352→  const [laserFormHairColor, setLaserFormHairColor] = useState('')
+   353→  const [laserFormHairDensity, setLaserFormHairDensity] = useState('')
+   354→  const [laserFormSessions, setLaserFormSessions] = useState('6')
+   355→  const [laserFormNotes, setLaserFormNotes] = useState('')
+   356→  const [laserFormPatientId, setLaserFormPatientId] = useState('')
+   357→  const [laserFormPatientSearch, setLaserFormPatientSearch] = useState('')
+   358→  const [laserFormPrice, setLaserFormPrice] = useState('')
+   359→  const [laserFormPaid, setLaserFormPaid] = useState(false)
+   360→  const [laserFormMachine, setLaserFormMachine] = useState('')
+   361→  const [laserFormEnergy, setLaserFormEnergy] = useState('')
+   362→  const [laserFormPulse, setLaserFormPulse] = useState('')
+   363→  const [laserFormDoctorId, setLaserFormDoctorId] = useState('')
+   364→
+   365→  // AI Chat
+   366→  const [aiChatOpen, setAiChatOpen] = useState(false)
+   367→  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([])
+   368→  const [aiInput, setAiInput] = useState('')
+   369→  const [aiLoading, setAiLoading] = useState(false)
+   370→
+   371→  // Login
+   372→  const [loginRole, setLoginRole] = useState<'doctor' | 'secretary' | null>(null)
+   373→  const [loginPassword, setLoginPassword] = useState('')
+   374→  const [loginLoading, setLoginLoading] = useState(false)
+   375→  const [seeded, setSeeded] = useState(false)
+   376→  const fileInputRef = useRef<HTMLInputElement>(null)
+   377→  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
+   378→  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
+   379→
+   380→  // Full restore from backup file
+   381→  const restoreFromBackup = async (backupData: any) => {
+   382→    try {
+   383→      // Restore each data type via API
+   384→      const restoreOrder = [
+   385→        { key: 'users', endpoint: '/auth/register', label: 'مستخدمين' },
+   386→        { key: 'services', endpoint: '/services', label: 'خدمات' },
+   387→        { key: 'patients', endpoint: '/patients', label: 'مرضى' },
+   388→        { key: 'visits', endpoint: '/visits', label: 'زيارات' },
+   389→        { key: 'sessions', endpoint: '/sessions', label: 'جلسات' },
+   390→        { key: 'transactions', endpoint: '/finance/transactions', label: 'معاملات مالية' },
+   391→        { key: 'appointments', endpoint: '/appointments', label: 'مواعيد' },
+   392→        { key: 'notes', endpoint: '/notes', label: 'ملاحظات' },
+   393→        { key: 'alerts', endpoint: '/alerts', label: 'تنبيهات' },
+   394→        { key: 'reminders', endpoint: '/reminders', label: 'تذكيرات' },
+   395→        { key: 'laserRecords', endpoint: '/laser/records', label: 'سجلات ليزر' },
+   396→        { key: 'laserPackages', endpoint: '/laser/packages', label: 'باقات ليزر' },
+   397→        { key: 'laserSettings', endpoint: '/laser/settings', label: 'إعدادات ليزر' },
+   398→        { key: 'medications', endpoint: '/medications', label: 'أدوية' },
+   399→        { key: 'inventoryItems', endpoint: '/inventory/items', label: 'مخزون' },
+   400→      ]
+   401→      let restored = 0
+   402→      for (const { key, endpoint, label } of restoreOrder) {
+   403→        const items = backupData[key]
+   404→        if (items?.length) {
+   405→          for (const item of items) {
+   406→            try { await apiFetch(endpoint, { method: 'POST', body: JSON.stringify(item) }); restored++ } catch { /* skip duplicates */ }
+   407→          }
+   408→        }
+   409→      }
+   410→      await loadAllData()
+   411→      setRestoreConfirmOpen(false)
+   412→      setPendingRestoreData(null)
+   413→      toast.success(`تمت الاستعادة بنجاح - ${restored} عنصر ✓`)
+   414→    } catch (e: any) {
+   415→      toast.error('خطأ في الاستعادة: ' + (e.message || ''))
+   416→    }
+   417→  }
+   418→
+   419→  // Service price editing & quick notes
+   420→  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
+   421→  const [editingServicePrice, setEditingServicePrice] = useState('')
+   422→  const [editingServiceName, setEditingServiceName] = useState('')
+   423→  const [customServicePrice, setCustomServicePrice] = useState('')
+   424→  const [visitPrice, setVisitPrice] = useState('')
+   425→  const [quickNote, setQuickNote] = useState('')
+   426→
+   427→  // Patient filters & detail
+   428→  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved'>('all')
+   429→  const [patientDetailTab, setPatientDetailTab] = useState('overview')
+   430→  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+   431→  const [editingNoteContent, setEditingNoteContent] = useState('')
+   432→
+   433→  // Patient photos
+   434→  const [patientPhotos, setPatientPhotos] = useState<PatientPhoto[]>([])
+   435→  const [photoType, setPhotoType] = useState('general')
+   436→  const [photoDescription, setPhotoDescription] = useState('')
+   437→
+   438→  // Add session/visit in patient profile
+   439→  const [showAddSessionProfile, setShowAddSessionProfile] = useState(false)
+   440→  const [profileSessionServiceId, setProfileSessionServiceId] = useState('')
+   441→  const [profileSessionPrice, setProfileSessionPrice] = useState('')
+   442→  const [profileSessionNotes, setProfileSessionNotes] = useState('')
+   443→  const [showAddVisitProfile, setShowAddVisitProfile] = useState(false)
+   444→  const [profileVisitType, setProfileVisitType] = useState('checkup')
+   445→  const [profileVisitPrice, setProfileVisitPrice] = useState('')
+   446→  const [profileVisitNotes, setProfileVisitNotes] = useState('')
+   447→  const [profileVisitDate, setProfileVisitDate] = useState('')
+   448→  const [profileSessionDate, setProfileSessionDate] = useState('')
+   449→
+   450→  // Partner Doctors
+   451→  const [doctors, setDoctors] = useState<PartnerDoctor[]>([])
+   452→  const [showAddDoctor, setShowAddDoctor] = useState(false)
+   453→  const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
+   454→  const [doctorForm, setDoctorForm] = useState({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' })
+   455→
+   456→  // Patient edit/delete
+   457→  const [editingPatient, setEditingPatient] = useState(false)
+   458→  const [deletePatientConfirmOpen, setDeletePatientConfirmOpen] = useState(false)
+   459→  const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', phone2: '', age: '', gender: '', address: '', bloodType: '', medicalHistory: '', notes: '' })
+   460→  const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
+   461→  const [editVisitForm, setEditVisitForm] = useState({ type: '', notes: '', price: '', date: '' })
+   462→  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+   463→  const [editSessionForm, setEditSessionForm] = useState({ price: '', notes: '', status: '', paid: false })
+   464→  const [laserFinancePatientId, setLaserFinancePatientId] = useState('')
+   465→  const [laserFinancePrice, setLaserFinancePrice] = useState('')
+   466→  const [laserFinanceNotes, setLaserFinanceNotes] = useState('')
+   467→  const [noteSearch, setNoteSearch] = useState('')
+   468→  const [noteFilter, setNoteFilter] = useState<'all' | 'important' | 'dashboard' | 'patients' | 'laser' | 'finance' | 'general'>('all')
+   469→
+   470→  // Laser Record Detail View
+   471→  const [selectedLaserRecordId, setSelectedLaserRecordId] = useState<string | null>(null)
+   472→  const [showAddLaserSessionForm, setShowAddLaserSessionForm] = useState(false)
+   473→  const [editingLaserSessionId, setEditingLaserSessionId] = useState<string | null>(null)
+   474→  const [editLaserSessionForm, setEditLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false })
+   475→  const [newLaserSessionForm, setNewLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false })
+   476→  const [laserDetailTab, setLaserDetailTab] = useState<'overview' | 'sessions' | 'payments' | 'notes'>('overview')
+   477→  const [editingLaserRecordId, setEditingLaserRecordId] = useState<string | null>(null)
+   478→  const [editLaserRecordForm, setEditLaserRecordForm] = useState({ bodyArea: '', skinType: '', hairColor: '', hairDensity: '', totalSessions: '', price: '', totalPrice: '', paid: false, machineName: '', energy: '', pulse: '', status: '', notes: '' })
+   479→
+   480→  // Role & Password system (userRole is now persisted in auth store, sectionPasswords in clinic store)
+   481→  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+   482→  const [passwordTarget, setPasswordTarget] = useState('')
+   483→  const [passwordInput, setPasswordInput] = useState('')
+   484→  const [pendingTab, setPendingTab] = useState('')
+   485→
+   486→  // Treatment Templates
+   487→  const [treatmentTemplates, setTreatmentTemplates] = useState<any[]>([
+   488→    { id: '1', name: 'علاج حب الشباب', description: 'بروتوكول علاجي كامل لحب الشباب', sessions: 6, estimatedPrice: 1500, category: 'جلدية' },
+   489→    { id: '2', name: 'تبييض البشرة', description: 'جلسات تبييض وتوحيد لون البشرة', sessions: 4, estimatedPrice: 2000, category: 'تجميل' },
+   490→    { id: '3', name: 'إزالة شعر كامل', description: 'إزالة شعر بالليزر - جسم كامل', sessions: 8, estimatedPrice: 4000, category: 'ليزر' },
+   491→    { id: '4', name: 'علاج التصبغات', description: 'علاج بقع وتصبغات البشرة', sessions: 5, estimatedPrice: 1800, category: 'جلدية' },
+   492→    { id: '5', name: 'تجديد البشرة', description: 'جلسات تجديد وتنضيج البشرة', sessions: 4, estimatedPrice: 2500, category: 'تجميل' },
+   493→  ])
+   494→
+   495→  // Before/After Slider
+   496→  const [sliderPos, setSliderPos] = useState(50)
+   497→  const sliderRef = useRef<HTMLDivElement>(null)
+   498→  const [isDragging, setIsDragging] = useState(false)
+   499→
+   500→  // Waiting Queue form
+   501→  const [showAddWaiting, setShowAddWaiting] = useState(false)
+   502→  const [waitingFormName, setWaitingFormName] = useState('')
+   503→  const [waitingFormPriority, setWaitingFormPriority] = useState<'normal' | 'urgent'>('normal')
+   504→  const [waitingFormNotes, setWaitingFormNotes] = useState('')
+   505→
+   506→  // Enhanced Reminder form
+   507→  const [reminderType, setReminderType] = useState('general')
+   508→  const [reminderDate, setReminderDate] = useState('')
+   509→  const [reminderTime, setReminderTime] = useState('')
+   510→  const [reminderPatientId, setReminderPatientId] = useState('')
+   511→  const [celebratingId, setCelebratingId] = useState<string | null>(null)
+   512→
+   513→  // Template apply dialog
+   514→  const [showApplyTemplate, setShowApplyTemplate] = useState(false)
+   515→  const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
+   516→  const [templatePatientId, setTemplatePatientId] = useState('')
+   517→
+   518→  // More tab - Notes section
+   519→  const [notesSearch, setNotesSearch] = useState('')
+   520→  const [notesFilterSection, setNotesFilterSection] = useState('all')
+   521→  const [notesFilterImportant, setNotesFilterImportant] = useState(false)
+   522→  const [showAddNote, setShowAddNote] = useState(false)
+   523→  const [newNoteContent, setNewNoteContent] = useState('')
+   524→  const [newNoteSection, setNewNoteSection] = useState('general')
+   525→  const [newNoteImportant, setNewNoteImportant] = useState(false)
+   526→  const [editingNoteIdMore, setEditingNoteIdMore] = useState<string | null>(null)
+   527→  const [editingNoteContentMore, setEditingNoteContentMore] = useState('')
+   528→  const [editingNoteSectionMore, setEditingNoteSectionMore] = useState('general')
+   529→
+   530→  // Inventory enhanced states
+   531→  const [inventorySearch, setInventorySearch] = useState('')
+   532→  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'low' | 'normal'>('all')
+   533→  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('all')
+   534→  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null)
+   535→  const [editInventoryForm, setEditInventoryForm] = useState({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' })
+   536→  const [showStockTransaction, setShowStockTransaction] = useState(false)
+   537→  const [stockTransactionItemId, setStockTransactionItemId] = useState('')
+   538→  const [stockTransactionType, setStockTransactionType] = useState<'in' | 'out'>('in')
+   539→  const [stockTransactionQty, setStockTransactionQty] = useState('')
+   540→  const [stockTransactionNotes, setStockTransactionNotes] = useState('')
+   541→  const [deleteInventoryConfirmId, setDeleteInventoryConfirmId] = useState<string | null>(null)
+   542→
+   543→  // Booking system states
+   544→  const [showAddBooking, setShowAddBooking] = useState(false)
+   545→  const [bookingFormPatientSearch, setBookingFormPatientSearch] = useState('')
+   546→  const [bookingFormPatientId, setBookingFormPatientId] = useState('')
+   547→  const [bookingFormDate, setBookingFormDate] = useState('')
+   548→  const [bookingFormTime, setBookingFormTime] = useState('')
+   549→  const [bookingFormType, setBookingFormType] = useState('checkup')
+   550→  const [bookingFormStatus, setBookingFormStatus] = useState('scheduled')
+   551→  const [bookingFormNotes, setBookingFormNotes] = useState('')
+   552→  const [bookingFilterStatus, setBookingFilterStatus] = useState('all')
+   553→  const [bookingFilterDate, setBookingFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
+   554→  const [editingBookingId, setEditingBookingId] = useState<string | null>(null)
+   555→
+   556→  // Visits enhanced states
+   557→  const [visitFilterType, setVisitFilterType] = useState('all')
+   558→  const [deleteVisitConfirmId, setDeleteVisitConfirmId] = useState<string | null>(null)
+   559→  const [deleteLaserRecordConfirmId, setDeleteLaserRecordConfirmId] = useState<string | null>(null)
+   560→  const [deleteLaserSessionConfirmId, setDeleteLaserSessionConfirmId] = useState<string | null>(null)
+   561→
+   562→  // Personal Section States
+   563→  const [personalSubTab, setPersonalSubTab] = useState<'finance' | 'reminders' | 'notes' | 'reports'>('finance')
+   564→  const [personalReportPeriod, setPersonalReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+   565→  const [personalTransactions, setPersonalTransactions] = useState<Transaction[]>([])
+   566→  const [personalReminders, setPersonalReminders] = useState<Reminder[]>([])
+   567→  const [personalNotes, setPersonalNotes] = useState<Note[]>([])
+   568→  const [personalSearchQuery, setPersonalSearchQuery] = useState('')
+   569→  const [showAddPersonalTxn, setShowAddPersonalTxn] = useState(false)
+   570→  const [personalTxnForm, setPersonalTxnForm] = useState({ type: 'income' as 'income'|'expense', category: '', amount: '', description: '', date: '' })
+   571→  const [editingPersonalTxnId, setEditingPersonalTxnId] = useState<string | null>(null)
+   572→  const [showAddPersonalReminder, setShowAddPersonalReminder] = useState(false)
+   573→  const [personalReminderForm, setPersonalReminderForm] = useState({ title: '', description: '', date: '', type: 'شخصي' })
+   574→  const [editingPersonalReminderId, setEditingPersonalReminderId] = useState<string | null>(null)
+   575→  const [showAddPersonalNote, setShowAddPersonalNote] = useState(false)
+   576→  const [personalNoteForm, setPersonalNoteForm] = useState({ content: '', important: false })
+   577→  const [editingPersonalNoteId, setEditingPersonalNoteId] = useState<string | null>(null)
+   578→  const [editingPersonalNoteContent, setEditingPersonalNoteContent] = useState('')
+   579→  const [personalTxnFilter, setPersonalTxnFilter] = useState<'all' | 'income' | 'expense'>('all')
+   580→  const [personalTxnCategoryFilter, setPersonalTxnCategoryFilter] = useState('all')
+   581→  const [personalDateFrom, setPersonalDateFrom] = useState('')
+   582→  const [personalDateTo, setPersonalDateTo] = useState('')
+   583→  const [reportPeriod, setReportPeriod] = useState<'all' | 'weekly' | 'monthly'>('all')
+   584→  const [celebratingPersonalId, setCelebratingPersonalId] = useState<string | null>(null)
+   585→
+   586→  // Follow-up System States
+   587→  const [followUpRecords, setFollowUpRecords] = useState<FollowUpRecord[]>([])
+   588→  const [followUpSearch, setFollowUpSearch] = useState('')
+   589→  const [followUpFilter, setFollowUpFilter] = useState<'all' | 'active' | 'paused' | 'completed' | 'discharged'>('all')
+   590→  const [selectedFollowUpId, setSelectedFollowUpId] = useState<string | null>(null)
+   591→  const [followUpDetailTab, setFollowUpDetailTab] = useState<'overview' | 'visits' | 'subscription'>('overview')
+   592→  const [showAddFollowUp, setShowAddFollowUp] = useState(false)
+   593→  const [fuFormPatientSearch, setFuFormPatientSearch] = useState('')
+   594→  const [fuFormPatientId, setFuFormPatientId] = useState('')
+   595→  const [fuFormCondition, setFuFormCondition] = useState('')
+   596→  const [fuFormCategory, setFuFormCategory] = useState('جلدية')
+   597→  const [fuFormSeverity, setFuFormSeverity] = useState('moderate')
+   598→  const [fuFormFrequency, setFuFormFrequency] = useState('monthly')
+   599→  const [fuFormCustomDays, setFuFormCustomDays] = useState('')
+   600→  const [fuFormNextVisit, setFuFormNextVisit] = useState('')
+   601→  const [fuFormDiagnosis, setFuFormDiagnosis] = useState('')
+   602→  const [fuFormTreatmentPlan, setFuFormTreatmentPlan] = useState('')
+   603→  const [fuFormMedications, setFuFormMedications] = useState('')
+   604→  const [fuFormNotes, setFuFormNotes] = useState('')
+   605→  const [fuFormHasSubscription, setFuFormHasSubscription] = useState(false)
+   606→  const [fuFormSubType, setFuFormSubType] = useState('monthly')
+   607→  const [fuFormSubPrice, setFuFormSubPrice] = useState('')
+   608→  const [fuFormSubStart, setFuFormSubStart] = useState('')
+   609→  const [fuFormSubEnd, setFuFormSubEnd] = useState('')
+   610→  const [fuFormSubSessions, setFuFormSubSessions] = useState('')
+   611→  const [showAddFollowUpVisit, setShowAddFollowUpVisit] = useState(false)
+   612→  const [fuVisitForm, setFuVisitForm] = useState({ findings: '', vitals: '', diagnosis: '', treatmentNotes: '', medications: '', instructions: '', paid: false, price: '', nextVisitDate: '', notes: '', type: 'followup' })
+   613→  const [deleteFollowUpConfirmId, setDeleteFollowUpConfirmId] = useState<string | null>(null)
+   614→  const [editingFollowUpId, setEditingFollowUpId] = useState<string | null>(null)
+   615→
+   616→  // Patient registration date override
+   617→  const [newPatientDate, setNewPatientDate] = useState('')
+   618→
+   619→  // Patient Copy Search
+   620→  const [patientCopySearch, setPatientCopySearch] = useState('')
+   621→  const [showImprovementSlider, setShowImprovementSlider] = useState(false)
+   622→  const [improvementSliderValue, setImprovementSliderValue] = useState(5)
+   623→  const [improvementNote, setImprovementNote] = useState('')
+   624→  const [celebratingImprovement, setCelebratingImprovement] = useState(false)
+   625→
+   626→  // ─── Password is verified server-side via /auth/login API ─────────────
+   627→  // No password stored on client - all verification is server-side
+   628→
+   629→  // ─── Effects ──────────────────────────────────────────────────────────
+   630→  useEffect(() => { document.documentElement.classList.toggle('dark', darkMode) }, [darkMode])
+   631→  useEffect(() => { if (!seeded) { apiFetch('/seed', { method: 'POST' }).then(() => setSeeded(true)).catch(() => setSeeded(true)) } }, [seeded])
+   632→  useEffect(() => {
+   633→    if (!autoBackup) return
+   634→    // Run first backup immediately on enable
+   635→    const runBackup = async () => {
+   636→      try {
+   637→        await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'auto' }) })
+   638→        setLastBackup(new Date().toISOString())
+   639→        toast.success('تم النسخ الاحتياطي التلقائي ✓')
+   640→      } catch (e) {
+   641→        console.error('Auto backup failed:', e)
+   642→      }
+   643→    }
+   644→    runBackup()
+   645→    const interval = setInterval(runBackup, backupInterval * 60 * 1000)
+   646→    return () => clearInterval(interval)
+   647→  }, [autoBackup, backupInterval, setLastBackup])
+   648→
+   649→  const loadAllData = useCallback(async () => {
+   650→    setLoading(true)
+   651→    try {
+   652→      const results = await Promise.allSettled([
+   653→        apiFetch('/patients?limit=50000'), apiFetch('/visits?limit=100000'), apiFetch('/sessions?limit=100000'),
+   654→        apiFetch('/services?limit=1000'), apiFetch('/notes?limit=50000'), apiFetch('/alerts?limit=5000'),
+   655→        apiFetch('/reminders?limit=5000'), apiFetch('/laser/records?limit=50000'), apiFetch('/laser/packages?limit=500'),
+   656→        apiFetch('/laser/settings?limit=500'), apiFetch('/finance/transactions?limit=100000'), apiFetch('/appointments?limit=10000'),
+   657→        apiFetch('/waiting?limit=1000'), apiFetch('/inventory/items?limit=5000'), apiFetch('/medications?limit=5000'),
+   658→        apiFetch('/prescriptions?limit=10000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=5000'),
+   659→        apiFetch('/doctors?limit=500'),
+   660→        apiFetch('/follow-up/records?limit=50000'),
+   661→      ])
+   662→      const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
+   663→      setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
+   664→      setFollowUpRecords(u(results[19]))
+   665→      // Derive personal data from main datasets (no duplicate API calls)
+   666→      const allTxns = u(results[10]); setPersonalTransactions(allTxns.filter((t: any) => t.category === 'personal'))
+   667→      const allNotes = u(results[4]); setPersonalNotes(allNotes.filter((n: any) => n.section === 'personal'))
+   668→      const allReminders = u(results[6]); setPersonalReminders(allReminders.filter((r: any) => r.type === 'شخصي' || r.type === 'personal'))
+   669→    } catch (e) { console.error(e) }
+   670→    setLoading(false)
+   671→  }, [])
+   672→  // eslint-disable-next-line react-hooks/set-state-in-effect
+   673→  useEffect(() => { if (isAuthenticated) loadAllData() }, [isAuthenticated, loadAllData])
+   674→
+   675→  // Load patient photos when selectedPatient changes
+   676→  useEffect(() => {
+   677→    if (selectedPatient) {
+   678→      apiFetch(`/photos?patientId=${selectedPatient.id}`).then((res: any) => {
+   679→        const photos = res?.data || res?.photos || (Array.isArray(res) ? res : [])
+   680→        setPatientPhotos(photos)
+   681→      }).catch(() => setPatientPhotos([]))
+   682→    } else {
+   683→      setPatientPhotos([])
+   684→    }
+   685→  // eslint-disable-next-line react-hooks/exhaustive-deps
+   686→  }, [selectedPatient?.id])
+   687→
+   688→  // ─── Auto-suggest patient names ──────────────────────────────────────
+   689→  const patientSearchSuggestions = useMemo(() => {
+   690→    if (newPatientName.length < 1) return []
+   691→    const q = newPatientName.toLowerCase()
+   692→    return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
+   693→  }, [newPatientName, patients])
+   694→
+   695→  // Laser patient search
+   696→  const laserPatientSuggestions = useMemo(() => {
+   697→    if (!laserFormPatientSearch) return []
+   698→    const q = laserFormPatientSearch.toLowerCase()
+   699→    return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
+   700→  }, [laserFormPatientSearch, patients])
+   701→
+   702→  // Booking patient search
+   703→  const bookingPatientSuggestions = useMemo(() => {
+   704→    if (!bookingFormPatientSearch) return []
+   705→    const q = bookingFormPatientSearch.toLowerCase()
+   706→    return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
+   707→  }, [bookingFormPatientSearch, patients])
+   708→
+   709→  // ─── Personal Section Computed ──────────────────────────────────
+   710→  const PERSONAL_INCOME_CATS = ['راتب', 'استثمار', 'مكافأة', 'هدية', 'أخرى']
+   711→  const PERSONAL_EXPENSE_CATS = ['طعام', 'مواصلات', 'سكن', 'ترفيه', 'صحة', 'تعليم', 'ملابس', 'فواتير', 'أخرى']
+   712→  const PERSONAL_REMINDER_TYPES = ['شخصي', 'عمل', 'عائلي', 'صحي', 'مالي', 'مهم', 'أخرى']
+   713→
+   714→  const personalTotalIncomeAll = useMemo(() => personalTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+   715→  const personalTotalExpenseAll = useMemo(() => personalTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [personalTransactions])
+   716→
+   717→  const filteredPersonalTxns = useMemo(() => {
+   718→    return personalTransactions.filter(t => {
+   719→      if (personalTxnFilter !== 'all' && t.type !== personalTxnFilter) return false
+   720→      if (personalTxnCategoryFilter !== 'all' && t.category !== personalTxnCategoryFilter) return false
+   721→      if (personalDateFrom) {
+   722→        const tDate = getLocalDateStr(t.date)
+   723→        if (tDate < personalDateFrom) return false
+   724→      }
+   725→      if (personalDateTo) {
+   726→        const tDate = getLocalDateStr(t.date)
+   727→        if (tDate > personalDateTo) return false
+   728→      }
+   729→      return true
+   730→    })
+   731→  }, [personalTransactions, personalTxnFilter, personalTxnCategoryFilter, personalDateFrom, personalDateTo])
+   732→
+   733→  const personalTotalIncome = useMemo(() => filteredPersonalTxns.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0), [filteredPersonalTxns])
+   734→  const personalTotalExpense = useMemo(() => filteredPersonalTxns.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0), [filteredPersonalTxns])
+   735→  const personalNetBalance = personalTotalIncome - personalTotalExpense
+   736→
+   737→  const personalMonthlyChart = useMemo(() => {
+   738→    const months: Record<string, { month: string; income: number; expense: number }> = {}
+   739→    personalTransactions.forEach(t => {
+   740→      const parts = getCairoDateParts(t.date)
+   741→      const key = `${parts.year}-${String(parts.month).padStart(2, '0')}`
+   742→      const label = `${parts.month}/${parts.year}`
+   743→      if (!months[key]) months[key] = { month: label, income: 0, expense: 0 }
+   744→      if (t.type === 'income') months[key].income += t.amount || 0
+   745→      else months[key].expense += t.amount || 0
+   746→    })
+   747→    return Object.values(months).sort((a, b) => a.month.localeCompare(b.month)).slice(-6)
+   748→  }, [personalTransactions])
+   749→
+   750→  const personalSearchResults = useMemo(() => {
+   751→    if (!personalSearchQuery.trim()) return []
+   752→    const q = personalSearchQuery.toLowerCase()
+   753→    const results: { type: string; id: string; label: string; sub: string; icon: React.ReactNode; action?: () => void }[] = []
+   754→    // Search personal transactions
+   755→    personalTransactions.filter(t => (t.description || '').toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q)).forEach(t => {
+   756→      results.push({ type: 'transaction', id: t.id, label: t.description || t.category, sub: `${formatCurrency(t.amount)} • ${t.type === 'income' ? 'إيراد' : 'مصروف'}`, icon: t.type === 'income' ? <TrendingUp size={14} className="text-emerald-500" /> : <TrendingDown size={14} className="text-rose-500" /> })
+   757→    })
+   758→    // Search personal reminders
+   759→    personalReminders.filter(r => (r.title || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q)).forEach(r => {
+   760→      results.push({ type: 'reminder', id: r.id, label: r.title, sub: `${r.type} • ${formatDate(r.date)}`, icon: <Bell size={14} className="text-amber-500" /> })
+   761→    })
+   762→    // Search personal notes
+   763→    personalNotes.filter(n => (n.content || '').toLowerCase().includes(q)).forEach(n => {
+   764→      results.push({ type: 'note', id: n.id, label: n.content.slice(0, 50), sub: n.important ? 'مهم' : 'عادي', icon: <StickyNote size={14} className="text-sky-500" /> })
+   765→    })
+   766→    // Search patient names
+   767→    patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5).forEach(p => {
+   768→      results.push({ type: 'patient', id: p.id, label: p.name, sub: `${p.fileNumber} • ${p.phone || ''}`, icon: <Users size={14} className="text-blue-500" /> })
+   769→    })
+   770→    return results
+   771→  }, [personalSearchQuery, personalTransactions, personalReminders, personalNotes, patients])
+   772→
+   773→  // Personal reports computed values
+   774→  const personalReportData = useMemo(() => {
+   775→    const _cairoNow = getCairoDateParts()
+   776→    const _todayStr = _cairoNow.dateStr
+   777→
+   778→    const filterByPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
+   779→      return personalTransactions.filter(t => {
+   780→        const tCairo = getCairoDateParts(t.date)
+   781→        const tDateStr = tCairo.dateStr
+   782→        if (period === 'daily') return tDateStr === _todayStr
+   783→        if (period === 'weekly') {
+   784→          const todayDate = new Date(_todayStr + 'T00:00:00')
+   785→          const tDate = new Date(tDateStr + 'T00:00:00')
+   786→          const diffDays = (todayDate.getTime() - tDate.getTime()) / (24 * 60 * 60 * 1000)
+   787→          return diffDays >= 0 && diffDays < 7
+   788→        }
+   789→        // monthly
+   790→        return tCairo.year === _cairoNow.year && tCairo.month === _cairoNow.month
+   791→      })
+   792→    }
+   793→
+   794→    const filtered = filterByPeriod(personalReportPeriod)
+   795→    const income = filtered.filter(t => t.type === 'income')
+   796→    const expense = filtered.filter(t => t.type === 'expense')
+   797→    const totalIncome = income.reduce((s, t) => s + (t.amount || 0), 0)
+   798→    const totalExpense = expense.reduce((s, t) => s + (t.amount || 0), 0)
+   799→
+   800→    // Category breakdown
+   801→    const incomeByCategory: Record<string, number> = {}
+   802→    income.forEach(t => { incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + (t.amount || 0) })
+   803→    const expenseByCategory: Record<string, number> = {}
+   804→    expense.forEach(t => { expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + (t.amount || 0) })
+   805→
+   806→    // Reminders stats
+   807→    const periodReminders = personalReminders.filter(r => {
+   808→      const rCairo = getCairoDateParts(r.date)
+   809→      if (personalReportPeriod === 'daily') return rCairo.dateStr === _todayStr
+   810→      if (personalReportPeriod === 'weekly') {
+   811→        const todayDate = new Date(_todayStr + 'T00:00:00')
+   812→        const rDate = new Date(rCairo.dateStr + 'T00:00:00')
+   813→        const diffDays = (todayDate.getTime() - rDate.getTime()) / (24 * 60 * 60 * 1000)
+   814→        return diffDays >= 0 && diffDays < 7
+   815→      }
+   816→      return rCairo.year === _cairoNow.year && rCairo.month === _cairoNow.month
+   817→    })
+   818→    const doneReminders = periodReminders.filter(r => r.status === 'done').length
+   819→    const pendingReminders = periodReminders.filter(r => r.status !== 'done').length
+   820→
+   821→    // Notes stats
+   822→    const periodNotes = personalNotes.filter(n => {
+   823→      const nCairo = getCairoDateParts(n.createdAt)
+   824→      if (personalReportPeriod === 'daily') return nCairo.dateStr === _todayStr
+   825→      if (personalReportPeriod === 'weekly') {
+   826→        const todayDate = new Date(_todayStr + 'T00:00:00')
+   827→        const nDate = new Date(nCairo.dateStr + 'T00:00:00')
+   828→        const diffDays = (todayDate.getTime() - nDate.getTime()) / (24 * 60 * 60 * 1000)
+   829→        return diffDays >= 0 && diffDays < 7
+   830→      }
+   831→      return nCairo.year === _cairoNow.year && nCairo.month === _cairoNow.month
+   832→    })
+   833→    const importantNotes = periodNotes.filter(n => n.important).length
+   834→
+   835→    // Chart data for daily breakdown (Cairo timezone)
+   836→    let chartData: { label: string; income: number; expense: number }[] = []
+   837→    if (personalReportPeriod === 'daily') {
+   838→      // Last 7 days
+   839→      for (let i = 6; i >= 0; i--) {
+   840→        const d = new Date()
+   841→        d.setDate(d.getDate() - i)
+   842→        const ds = getLocalDateStr(d)
+   843→        const dayIncome = income.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
+   844→        const dayExpense = expense.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
+   845→        chartData.push({ label: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), income: dayIncome, expense: dayExpense })
+   846→      }
+   847→    } else if (personalReportPeriod === 'weekly') {
+   848→      // Last 4 weeks
+   849→      for (let i = 3; i >= 0; i--) {
+   850→        const todayDate = new Date(_todayStr + 'T00:00:00')
+   851→        const weekEnd = new Date(todayDate)
+   852→        weekEnd.setDate(weekEnd.getDate() - i * 7)
+   853→        const weekStart = new Date(weekEnd)
+   854→        weekStart.setDate(weekStart.getDate() - 7)
+   855→        const weekIncome = income.filter(t => { const td = getLocalDateStr(t.date); const tDate = new Date(td + 'T00:00:00'); return tDate >= weekStart && tDate < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+   856→        const weekExpense = expense.filter(t => { const td = getLocalDateStr(t.date); const tDate = new Date(td + 'T00:00:00'); return tDate >= weekStart && tDate < weekEnd }).reduce((s, t) => s + (t.amount || 0), 0)
+   857→        chartData.push({ label: `أسبوع ${4 - i}`, income: weekIncome, expense: weekExpense })
+   858→      }
+   859→    } else {
+   860→      // Last 6 months
+   861→      for (let i = 5; i >= 0; i--) {
+   862→        const m = _cairoNow.month - i
+   863→        const year = _cairoNow.year + Math.floor((m - 1) / 12)
+   864→        const month = ((m - 1) % 12 + 12) % 12 + 1
+   865→        const monthIncome = income.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month }).reduce((s, t) => s + (t.amount || 0), 0)
+   866→        const monthExpense = expense.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month }).reduce((s, t) => s + (t.amount || 0), 0)
+   867→        const d = new Date(year, month - 1, 1)
+   868→        chartData.push({ label: d.toLocaleDateString('ar-EG', { month: 'short' }), income: monthIncome, expense: monthExpense })
+   869→      }
+   870→    }
+   871→
+   872→    // Pie chart data for expense categories
+   873→    const expensePieData = Object.entries(expenseByCategory).map(([cat, amount]) => ({ name: cat, value: amount })).sort((a, b) => b.value - a.value)
+   874→    const incomePieData = Object.entries(incomeByCategory).map(([cat, amount]) => ({ name: cat, value: amount })).sort((a, b) => b.value - a.value)
+   875→
+   876→    // Top expenses
+   877→    const topExpenses = [...expense].sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 5)
+   878→
+   879→    return {
+   880→      totalIncome, totalExpense, netBalance: totalIncome - totalExpense,
+   881→      incomeByCategory, expenseByCategory, expensePieData, incomePieData,
+   882→      chartData, topExpenses,
+   883→      transactionCount: filtered.length, incomeCount: income.length, expenseCount: expense.length,
+   884→      doneReminders, pendingReminders, periodReminders: periodReminders.length,
+   885→      periodNotes: periodNotes.length, importantNotes,
+   886→    }
+   887→  }, [personalTransactions, personalReminders, personalNotes, personalReportPeriod])
+   888→
+   889→  // Personal CRUD handlers
+   890→  const addPersonalTransaction = async () => {
+   891→    if (!personalTxnForm.amount || !personalTxnForm.category) return toast.error('المبلغ والفئة مطلوبان')
+   892→    const amount = parseFloat(personalTxnForm.amount)
+   893→    if (isNaN(amount) || amount <= 0) return toast.error('أدخل مبلغ صحيح')
+   894→    try {
+   895→      const res = await apiFetch<any>('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: personalTxnForm.type, category: 'personal', amount, description: personalTxnForm.description || personalTxnForm.category, date: personalTxnForm.date || new Date().toISOString() }) })
+   896→      const item = res?.data || res?.transaction || res
+   897→      if (item?.id) {
+   898→        setPersonalTransactions(prev => [item, ...prev])
+   899→        toast.success('تم إضافة المعاملة')
+   900→      }
+   901→      setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' })
+   902→      setShowAddPersonalTxn(false)
+   903→      setEditingPersonalTxnId(null)
+   904→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   905→  }
+   906→
+   907→  const editPersonalTransaction = async () => {
+   908→    if (!editingPersonalTxnId || !personalTxnForm.amount) return
+   909→    const amount = parseFloat(personalTxnForm.amount)
+   910→    if (isNaN(amount) || amount <= 0) return toast.error('أدخل مبلغ صحيح')
+   911→    try {
+   912→      await apiFetch(`/finance/transactions/${editingPersonalTxnId}`, { method: 'PUT', body: JSON.stringify({ type: personalTxnForm.type, amount, description: personalTxnForm.description || personalTxnForm.category, date: personalTxnForm.date || undefined }) })
+   913→      setPersonalTransactions(prev => prev.map(t => t.id === editingPersonalTxnId ? { ...t, type: personalTxnForm.type, amount, description: personalTxnForm.description || personalTxnForm.category, date: personalTxnForm.date || t.date } : t))
+   914→      toast.success('تم تعديل المعاملة')
+   915→      setEditingPersonalTxnId(null)
+   916→      setPersonalTxnForm({ type: 'income', category: '', amount: '', description: '', date: '' })
+   917→      setShowAddPersonalTxn(false)
+   918→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   919→  }
+   920→
+   921→  const deletePersonalTransaction = async (id: string) => {
+   922→    try {
+   923→      await apiFetch(`/finance/transactions/${id}`, { method: 'DELETE' })
+   924→      setPersonalTransactions(prev => prev.filter(t => t.id !== id))
+   925→      toast.success('تم حذف المعاملة')
+   926→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   927→  }
+   928→
+   929→  const startEditPersonalTxn = (txn: Transaction) => {
+   930→    setEditingPersonalTxnId(txn.id)
+   931→    setPersonalTxnForm({ type: txn.type as 'income' | 'expense', category: txn.category, amount: String(txn.amount), description: txn.description || '', date: txn.date?.split('T')[0] || '' })
+   932→    setShowAddPersonalTxn(true)
+   933→  }
+   934→
+   935→  const addPersonalReminder = async () => {
+   936→    if (!personalReminderForm.title) return toast.error('العنوان مطلوب')
+   937→    try {
+   938→      const res = await apiFetch<any>('/reminders', { method: 'POST', body: JSON.stringify({ title: personalReminderForm.title, description: personalReminderForm.description || undefined, date: personalReminderForm.date || new Date().toISOString(), type: 'personal', status: 'pending' }) })
+   939→      const item = res?.data || res?.reminder || res
+   940→      if (item?.id) {
+   941→        setPersonalReminders(prev => [item, ...prev])
+   942→        toast.success('تم إضافة التذكير')
+   943→      }
+   944→      setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' })
+   945→      setShowAddPersonalReminder(false)
+   946→      setEditingPersonalReminderId(null)
+   947→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   948→  }
+   949→
+   950→  const editPersonalReminder = async () => {
+   951→    if (!editingPersonalReminderId || !personalReminderForm.title) return
+   952→    try {
+   953→      await apiFetch(`/reminders/${editingPersonalReminderId}`, { method: 'PUT', body: JSON.stringify({ title: personalReminderForm.title, description: personalReminderForm.description || undefined, date: personalReminderForm.date || undefined }) })
+   954→      setPersonalReminders(prev => prev.map(r => r.id === editingPersonalReminderId ? { ...r, title: personalReminderForm.title, description: personalReminderForm.description || r.description, date: personalReminderForm.date || r.date } : r))
+   955→      toast.success('تم تعديل التذكير')
+   956→      setEditingPersonalReminderId(null)
+   957→      setPersonalReminderForm({ title: '', description: '', date: '', type: 'شخصي' })
+   958→      setShowAddPersonalReminder(false)
+   959→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   960→  }
+   961→
+   962→  const deletePersonalReminder = async (id: string) => {
+   963→    try {
+   964→      await apiFetch(`/reminders/${id}`, { method: 'DELETE' })
+   965→      setPersonalReminders(prev => prev.filter(r => r.id !== id))
+   966→      toast.success('تم حذف التذكير')
+   967→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   968→  }
+   969→
+   970→  const togglePersonalReminderDone = async (reminder: Reminder) => {
+   971→    try {
+   972→      const newStatus = reminder.status === 'done' ? 'pending' : 'done'
+   973→      await apiFetch(`/reminders/${reminder.id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) })
+   974→      setPersonalReminders(prev => prev.map(r => r.id === reminder.id ? { ...r, status: newStatus } : r))
+   975→      if (newStatus === 'done') { setCelebratingPersonalId(reminder.id); setTimeout(() => setCelebratingPersonalId(null), 1500) }
+   976→      toast.success(newStatus === 'done' ? 'تم إنجاز التذكير 🎉' : 'تم إلغاء الإنجاز')
+   977→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   978→  }
+   979→
+   980→  const startEditPersonalReminder = (r: Reminder) => {
+   981→    setEditingPersonalReminderId(r.id)
+   982→    setPersonalReminderForm({ title: r.title, description: r.description || '', date: r.date?.split('T')[0] || '', type: 'شخصي' })
+   983→    setShowAddPersonalReminder(true)
+   984→  }
+   985→
+   986→  const addPersonalNote = async () => {
+   987→    if (!personalNoteForm.content) return toast.error('المحتوى مطلوب')
+   988→    try {
+   989→      const res = await apiFetch<any>('/notes', { method: 'POST', body: JSON.stringify({ content: personalNoteForm.content, important: personalNoteForm.important, section: 'personal' }) })
+   990→      const item = res?.data || res?.note || res
+   991→      if (item?.id) {
+   992→        setPersonalNotes(prev => [item, ...prev])
+   993→        toast.success('تم إضافة الملاحظة')
+   994→      }
+   995→      setPersonalNoteForm({ content: '', important: false })
+   996→      setShowAddPersonalNote(false)
+   997→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+   998→  }
+   999→
+  1000→  const editPersonalNote = async (id: string, content: string, important: boolean) => {
+  1001→    try {
+  1002→      await apiFetch(`/notes/${id}`, { method: 'PUT', body: JSON.stringify({ content, important }) })
+  1003→      setPersonalNotes(prev => prev.map(n => n.id === id ? { ...n, content, important } : n))
+  1004→      toast.success('تم تعديل الملاحظة')
+  1005→      setEditingPersonalNoteId(null)
+  1006→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1007→  }
+  1008→
+  1009→  const deletePersonalNote = async (id: string) => {
+  1010→    try {
+  1011→      await apiFetch(`/notes/${id}`, { method: 'DELETE' })
+  1012→      setPersonalNotes(prev => prev.filter(n => n.id !== id))
+  1013→      toast.success('تم حذف الملاحظة')
+  1014→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1015→  }
+  1016→
+  1017→  const togglePersonalNoteImportance = async (note: Note) => {
+  1018→    try {
+  1019→      await apiFetch(`/notes/${note.id}`, { method: 'PUT', body: JSON.stringify({ important: !note.important }) })
+  1020→      setPersonalNotes(prev => prev.map(n => n.id === note.id ? { ...n, important: !n.important } : n))
+  1021→      toast.success(note.important ? 'تم إلغاء الأهمية' : 'تم وضع علامة مهم ⭐')
+  1022→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1023→  }
+  1024→
+  1025→  // ─── CRUD ─────────────────────────────────────────────────────────────
+  1026→  const handleLogin = async () => {
+  1027→    if (!loginRole) { toast.error('اختر الدور أولاً'); return }
+  1028→    if (!loginPassword) { toast.error('أدخل كلمة المرور'); return }
+  1029→    setLoginLoading(true)
+  1030→    try {
+  1031→      const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ role: loginRole, password: loginPassword }) })
+  1032→      login(res.user, loginRole)
+  1033→      toast.success(loginRole === 'doctor' ? 'مرحباً دكتور 🩺' : 'مرحباً 👩‍💼')
+  1034→      if (loginRole === 'secretary') setActiveTab('patients')
+  1035→    } catch (e: any) { toast.error(e.message === 'Invalid password' ? 'كلمة السر غير صحيحة' : e.message || 'خطأ في تسجيل الدخول') }
+  1036→    setLoginLoading(false)
+  1037→  }
+  1038→  const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
+  1039→    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.package || res?.setting || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { toast.error(e.message || 'خطأ'); return null }
+  1040→  }
+  1041→  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
+  1042→    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1043→  }
+  1044→
+  1045→  // Mark session as paid + create finance transaction (fixes: "pay" button was not recording revenue)
+  1046→  const markSessionPaid = async (s: Session) => {
+  1047→    try {
+  1048→      await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) })
+  1049→      // Create corresponding finance transaction
+  1050→      const patientName = patients.find(p => p.id === s.patientId)?.name || 'مريض'
+  1051→      const svc = services.find(sv => sv.id === s.serviceId)
+  1052→      const category = s.notes?.includes('ليزر') ? 'ليزر' : 'جلسات'
+  1053→      const description = `${svc?.name || (category === 'ليزر' ? 'جلسة ليزر' : 'جلسة')} - ${patientName}`
+  1054→      try {
+  1055→        const txnRes = await apiFetch<any>('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category, amount: s.price, description, date: s.date || new Date().toISOString() }) })
+  1056→        const txnItem = txnRes?.transaction || txnRes?.data || txnRes
+  1057→        if (txnItem?.id) {
+  1058→          setTransactions(prev => [txnItem, ...prev])
+  1059→        } else {
+  1060→          setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: s.date || new Date().toISOString() }])
+  1061→        }
+  1062→      } catch { /* finance txn creation failed silently */ }
+  1063→      setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss))
+  1064→      toast.success('تم الدفع ✅')
+  1065→    } catch { toast.error('خطأ') }
+  1066→  }
+  1067→
+  1068→  // Delete patient with full finance cleanup
+  1069→  const deletePatientWithFinance = async (patient: Patient) => {
+  1070→    try {
+  1071→      // Find all finance transactions related to this patient (by name in description)
+  1072→      const relatedTxns = transactions.filter(t => t.description?.includes(patient.name))
+  1073→      // Delete each related finance transaction
+  1074→      for (const txn of relatedTxns) {
+  1075→        try { await apiFetch(`/finance/transactions/${txn.id}`, { method: 'DELETE' }) } catch {}
+  1076→      }
+  1077→      // Remove deleted transactions from state
+  1078→      const deletedTxnIds = new Set(relatedTxns.map(t => t.id))
+  1079→      setTransactions(prev => prev.filter(t => !deletedTxnIds.has(t.id)))
+  1080→      // Delete the patient (API should cascade delete visits, sessions, notes, etc.)
+  1081→      await apiFetch(`/patients/${patient.id}`, { method: 'DELETE' })
+  1082→      // Remove patient and related data from state
+  1083→      setPatients(prev => prev.filter(p => p.id !== patient.id))
+  1084→      setVisits(prev => prev.filter(v => v.patientId !== patient.id))
+  1085→      setSessions(prev => prev.filter(s => s.patientId !== patient.id))
+  1086→      setNotes(prev => prev.filter(n => n.patientId !== patient.id))
+  1087→      setLaserRecords(prev => prev.filter(l => l.patientId !== patient.id))
+  1088→      setSelectedPatient(null)
+  1089→      setDeletePatientConfirmOpen(false)
+  1090→      toast.success(`تم حذف المريض ${patient.name} وجميع البيانات المرتبطة`)
+  1091→    } catch (e: any) { toast.error(e.message || 'خطأ في حذف المريض') }
+  1092→  }
+  1093→
+  1094→  // Delete visit with finance sync
+  1095→  const deleteVisitWithFinance = async (visit: Visit, patientName: string) => {
+  1096→    try {
+  1097→      // Find and delete the corresponding finance transaction
+  1098→      const visitCategory = visit.type === 'checkup' ? 'كشف' : visit.type === 'revisit' ? 'إعادة' : 'جلسات'
+  1099→      const visitDateStr = getLocalDateStr(visit.date)
+  1100→      const relatedTxn = transactions.find(t =>
+  1101→        t.description?.includes(patientName) &&
+  1102→        t.category === visitCategory &&
+  1103→        getLocalDateStr(t.date) === visitDateStr
+  1104→      )
+  1105→      if (relatedTxn) {
+  1106→        try { await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'DELETE' }) } catch {}
+  1107→        setTransactions(prev => prev.filter(t => t.id !== relatedTxn.id))
+  1108→      }
+  1109→      // Delete the visit
+  1110→      await apiFetch(`/visits/${visit.id}`, { method: 'DELETE' })
+  1111→      setVisits(prev => prev.filter(v => v.id !== visit.id))
+  1112→      toast.success('تم حذف الزيارة والمعاملة المالية المرتبطة')
+  1113→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1114→  }
+  1115→
+  1116→  // Edit visit with finance sync
+  1117→  const editVisitWithFinance = async (visit: Visit, newType: string, newNotes: string, patientName: string, newDate?: string, newPrice?: number) => {
+  1118→    try {
+  1119→      const oldCategory = visit.type === 'checkup' ? 'كشف' : visit.type === 'revisit' ? 'إعادة' : 'جلسات'
+  1120→      const newCategory = newType === 'checkup' ? 'كشف' : newType === 'revisit' ? 'إعادة' : 'جلسات'
+  1121→      // Find related finance transaction using Cairo date matching
+  1122→      const visitDateStr = getLocalDateStr(visit.date)
+  1123→      const relatedTxn = transactions.find(t =>
+  1124→        t.description?.includes(patientName) &&
+  1125→        t.category === oldCategory &&
+  1126→        getLocalDateStr(t.date) === visitDateStr
+  1127→      )
+  1128→      // Build update payload for visit
+  1129→      const visitUpdate: Record<string, unknown> = { type: newType, notes: newNotes || undefined }
+  1130→      if (newDate) {
+  1131→        // Convert the new date with Cairo timezone offset
+  1132→        visitUpdate.date = new Date(newDate + 'T00:00:00+02:00').toISOString()
+  1133→      }
+  1134→      // Update visit
+  1135→      await apiFetch(`/visits/${visit.id}`, { method: 'PUT', body: JSON.stringify(visitUpdate) })
+  1136→      setVisits(prev => prev.map(v => v.id === visit.id ? { ...v, type: newType, notes: newNotes || undefined, ...(newDate ? { date: visitUpdate.date as string } : {}) } : v))
+  1137→      // Update finance transaction if category, price, or date changed
+  1138→      if (relatedTxn) {
+  1139→        const txnUpdate: Record<string, unknown> = {}
+  1140→        if (oldCategory !== newCategory) {
+  1141→          txnUpdate.category = newCategory
+  1142→          txnUpdate.description = relatedTxn.description?.replace(oldCategory, newCategory)
+  1143→        }
+  1144→        if (newPrice !== undefined && newPrice > 0) {
+  1145→          txnUpdate.amount = newPrice
+  1146→        }
+  1147→        if (newDate) {
+  1148→          txnUpdate.date = visitUpdate.date
+  1149→        }
+  1150→        if (Object.keys(txnUpdate).length > 0) {
+  1151→          await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'PUT', body: JSON.stringify(txnUpdate) })
+  1152→          setTransactions(prev => prev.map(t => t.id === relatedTxn.id ? { ...t, ...txnUpdate } : t))
+  1153→        }
+  1154→      }
+  1155→      setEditingVisitId(null)
+  1156→      toast.success('تم تعديل الزيارة')
+  1157→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1158→  }
+  1159→
+  1160→  // Delete session with finance sync
+  1161→  const deleteSessionWithFinance = async (session: Session, patientName: string) => {
+  1162→    try {
+  1163→      // Find and delete the corresponding finance transaction
+  1164→      const sessionDateStr = getLocalDateStr(session.date)
+  1165→      const svcName = services.find(sv => sv.id === session.serviceId)?.name || 'جلسة'
+  1166→      const relatedTxn = transactions.find(t =>
+  1167→        t.description?.includes(patientName) &&
+  1168→        (t.category === 'جلسات' || t.category === 'ليزر') &&
+  1169→        getLocalDateStr(t.date) === sessionDateStr &&
+  1170→        t.amount === session.price
+  1171→      )
+  1172→      if (relatedTxn) {
+  1173→        try { await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'DELETE' }) } catch {}
+  1174→        setTransactions(prev => prev.filter(t => t.id !== relatedTxn.id))
+  1175→      }
+  1176→      // Delete the session
+  1177→      await apiFetch(`/sessions/${session.id}`, { method: 'DELETE' })
+  1178→      setSessions(prev => prev.filter(s => s.id !== session.id))
+  1179→      toast.success('تم حذف الجلسة والمعاملة المالية المرتبطة')
+  1180→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1181→  }
+  1182→
+  1183→  // Edit session with finance sync
+  1184→  const editSessionWithFinance = async (session: Session, newPrice: number, newNotes: string, newStatus: string, patientName: string) => {
+  1185→    try {
+  1186→      // Find related finance transaction
+  1187→      const sessionDateStr = getLocalDateStr(session.date)
+  1188→      const relatedTxn = transactions.find(t =>
+  1189→        t.description?.includes(patientName) &&
+  1190→        (t.category === 'جلسات' || t.category === 'ليزر') &&
+  1191→        getLocalDateStr(t.date) === sessionDateStr &&
+  1192→        t.amount === session.price
+  1193→      )
+  1194→      // Update session
+  1195→      await apiFetch(`/sessions/${session.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, notes: newNotes || undefined, status: newStatus }) })
+  1196→      setSessions(prev => prev.map(s => s.id === session.id ? { ...s, price: newPrice, notes: newNotes, status: newStatus } : s))
+  1197→      // Update finance transaction if price changed
+  1198→      if (relatedTxn && newPrice !== session.price) {
+  1199→        await apiFetch(`/finance/transactions/${relatedTxn.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) })
+  1200→        setTransactions(prev => prev.map(t => t.id === relatedTxn.id ? { ...t, amount: newPrice } : t))
+  1201→      }
+  1202→      setEditingSessionId(null)
+  1203→      toast.success('تم تعديل الجلسة')
+  1204→    } catch (e: any) { toast.error(e.message || 'خطأ') }
+  1205→  }
+  1206→
+  1207→  // ─── Computed ─────────────────────────────────────────────────────────
+  1208→  const todayStr = useMemo(() => getLocalDateStr(), []) // Cairo timezone - computed once per mount
+  1209→  // Memoized Cairo date parts for "now" — avoids calling getCairoDateParts()/getLocalDateStr() with new Date() in every useMemo/render
+  1210→  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr]) // recomputes when todayStr changes (i.e. on mount)
+  1211→  const todayStats = useMemo(() => {
+  1212→    let todayIncome = 0, todayExpense = 0
+  1213→    for (const t of transactions) {
+  1214→      if (t.category === 'personal') continue
+  1215→      if (getLocalDateStr(t.date) === todayStr) {
+  1216→        if (t.type === 'income') todayIncome += t.amount
+  1217→        else todayExpense += t.amount
+  1218→      }
+  1219→    }
+  1220→    return { todayIncome, todayExpense, todayNetProfit: todayIncome - todayExpense }
+  1221→  }, [transactions, todayStr])
+  1222→  const todayIncome = todayStats.todayIncome
+  1223→  const todayExpense = todayStats.todayExpense
+  1224→  const todayNetProfit = todayStats.todayNetProfit
+  1225→  const todayVisits = useMemo(() => visits.filter(v => v.date && getLocalDateStr(v.date) === todayStr), [visits, todayStr])
+  1226→
+  1227→  // Daily finance data - grouped by real date (Cairo timezone)
+  1228→  const dailyFinanceData = useMemo(() => {
+  1229→    const dayMap: Record<string, { date: string; dateObj: Date; income: number; expense: number; net: number; transactions: Transaction[] }> = {}
+  1230→    transactions.filter(t => t.category !== 'personal').forEach(t => {
+  1231→      const key = getLocalDateStr(t.date)
+  1232→      if (!dayMap[key]) dayMap[key] = { date: key, dateObj: new Date(t.date), income: 0, expense: 0, net: 0, transactions: [] }
+  1233→      if (t.type === 'income') dayMap[key].income += t.amount || 0
+  1234→      else dayMap[key].expense += t.amount || 0
+  1235→      dayMap[key].net = dayMap[key].income - dayMap[key].expense
+  1236→      dayMap[key].transactions.push(t)
+  1237→    })
+  1238→    return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
+  1239→  }, [transactions])
+  1240→  const todayAppointments = useMemo(() => appointments.filter(a => a.date && getLocalDateStr(a.date) === todayStr), [appointments, todayStr])
+  1241→  const activeAlerts = useMemo(() => alerts.filter(a => a.active), [alerts])
+  1242→
+  1243→  // Daily visit/session stats for reports (Cairo timezone)
+  1244→  const dailyVisitStats = useMemo(() => {
+  1245→    const dayMap: Record<string, { date: string; checkupCount: number; revisitCount: number; sessionCount: number; checkupRevenue: number; revisitRevenue: number; sessionRevenue: number }> = {}
+  1246→    // Process visits (counts only, NOT revenue - revenue comes from transactions)
+  1247→    visits.forEach(v => {
+  1248→      const key = getLocalDateStr(v.date)
+  1249→      if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
+  1250→      if (v.type === 'checkup' || v.type === 'checkup_session') dayMap[key].checkupCount++
+  1251→      else if (v.type === 'revisit' || v.type === 'revisit_session') dayMap[key].revisitCount++
+  1252→    })
+  1253→    // Count completed sessions (counts only, NOT revenue - to avoid double-counting with transactions)
+  1254→    sessions.filter(s => s.status === 'completed').forEach(s => {
+  1255→      const key = getLocalDateStr(s.date)
+  1256→      if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
+  1257→      dayMap[key].sessionCount++
+  1258→    })
+  1259→    // Process ALL revenue from transactions ONLY (single source of truth - matches Finance section)
+  1260→    transactions.filter(t => t.category !== 'personal').forEach(t => {
+  1261→      const key = getLocalDateStr(t.date)
+  1262→      if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }
+  1263→      if (t.type === 'income' && t.category === 'كشف') dayMap[key].checkupRevenue += t.amount || 0
+  1264→      else if (t.type === 'income' && t.category === 'إعادة') dayMap[key].revisitRevenue += t.amount || 0
+  1265→      else if (t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة')) dayMap[key].sessionRevenue += t.amount || 0
+  1266→    })
+  1267→    return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
+  1268→  }, [visits, sessions, transactions])
+  1269→  const lowStockItems = useMemo(() => inventoryItems.filter(i => i.quantity <= i.minQuantity), [inventoryItems])
+  1270→  const patientGenderCounts = useMemo(() => ({ male: patients.filter(p => p.gender === 'male').length, female: patients.filter(p => p.gender === 'female').length }), [patients])
+  1271→  const maleCount = patientGenderCounts.male
+  1272→  const femaleCount = patientGenderCounts.female
+  1273→  const revenueChartData = useMemo(() => {
+  1274→    // Pre-compute transaction date map for O(1) lookup
+  1275→    const txByDate: Record<string, { income: number; expense: number }> = {}
+  1276→    for (const t of transactions) {
+  1277→      if (t.category === 'personal') continue
+  1278→      const ds = getLocalDateStr(t.date)
+  1279→      if (!txByDate[ds]) txByDate[ds] = { income: 0, expense: 0 }
+  1280→      if (t.type === 'income') txByDate[ds].income += t.amount
+  1281→      else txByDate[ds].expense += t.amount
+  1282→    }
+  1283→    // Show ALL days of the current month (Cairo timezone)
+  1284→    const days: { name: string; إيراد: number; مصروف: number }[] = []
+  1285→    const now = getCairoDateParts()
+  1286→    const daysInMonth = new Date(now.year, now.month, 0).getDate()
+  1287→    for (let d = 1; d <= daysInMonth; d++) {
+  1288→      const ds = `${now.year}-${String(now.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  1289→      const dayData = txByDate[ds] || { income: 0, expense: 0 }
+  1290→      const dayName = d % 2 === 1 || daysInMonth <= 15 ? String(d) : '' // Show every other day label if too many days
+  1291→      days.push({ name: dayName, إيراد: dayData.income, مصروف: dayData.expense })
+  1292→    }
+  1293→    return days
+  1294→  }, [transactions])
+  1295→  const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
+  1296→  const debouncedSearchQuery = useDebouncedValue(searchQuery, 250)
+  1297→  const filteredPatients = useMemo(() => {
+  1298→    let list = patients
+  1299→    if (debouncedSearchQuery) {
+  1300→      const results = patients.map(p => {
+  1301→        const { match, score } = smartSearch(debouncedSearchQuery, [p.name, p.phone, p.phone2, p.fileNumber, p.notes, p.address, p.diagnosis])
+  1302→        return { patient: p, match, score }
+  1303→      }).filter(r => r.match).sort((a, b) => b.score - a.score).map(r => r.patient)
+  1304→      list = results
+  1305→    }
+  1306→    if (patientFilter === 'starred') list = list.filter(p => p.starred)
+  1307→    if (patientFilter === 'improved') list = list.filter(p => p.improved)
+  1308→    return list
+  1309→  }, [patients, debouncedSearchQuery, patientFilter])
+  1310→  useEffect(() => { setPatientDisplayCount(50) }, [debouncedSearchQuery])
+  1311→
+  1312→  // ─── Financial Computed Values ──────────────────────────────
+  1313→  // All clinic financials EXCLUDE personal transactions (category !== 'personal')
+  1314→  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
+  1315→  const clinicFinancials = useMemo(() => {
+  1316→    let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
+  1317→    for (const t of clinicTransactions) {
+  1318→      if (t.type === 'income') {
+  1319→        totalIncome += t.amount
+  1320→        if (t.category === 'كشف') checkupRev += t.amount
+  1321→        else if (t.category === 'إعادة') revisitRev += t.amount
+  1322→        else if (t.category === 'ليزر') laserRev += t.amount
+  1323→        else if (t.category === 'متابعة') followUpRev += t.amount
+  1324→        else if (t.category === 'جلسات') sessionRev += t.amount
+  1325→        const td = getCairoDateParts(t.date)
+  1326→        if (td.year === cairoNow.year && td.month === cairoNow.month) monthIncome += t.amount
+  1327→      } else {
+  1328→        totalExpense += t.amount
+  1329→      }
+  1330→    }
+  1331→    return { totalIncome, totalExpense, checkupRevenue: checkupRev, revisitRevenue: revisitRev, laserRevenue: laserRev, followUpRevenue: followUpRev, sessionRevenue: sessionRev, thisMonthIncome: monthIncome }
+  1332→  }, [clinicTransactions, cairoNow])
+  1333→  const totalIncome = clinicFinancials.totalIncome
+  1334→  const totalExpense = clinicFinancials.totalExpense
+  1335→  const netProfit = totalIncome - totalExpense
+  1336→  const checkupRevenue = clinicFinancials.checkupRevenue
+  1337→  const revisitRevenue = clinicFinancials.revisitRevenue
+  1338→  const laserRevenue = clinicFinancials.laserRevenue
+  1339→  const followUpRevenue = clinicFinancials.followUpRevenue
+  1340→  const sessionRevenue = clinicFinancials.sessionRevenue
+  1341→  const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue - laserRevenue - followUpRevenue
+  1342→  const thisMonthIncome = clinicFinancials.thisMonthIncome
+  1343→  const unpaidTotal = useMemo(() => sessions.filter(s => !s.paid).reduce((s, ses) => s + ses.price, 0), [sessions])
+  1344→  const thisWeekIncome = revenueChartData.reduce((s, d) => s + (d.إيراد || 0), 0)
+  1345→  const revenueByCategory = useMemo(() => [
+  1346→    { name: 'كشف', value: checkupRevenue || 0 },
+  1347→    { name: 'إعادة', value: revisitRevenue || 0 },
+  1348→    { name: 'جلسات', value: sessionRevenue || 0 },
+  1349→    { name: 'ليزر', value: laserRevenue || 0 },
+  1350→    { name: 'متابعة', value: followUpRevenue || 0 },
+  1351→    { name: 'أخرى', value: otherRevenue || 0 },
+  1352→  ].filter(d => d.value > 0), [checkupRevenue, revisitRevenue, sessionRevenue, laserRevenue, followUpRevenue, otherRevenue])
+  1353→
+  1354→  // ─── Weekly Revenue Comparison ───
+  1355→  const weeklyComparison = useMemo(() => {
+  1356→    const todayDate = new Date(todayStr + 'T00:00:00')
+  1357→    // This week: last 7 days
+  1358→    const thisWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 0 && diff < 7 })())
+  1359→    const thisWeekTotal = thisWeekTxns.reduce((s, t) => s + t.amount, 0)
+  1360→    // Last week: 7-14 days ago
+  1361→    const lastWeekTxns = clinicTransactions.filter(t => t.type === 'income' && (() => { const td = new Date(getLocalDateStr(t.date) + 'T00:00:00'); const diff = (todayDate.getTime() - td.getTime()) / (86400000); return diff >= 7 && diff < 14 })())
+  1362→    const lastWeekTotal = lastWeekTxns.reduce((s, t) => s + t.amount, 0)
+  1363→    const changePercent = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : thisWeekTotal > 0 ? 100 : 0
+  1364→    return { thisWeekTotal, lastWeekTotal, changePercent, isUp: thisWeekTotal >= lastWeekTotal }
+  1365→  }, [clinicTransactions, todayStr])
+  1366→
+  1367→  // ─── Top Patients by Visits ───
+  1368→  const topPatientsByVisits = useMemo(() => {
+  1369→    const countMap: Record<string, { patient: Patient; visitCount: number; sessionCount: number; totalSpent: number }> = {}
+  1370→    patients.forEach(p => {
+  1371→      const pVisits = visits.filter(v => v.patientId === p.id).length
+  1372→      const pSessions = sessions.filter(s => s.patientId === p.id).length
+  1373→      const pSpent = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && t.description?.includes(p.name)).reduce((s, t) => s + t.amount, 0)
+  1374→      if (pVisits + pSessions > 0) countMap[p.id] = { patient: p, visitCount: pVisits, sessionCount: pSessions, totalSpent: pSpent }
+  1375→    })
+  1376→    return Object.values(countMap).sort((a, b) => (b.visitCount + b.sessionCount) - (a.visitCount + a.sessionCount)).slice(0, 5)
+  1377→  }, [patients, visits, sessions, transactions])
+  1378→
+  1379→  // ─── Laser Session Progress ───
+  1380→  const laserProgressData = useMemo(() => {
+  1381→    return laserRecords.filter(r => r.status === 'active').map(r => {
+  1382→      const patient = patients.find(p => p.id === r.patientId)
+  1383→      const completedSessions = (r as any)?.laserSessions?.length || (r as any)?._count?.laserSessions || 0
+  1384→      const progress = r.totalSessions > 0 ? (completedSessions / r.totalSessions) * 100 : 0
+  1385→      const areaLabel = BODY_AREAS.find(a => a.id === r.bodyArea)?.label || r.bodyArea
+  1386→      return { record: r, patient, completedSessions, totalSessions: r.totalSessions, progress, areaLabel }
+  1387→    }).sort((a, b) => b.progress - a.progress)
+  1388→  }, [laserRecords, patients])
+  1389→
+  1390→  // ─── WhatsApp Daily Summary ───
+  1391→  const shareDailySummary = () => {
+  1392→    const cairoNow = getCairoDateParts()
+  1393→    const todayStats = dailyVisitStats.find(d => d.date === todayStr)
+  1394→    const summary = `🏥 *تقرير عيادة المجازي اليومي*
+  1395→📅 ${new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })}
+  1396→
+  1397→🩺 كشف: ${todayStats?.checkupCount || 0} (${formatCurrency(todayStats?.checkupRevenue || 0)})
+  1398→🔄 إعادة: ${todayStats?.revisitCount || 0} (${formatCurrency(todayStats?.revisitRevenue || 0)})
+  1399→⚡ جلسات: ${todayStats?.sessionCount || 0} (${formatCurrency(todayStats?.sessionRevenue || 0)})
+  1400→
+  1401→💰 إيراد اليوم: ${formatCurrency(todayIncome)}
+  1402→📉 مصروفات: ${formatCurrency(todayExpense)}
+  1403→📊 صافي الربح: ${formatCurrency(todayNetProfit)}
+  1404→
+  1405→👥 إجمالي المرضى: ${patients.length}
+  1406→📅 مواعيد اليوم: ${todayAppointments.length}`
+  1407→    window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, '_blank')
+  1408→  }
+  1409→
+  1410→  // Laser hair removal sessions - pre-computed for performance and stability
+  1411→  const laserHairSessions = useMemo(() => sessions.filter(s => {
+  1412→    try {
+  1413→      const svc = services.find(sv => sv.id === s.serviceId)
+  1414→      if (svc?.category?.includes('ليزر')) return true
+  1415→      if (s.notes?.startsWith('ليزر')) return true
+  1416→      return false
+  1417→    } catch { return false }
+  1418→  }), [sessions, services])
+  1419→
+  1420→  // Laser financial computed values - based on transactions for accuracy (avoids double-counting)
+  1421→  // laserRevenue is already defined above from clinicTransactions
+  1422→  const laserRevenueByArea = useMemo(() => {
+  1423→    const areaMap: Record<string, number> = {}
+  1424→    laserRecords.forEach(r => {
+  1425→      const area = r.bodyArea || 'غير محدد'
+  1426→      const paid = (r.laserSessions || []).filter(s => s.paid).reduce((sum, s) => sum + (s.price || 0), 0)
+  1427→      areaMap[area] = (areaMap[area] || 0) + paid
+  1428→    })
+  1429→    return Object.entries(areaMap).map(([name, value]) => ({ name, value })).filter(d => d.value > 0)
+  1430→  }, [laserRecords])
+  1431→  const laserRevenueByPackage = useMemo(() => {
+  1432→    const pkgMap: Record<string, number> = {}
+  1433→    laserPackages.forEach(pkg => {
+  1434→      const matchingRecords = laserRecords.filter(r => r.bodyArea === pkg.bodyArea || r.bodyArea === pkg.name)
+  1435→      const paid = matchingRecords.flatMap(r => (r.laserSessions || []).filter(s => s.paid)).reduce((sum, s) => sum + (s.price || 0), 0)
+  1436→      if (paid > 0) pkgMap[pkg.name] = paid
+  1437→    })
+  1438→    return Object.entries(pkgMap).map(([name, value]) => ({ name, value })).filter(d => d.value > 0)
+  1439→  }, [laserRecords, laserPackages])
+  1440→
+  1441→  // Smart search
+  1442→  const smartSearchResults = useMemo(() => {
+  1443→    if (!smartSearchQuery.trim()) return []
+  1444→    const q = smartSearchQuery.toLowerCase()
+  1445→    const r: { type: string; label: string; sub: string; id: string; icon: React.ReactNode }[] = []
+  1446→    patients.forEach(p => { if (p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)) r.push({ type: 'patient', label: p.name, sub: `${p.fileNumber} | ${p.phone || ''}`, id: p.id, icon: <Users size={16} className="text-blue-500" /> }) })
+  1447→    services.forEach(s => { if (s.name.toLowerCase().includes(q)) r.push({ type: 'service', label: s.name, sub: formatCurrency(s.price), id: s.id, icon: <Activity size={16} className="text-orange-500" /> }) })
+  1448→    return r.slice(0, 20)
+  1449→  }, [smartSearchQuery, patients, services])
+  1450→  useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setSmartSearchOpen(true) } if (e.key === 'Escape') setSmartSearchOpen(false) }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [])
+  1451→
+  1452→  // ─── AI Chat ──────────────────────────────────────────────────────────
+  1453→  const sendAiMessage = async () => {
+  1454→    if (!aiInput.trim()) return; const msg = aiInput; setAiInput(''); setAiMessages(prev => [...prev, { role: 'user', content: msg }]); setAiLoading(true)
+  1455→    // Check for navigation commands
+  1456→    const navCommands: Record<string, { tab: string; subTab?: string; action?: string }> = {
+  1457→      'عرض المرضى': { tab: 'patients' }, 'المرضى': { tab: 'patients' },
+  1458→      'إضافة مريض': { tab: 'patients', action: 'addPatient' }, 'مريض جديد': { tab: 'patients', action: 'addPatient' },
+  1459→      'الرئيسية': { tab: 'dashboard' }, 'لوحة التحكم': { tab: 'dashboard' },
+  1460→      'الليزر': { tab: 'laser' }, 'سجل ليزر': { tab: 'laser' },
+  1461→      'المالية': { tab: 'finance' }, 'التقارير': { tab: 'more', subTab: 'reports' },
+  1462→      'المزيد': { tab: 'more' }, 'الخدمات': { tab: 'more', subTab: 'services' },
+  1463→      'الإعدادات': { tab: 'more', subTab: 'settings' }, 'النسخ': { tab: 'more', subTab: 'backup' },
+  1464→      'التذكيرات': { tab: 'more', subTab: 'reminders' }, 'المخزون': { tab: 'more', subTab: 'inventory' },
+  1465→      'الأدوية': { tab: 'more', subTab: 'medications' }, 'الزيارات': { tab: 'more', subTab: 'visits' },
+  1466→      'الحجز': { tab: 'more', subTab: 'bookings' }, 'المواعيد': { tab: 'more', subTab: 'bookings' },
+  1467→      'قوالب العلاج': { tab: 'more', subTab: 'templates' }, 'قائمة الانتظار': { tab: 'more', subTab: 'waiting' },
+  1468→    }
+  1469→    const lowerMsg = msg.trim()
+  1470→    const navTarget = navCommands[lowerMsg]
+  1471→    // Check for data questions
+  1472→    const dataQuestions: Record<string, string> = {
+  1473→      'كم عدد المرضى اليوم': `عدد زيارات اليوم: ${todayVisits.length} زيارة`,
+  1474→      'كم عدد المرضى': `إجمالي المرضى: ${patients.length} مريض`,
+  1475→      'كم الإيرادات اليوم': `إيراد اليوم: ${formatCurrency(todayIncome)}`,
+  1476→      'كم عدد الجلسات': `إجمالي الجلسات: ${sessions.length} جلسة`,
+  1477→      'كم غير المدفوع': `إجمالي غير المدفوع: ${formatCurrency(unpaidTotal)}`,
+  1478→      'كم عدد الموظفين': `عدد الأطباء المشاركين: ${doctors.length}`,
+  1479→    }
+  1480→    if (navTarget) {
+  1481→      setActiveTab(navTarget.tab)
+  1482→      if (navTarget.subTab) setMoreSubTab(navTarget.subTab)
+  1483→      if (navTarget.action === 'addPatient') setShowAddPatient(true)
+  1484→      setAiChatOpen(false)
+  1485→      setAiMessages(prev => [...prev, { role: 'assistant', content: `✅ تم الانتقال إلى ${lowerMsg}` }])
+  1486→      setAiLoading(false)
+  1487→      return
+  1488→    }
+  1489→    if (dataQuestions[lowerMsg]) {
+  1490→      setAiMessages(prev => [...prev, { role: 'assistant', content: dataQuestions[lowerMsg] }])
+  1491→      setAiLoading(false)
+  1492→      return
+  1493→    }
+  1494→    try { const res = await apiFetch<{message: string}>('/ai/chat', { method: 'POST', body: JSON.stringify({ messages: [...aiMessages, { role: 'user', content: msg }] }) }); setAiMessages(prev => [...prev, { role: 'assistant', content: res.message || 'عذراً، لم أتمكن من الرد.' }]) } catch { setAiMessages(prev => [...prev, { role: 'assistant', content: 'عذراً، حدث خطأ.' }]) }
+  1495→    setAiLoading(false)
+  1496→  }
+  1497→
+  1498→  // ─── Backup Functions ─────────────────────────────────────────────────
+  1499→  const createBackup = async () => { try { await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) }); setLastBackup(new Date().toISOString()); toast.success('تم إنشاء نسخة احتياطية'); loadAllData() } catch { toast.error('فشل إنشاء النسخة') } }
+  1500→  const exportBackup = async (format: string) => {
+  1501→    try {
+  1502→      if (format === 'full') {
+  1503→        // Full backup: download all data from the server as a complete JSON file
+  1504→        const res = await apiFetch<any>('/backups?limit=1')
+  1505→        // Create a fresh full backup first
+  1506→        await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) })
+  1507→        // Get the latest backup with full data
+  1508→        const backupsRes = await apiFetch<any>('/backups?limit=1')
+  1509→        const latestBackup = backupsRes?.backups?.[0]
+  1510→        if (latestBackup) {
+  1511→          // Fetch the backup with its data
+  1512→          const backupDetail = await apiFetch<any>(`/backups/${latestBackup.id}`)
+  1513→          const backupData = backupDetail?.backup || backupDetail
+  1514→          if (backupData?.data) {
+  1515→            const content = typeof backupData.data === 'string' ? backupData.data : JSON.stringify(backupData.data, null, 2)
+  1516→            const blob = new Blob([content], { type: 'application/json' })
+  1517→            const url = URL.createObjectURL(blob)
+  1518→            const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-full-backup-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+  1519→            toast.success('تم تصدير نسخة احتياطية كاملة ✓')
+  1520→            return
+  1521→          }
+  1522→        }
+  1523→        // Fallback: export from local state
+  1524→        const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, laserSettings, inventoryItems, medications, reminders, notes, alerts, followUpRecords, doctors, exportDate: new Date().toISOString(), type: 'full-backup' }
+  1525→        const content = JSON.stringify(data, null, 2)
+  1526→        const blob = new Blob([content], { type: 'application/json' })
+  1527→        const url = URL.createObjectURL(blob)
+  1528→        const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-full-backup-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+  1529→        toast.success('تم تصدير نسخة احتياطية كاملة ✓')
+  1530→      } else {
+  1531→        const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, inventoryItems, medications, reminders, notes, exportDate: new Date().toISOString() }
+  1532→        let content: string; let filename: string; let mimeType: string
+  1533→        if (format === 'csv') { const headers = Object.keys(patients[0] || {}).join(','); const rows = patients.map(p => Object.values(p).join(',')).join('\n'); content = headers + '\n' + rows; filename = `elmoghazi-${todayStr}.csv`; mimeType = 'text/csv' }
+  1534→        else { content = JSON.stringify(data, null, 2); filename = `elmoghazi-${todayStr}.json`; mimeType = 'application/json' }
+  1535→        const blob = new Blob([content], { type: mimeType }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`تم تصدير النسخة ${format.toUpperCase()}`)
+  1536→      }
+  1537→    } catch { toast.error('فشل التصدير') }
+  1538→  }
+  1539→  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  1540→    const file = e.target.files?.[0]; if (!file) return
+  1541→    try {
+  1542→      const text = await file.text()
+  1543→      if (file.name.endsWith('.json')) {
+  1544→        const data = JSON.parse(text)
+  1545→        // Check if this is a full backup (has data property from server backup)
+  1546→        const backupData = data?.data || data
+  1547→        if (backupData?.patients && (backupData?.visits || backupData?.transactions)) {
+  1548→          // Full backup restore via API
+  1549→          setRestoreConfirmOpen(true)
+  1550→          setPendingRestoreData(backupData)
+  1551→        } else if (data?.patients) {
+  1552→          // Simple patient import
+  1553→          for (const p of data.patients) await addItem('/patients', p, setPatients)
+  1554→          toast.success(`تم استيراد ${data.patients.length} مريض`)
+  1555→        } else {
+  1556→          toast.error('صيغة الملف غير مدعومة')
+  1557→        }
+  1558→      } else { toast.error('صيغة غير مدعومة') }
+  1559→    } catch { toast.error('فشل الاستيراد') }
+  1560→    e.target.value = ''
+  1561→  }
+  1562→
+  1563→  // ─── Handle Smart Patient Registration ────────────────────────────────
+  1564→  const handleSmartPatientSubmit = async () => {
+  1565→    if (!newPatientName.trim()) return toast.error('الاسم مطلوب')
+  1566→    // Create patient
+  1567→    const patient = await addItem('/patients', { name: newPatientName, phone: newPatientPhone, age: parseInt(newPatientAge) || null, gender: newPatientDiagnosis || null, address: newPatientAddress, notes: newPatientNotes }, setPatients)
+  1568→    if (!patient) return
+  1569→
+  1570→    const patientId = patient.id
+  1571→    // Use custom date if provided, otherwise use now (Cairo timezone)
+  1572→    // Use explicit Cairo timezone offset (+02:00) so custom dates map to the correct UTC value
+  1573→    // e.g. '2026-06-02T00:00:00+02:00' → '2026-06-01T22:00:00.000Z' which getLocalDateStr converts back to '2026-06-02'
+  1574→    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00+02:00').toISOString() : new Date().toISOString()
+  1575→    const vPrice = parseFloat(visitPrice) || 0
+  1576→    const sPrice = parseFloat(customServicePrice) || 0
+  1577→
+  1578→    // Determine visit and session needs based on selected type (including combos)
+  1579→    const needsVisit = ['checkup', 'revisit', 'checkup_session', 'revisit_session'].includes(selectedVisitType)
+  1580→    const needsSession = ['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType)
+  1581→    const visitType = selectedVisitType === 'checkup_session' ? 'checkup' : selectedVisitType === 'revisit_session' ? 'revisit' : selectedVisitType
+  1582→    const visitCategory = visitType === 'checkup' ? 'كشف' : 'إعادة'
+  1583→
+  1584→    // Create visit if needed + financial transaction for كشف/إعادة
+  1585→    if (needsVisit && (visitType === 'checkup' || visitType === 'revisit')) {
+  1586→      await addItem('/visits', { patientId, type: visitType, date: customDate }, setVisits)
+  1587→      // Auto-create income transaction for كشف/إعادة
+  1588→      if (vPrice > 0) {
+  1589→        await addItem('/finance/transactions', { type: 'income', category: visitCategory, amount: vPrice, description: `${visitCategory} - ${newPatientName}`, date: customDate }, setTransactions)
+  1590→      }
+  1591→    }
+  1592→
+  1593→    // Create sessions for selected services - use custom price entered by user
+  1594→    if (needsSession && selectedServiceIds.length > 0) {
+  1595→      for (const serviceId of selectedServiceIds) {
+  1596→        await addItem('/sessions', { patientId, serviceId, status: 'completed', price: sPrice, paid: true, date: customDate }, setSessions)
+  1597→      }
+  1598→      // Auto-create income transaction for sessions
+  1599→      if (sPrice > 0) {
+  1600→        const svcNames = selectedServiceIds.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(', ')
+  1601→        await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcNames || 'جلسة'} - ${newPatientName}`, date: customDate }, setTransactions)
+  1602→      }
+  1603→    }
+  1604→
+  1605→    // Reset form
+  1606→    setNewPatientName(''); setNewPatientPhone(''); setNewPatientAddress(''); setNewPatientAge(''); setNewPatientDiagnosis(''); setNewPatientNotes(''); setSelectedVisitType(''); setSelectedServiceIds([]); setCustomServicePrice(''); setVisitPrice(''); setNewPatientDate(''); setShowAddPatient(false)
+  1607→    toast.success(`تم تسجيل المريض ${newPatientName} بنجاح`)
+  1608→  }
+  1609→
+  1610→  // Services grouped by category for smart form (must be before early return - Rules of Hooks)
+  1611→  const servicesByCategory = useMemo(() => {
+  1612→    const cats: Record<string, Service[]> = {}
+  1613→    services.filter(s => s.active).forEach(s => { const cat = s.category || 'عام'; if (!cats[cat]) cats[cat] = []; cats[cat].push(s) })
+  1614→    return cats
+  1615→  }, [services])
+  1616→
+  1617→  // Selected follow-up record (component-level so dialogs can access it)
+  1618→  const selectedFU = useMemo(() => followUpRecords.find(f => f.id === selectedFollowUpId), [followUpRecords, selectedFollowUpId])
+  1619→
+  1620→  // ─── Quick Notes helper - Professional Animated ────────────────────
+  1621→  const renderQuickNotes = (section: string) => {
+  1622→    const sectionNotesList = notes.filter(n => n.section === section)
+  1623→    const noteColors = [
+  1624→      'from-rose-100 to-pink-100 dark:from-rose-900/20 dark:to-pink-900/20 border-rose-300 dark:border-rose-700',
+  1625→      'from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-300 dark:border-blue-700',
+  1626→      'from-emerald-100 to-teal-100 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-300 dark:border-emerald-700',
+  1627→      'from-amber-100 to-yellow-100 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-300 dark:border-amber-700',
+  1628→      'from-violet-100 to-purple-100 dark:from-violet-900/20 dark:to-purple-900/20 border-violet-300 dark:border-violet-700',
+  1629→      'from-cyan-100 to-sky-100 dark:from-cyan-900/20 dark:to-sky-900/20 border-cyan-300 dark:border-cyan-700',
+  1630→    ]
+  1631→    const noteEmojis = ['📝', '💡', '📌', '🔔', '⭐', '💬']
+  1632→    return (
+  1633→      <Card className="card-luxury mt-4 border-2 border-indigo-200 dark:border-indigo-800" key={`notes-${section}`}>
+  1634→        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}><FileText size={14} className="text-indigo-500" /></motion.div> ملاحظات محترفة</CardTitle></CardHeader>
+  1635→        <CardContent className="space-y-2">
+  1636→          <div className="flex gap-2">
+  1637→            <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-9 text-sm border-2 border-indigo-200 dark:border-indigo-800 focus:border-indigo-400" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }} />
+  1638→            <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-3 py-1.5 rounded-xl bg-gradient-to-l from-indigo-500 to-violet-500 text-white text-sm font-bold shadow-md" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: new Date().toISOString() }, setNotes); setQuickNote('') } }}><Plus size={16} /></motion.button>
+  1639→          </div>
+  1640→          <div className="space-y-1.5">
+  1641→          {sectionNotesList.slice(0, 8).map((n, i) => (
+  1642→            <motion.div key={n.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={cn('flex items-start gap-2 p-2.5 rounded-xl border bg-gradient-to-l transition-all hover:shadow-md', noteColors[i % noteColors.length])}>
+  1643→              <motion.span animate={{ y: [0, -2, 0] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }} className="text-sm">{noteEmojis[i % noteEmojis.length]}</motion.span>
+  1644→              <p className="flex-1 text-xs font-medium">{n.content}</p>
+  1645→              <span className="text-[9px] text-muted-foreground whitespace-nowrap">{formatDate(n.createdAt)}</span>
+  1646→              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={10} className="text-red-400" /></Button>
+  1647→            </motion.div>
+  1648→          ))}
+  1649→          </div>
+  1650→        </CardContent>
+  1651→      </Card>
+  1652→    )
+  1653→  }
+  1654→
+  1655→  // ─── Role-based access control ────────────────────────────────────────
+  1656→  const isDoctor = userRole === 'doctor'
+  1657→  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
+  1658→  const handleTabSwitch = (tab: string) => {
+  1659→    if (!allowedTabs.includes(tab)) {
+  1660→      toast.error('هذا القسم غير متاح للسكرتيرة'); return
+  1661→    }
+  1662→    // Check section password protection
+  1663→    if (sectionPasswords[tab]) {
+  1664→      setPendingTab(tab)
+  1665→      setPasswordTarget(tab)
+  1666→      setPasswordInput('')
+  1667→      setPasswordDialogOpen(true)
+  1668→      return
+  1669→    }
+  1670→    setActiveTab(tab)
+  1671→    if (tab === 'patients') setSelectedPatient(null)
+  1672→  }
+  1673→  const verifyPassword = () => {
+  1674→    const storedPassword = sectionPasswords[passwordTarget]
+  1675→    if (passwordInput === storedPassword) {
+  1676→      setPasswordDialogOpen(false)
+  1677→      setActiveTab(pendingTab)
+  1678→      if (pendingTab === 'patients') setSelectedPatient(null)
+  1679→      toast.success('تم التحقق بنجاح ✓')
+  1680→    } else {
+  1681→      toast.error('كلمة السر غير صحيحة')
+  1682→    }
+  1683→  }
+  1684→
+  1685→  // ─── Doctor financial calculations ────────────────────────────────────
+  1686→  const doctorEarnings = useMemo(() => {
+  1687→    return doctors.map(d => {
+  1688→      const checkupEarn = checkupRevenue * (d.checkupPercentage / 100)
+  1689→      const revisitEarn = revisitRevenue * (d.revisitPercentage / 100)
+  1690→      const laserEarn = sessionRevenue * (d.laserPercentage / 100)
+  1691→      const sessionEarn = sessionRevenue * (d.sessionPercentage / 100)
+  1692→      const total = checkupEarn + revisitEarn + laserEarn + sessionEarn + d.fixedAmount
+  1693→      return { ...d, checkupEarn, revisitEarn, laserEarn, sessionEarn, totalEarn: total }
+  1694→    })
+  1695→  }, [doctors, checkupRevenue, revisitRevenue, sessionRevenue])
+  1696→
+  1697→  // ─── Bottom Nav ───────────────────────────────────────────────────────
+  1698→  const allNavItems = [
+  1699→    { id: 'dashboard', label: 'الرئيسية', emoji: '🏠', icon: <LayoutDashboard size={20} />, activeColor: 'from-emerald-400 to-teal-500', activeShadow: 'shadow-emerald-500/40', labelColor: 'text-emerald-600 dark:text-emerald-400' },
+  1700→    { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} />, activeColor: 'from-blue-400 to-indigo-500', activeShadow: 'shadow-blue-500/40', labelColor: 'text-blue-600 dark:text-blue-400' },
+  1701→    { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} />, activeColor: 'from-cyan-400 to-violet-500', activeShadow: 'shadow-cyan-500/40', labelColor: 'text-cyan-600 dark:text-cyan-400' },
+  1702→    { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
+  1703→    { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
+  1704→  ]
+  1705→  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'laser'].includes(i.id))
+  1706→
+  1707→  // ─── LOGIN ────────────────────────────────────────────────────────────
+  1708→  if (!isAuthenticated) {
+  1709→    return (
+  1710→      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-950 relative overflow-hidden">
+  1711→        <div className="absolute inset-0 opacity-10"><div className="absolute top-20 right-20 w-72 h-72 bg-amber-400 rounded-full blur-3xl animate-float" /><div className="absolute bottom-20 left-20 w-96 h-96 bg-emerald-400 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} /></div>
+  1712→        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative z-10 w-full max-w-md mx-4">
+  1713→          <Card className="glass-heavy border-emerald-700/30 shadow-2xl">
+  1714→            <CardHeader className="text-center pb-2">
+  1715→              <div className="mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center mb-4 shadow-lg glow-emerald"><Stethoscope className="text-amber-300" size={48} /></div>
+  1716→              <h1 className="text-3xl font-bold text-gradient-luxury">Elmoghazi Clinic</h1>
+  1717→              <p className="text-emerald-200/80 mt-1">عيادة المغازى للجلدية والتجميل</p>
+  1718→            </CardHeader>
+  1719→            <CardContent className="space-y-4 pt-4">
+  1720→              {!loginRole ? (
+  1721→                <div className="space-y-3">
+  1722→                  <p className="text-emerald-200 text-center text-sm font-bold mb-2">اختر دورك للدخول</p>
+  1723→                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('doctor')} className="w-full p-4 rounded-2xl border-2 border-amber-400/30 bg-gradient-to-l from-amber-900/30 to-emerald-900/30 hover:from-amber-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
+  1724→                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg"><Stethoscope className="text-white" size={28} /></div>
+  1725→                    <div className="text-right"><p className="text-white font-bold text-lg">طبيب</p><p className="text-emerald-200/60 text-xs">دخول كامل لجميع الأقسام</p></div>
+  1726→                  </motion.button>
+  1727→                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
+  1728→                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg"><Users size={28} className="text-white" /></div>
+  1729→                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والليزر فقط</p></div>
+  1730→                  </motion.button>
+  1731→                </div>
+  1732→              ) : (
+  1733→                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+  1734→                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-900/30 border border-emerald-600/20">
+  1735→                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', loginRole === 'doctor' ? 'bg-gradient-to-br from-amber-500 to-amber-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-700')}>
+  1736→                      {loginRole === 'doctor' ? <Stethoscope className="text-white" size={18} /> : <Users size={18} className="text-white" />}
+  1737→                    </div>
+  1738→                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والليزر فقط'}</p></div>
+  1739→                    <button onClick={() => { setLoginRole(null); setLoginPassword('') }} className="mr-auto text-emerald-200/60 hover:text-white text-xs">تغيير</button>
+  1740→                  </div>
+  1741→                  <div><Label className="text-emerald-200">كلمة المرور</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="أدخل كلمة السر..." className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12 text-center text-lg" onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus /></div>
+  1742→                </motion.div>
+  1743→              )}
+  1744→            </CardContent>
+  1745→            {loginRole && (
+  1746→              <CardFooter><Button onClick={handleLogin} disabled={loginLoading || !loginPassword} className="w-full bg-gradient-to-l from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-6 text-lg btn-luxury rounded-xl shadow-lg">{loginLoading ? <RefreshCw className="animate-spin ml-2" size={20} /> : <Sparkles className="ml-2" size={20} />}دخول</Button></CardFooter>
+  1747→            )}
+  1748→          </Card>
+  1749→        </motion.div>
+  1750→      </div>
+  1751→    )
+  1752→  }
+  1753→
+  1754→  return (
+  1755→    <div className="min-h-screen flex flex-col bg-background">
+  1756→      {/* ─── Top Bar ──────────────────────────────────────────────────── */}
+  1757→      <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm flex items-center gap-3 px-4 sticky top-0 z-30">
+  1758→        <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center"><Stethoscope className="text-amber-300" size={16} /></div><span className="font-bold text-sm text-gradient-luxury hidden sm:block">Elmoghazi</span></div>
+  1759→        <button onClick={() => setSmartSearchOpen(true)} className="flex-1 max-w-md flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground text-sm hover:bg-muted transition-colors cursor-pointer"><Search size={16} /><span>بحث ذكي...</span><kbd className="mr-auto text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border hidden sm:block">Ctrl+K</kbd></button>
+  1760→        <div className="flex items-center gap-1 mr-auto">
+  1761→          <Button variant="ghost" size="icon" className="h-9 w-9 relative" onClick={() => setAiChatOpen(true)}><Bot size={16} /></Button>
+  1762→          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button>
+  1763→          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={loadAllData}><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /></Button>
+  1764→          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9"><Avatar className="h-8 w-8 border-2 border-primary/30"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{user?.name?.charAt(0) || 'د'}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => handleTabSwitch('settings')}><Settings size={14} className="ml-2" /> الإعدادات</DropdownMenuItem><DropdownMenuItem onClick={() => { logout(); toast.success('تم تسجيل الخروج') }} className="text-red-500"><LogOut size={14} className="ml-2" /> خروج</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+  1765→        </div>
+  1766→      </header>
+  1767→
+  1768→      {/* ─── Content ────────────────────────────────────────────────────── */}
+  1769→      <main className="flex-1 overflow-y-auto pb-24 px-4 md:px-6 pt-4">
+  1770→        <AnimatePresence mode="wait">
+  1771→          <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
+  1772→
+  1773→            {/* ═══ DASHBOARD ═══ */}
+  1774→            {activeTab === 'dashboard' && (
+  1775→              <div className="space-y-5">
+  1776→                <div className="section-header-animated rounded-2xl bg-emerald-50 dark:bg-emerald-950/30">
+  1777→                  <div className="relative z-10 flex items-center justify-between">
+  1778→                    <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🏥</motion.div><div><h1 className="text-2xl font-bold">لوحة التحكم</h1><p className="text-muted-foreground text-sm">مرحباً، {safeName(user?.name)}</p></div></div>
+  1779→                    <Badge className="badge-gold text-sm">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })}</Badge>
+  1780→                  </div>
+  1781→                </div>
+  1782→                {/* Quick Actions - AT TOP */}
+  1783→                <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800"><CardHeader className="pb-2"><CardTitle className="text-lg flex items-center gap-2"><motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}>⚡</motion.span> إجراءات سريعة</CardTitle></CardHeader><CardContent><div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+  1784→                  {[
+  1785→                    { label: 'مريض جديد', icon: <UserPlus size={22} />, color: 'bg-gradient-to-br from-blue-500 to-blue-700', action: () => setShowAddPatient(true) },
+  1786→                    { label: 'سجل ليزر', icon: <Zap size={22} />, color: 'bg-gradient-to-br from-cyan-500 to-cyan-700', action: () => setShowAddLaserRecord(true) },
+  1787→                    { label: 'معاملة', icon: <DollarSign size={22} />, color: 'bg-gradient-to-br from-amber-500 to-amber-700', action: () => setShowAddTransaction(true) },
+  1788→                    { label: 'موعد', icon: <Calendar size={22} />, color: 'bg-gradient-to-br from-purple-500 to-purple-700', action: () => setShowAddAppointment(true) },
+  1789→                    { label: 'مساعد ذكي', icon: <Bot size={22} />, color: 'bg-gradient-to-br from-emerald-500 to-emerald-700', action: () => setAiChatOpen(true) },
+  1790→                    { label: 'بحث ذكي', icon: <Search size={22} />, color: 'bg-gradient-to-br from-indigo-500 to-indigo-700', action: () => setSmartSearchOpen(true) },
+  1791→                  ].map((a, i) => (
+  1792→                    <motion.button key={i} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08, y: -2 }} onClick={a.action} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-muted/50 transition-all group"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4, delay: i * 0.2 }} className={cn('p-3.5 rounded-2xl text-white shadow-xl group-hover:shadow-2xl transition-shadow', a.color)}>{a.icon}</motion.div><span className="text-[11px] font-bold">{a.label}</span></motion.button>
+  1793→                  ))}
+  1794→                </div></CardContent></Card>
+  1795→                <div className="grid grid-cols-2 gap-4">
+  1796→                  {[
+  1797→                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => p.createdAt && getLocalDateStr(p.createdAt) === todayStr).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
+  1798→                    { icon: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف`, gradient: 'from-emerald-500 to-emerald-700', anim: { rotate: [0, 10, -10, 0] } },
+  1799→                    { icon: '💰', label: 'إيراد اليوم', value: formatCurrency(todayIncome), sub: `${transactions.filter(t => t.type === 'income').length} معاملة`, gradient: 'from-amber-500 to-amber-700', anim: { scale: [1, 1.2, 1] } },
+  1800→                    { icon: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${appointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-purple-500 to-purple-700', anim: { y: [0, -5, 0] } },
+  1801→                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => s.date && getLocalDateStr(s.date) === todayStr).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
+  1802→                    { icon: '💎', label: 'سجلات الليزر', value: laserRecords.filter(r => r.status === 'active').length, sub: `${new Set(laserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-700', anim: { scale: [1, 1.1, 1] } },
+  1803→                  ].map((s, i) => (
+  1804→                    <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, type: 'spring' }} className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br', s.gradient)}>
+  1805→                      <motion.div animate={s.anim} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-5xl mb-2 drop-shadow-lg">{s.icon}</motion.div>
+  1806→                      <p className="text-sm font-medium text-white/80">{s.label}</p>
+  1807→                      <p className="text-2xl font-black mt-1">{s.value}</p>
+  1808→                      {s.sub && <p className="text-xs text-white/60 mt-1">{s.sub}</p>}
+  1809→                      <div className="absolute top-0 left-0 w-20 h-20 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+  1810→                    </motion.div>
+  1811→                  ))}
+  1812→                </div>
+  1813→                {/* ═══ End-of-Day Summary ═══ */}
+  1814→                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+  1815→                  <Card className="card-luxury border-2 border-amber-300 dark:border-amber-700 overflow-hidden">
+  1816→                    <div className="absolute inset-0 bg-gradient-to-l from-amber-50/50 via-orange-50/30 to-yellow-50/50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-yellow-950/20 pointer-events-none" />
+  1817→                    <CardHeader className="pb-2 relative z-10">
+  1818→                      <CardTitle className="text-lg flex items-center justify-between">
+  1819→                        <span className="flex items-center gap-2">
+  1820→                          <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>📊</motion.span>
+  1821→                          ملخص نهاية اليوم
+  1822→                        </span>
+  1823→                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-shadow">
+  1824→                          <Download size={14} /> طباعة الملخص
+  1825→                        </motion.button>
+  1826→                      </CardTitle>
+  1827→                    </CardHeader>
+  1828→                    <CardContent className="relative z-10">
+  1829→                      {(() => {
+  1830→                        const todayCheckupRev = transactions.filter(t => t.type === 'income' && t.category === 'كشف' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
+  1831→                        const todayRevisitRev = transactions.filter(t => t.type === 'income' && t.category === 'إعادة' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
+  1832→                        const todaySessionRev = transactions.filter(t => t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة') && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
+  1833→                        const todayUnpaid = sessions.filter(s => !s.paid && s.date && getLocalDateStr(s.date) === todayStr).reduce((s, ses) => s + ses.price, 0)
+  1834→                        const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && s.date && getLocalDateStr(s.date) === todayStr).length
+  1835→                        return (
+  1836→                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1837→                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg">
+  1838→                              <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">👥</motion.div>
+  1839→                              <p className="text-xs text-white/70">إجمالي المرضى اليوم</p>
+  1840→                              <p className="text-2xl font-black">{todayVisits.length}</p>
+  1841→                            </motion.div>
+  1842→                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg">
+  1843→                              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }} className="text-2xl mb-1">💰</motion.div>
+  1844→                              <p className="text-xs text-white/70">إجمالي الإيرادات</p>
+  1845→                              <p className="text-xl font-black">{formatCurrency(todayIncome)}</p>
+  1846→                              <div className="mt-1.5 space-y-0.5">
+  1847→                                <p className="text-[9px] text-white/60">🩺 كشف: {formatCurrency(todayCheckupRev)}</p>
+  1848→                                <p className="text-[9px] text-white/60">🔄 إعادة: {formatCurrency(todayRevisitRev)}</p>
+  1849→                                <p className="text-[9px] text-white/60">⚡ جلسات: {formatCurrency(todaySessionRev)}</p>
+  1850→                              </div>
+  1851→                            </motion.div>
+  1852→                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-lg">
+  1853→                              <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-2xl mb-1">⚡</motion.div>
+  1854→                              <p className="text-xs text-white/70">جلسات مكتملة</p>
+  1855→                              <p className="text-2xl font-black">{todaySessionsCompleted}</p>
+  1856→                            </motion.div>
+  1857→                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg">
+  1858→                              <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-2xl mb-1">⚠️</motion.div>
+  1859→                              <p className="text-xs text-white/70">مبالغ غير مدفوعة</p>
+  1860→                              <p className="text-xl font-black">{formatCurrency(todayUnpaid)}</p>
+  1861→                            </motion.div>
+  1862→                          </div>
+  1863→                        )
+  1864→                      })()}
+  1865→                    </CardContent>
+  1866→                  </Card>
+  1867→                </motion.div>
+  1868→
+  1869→                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  1870→                  <Card className="card-luxury lg:col-span-2"><CardHeader><CardTitle className="text-lg">الإيرادات والمصروفات</CardTitle></CardHeader><CardContent><ResponsiveContainer width="100%" height={260}><BarChart data={revenueChartData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} /><YAxis stroke="var(--muted-foreground)" fontSize={12} /><RechartsTooltip /><Bar dataKey="إيراد" fill="#047857" radius={[4,4,0,0]} /><Bar dataKey="مصروف" fill="#D4A843" radius={[4,4,0,0]} /></BarChart></ResponsiveContainer></CardContent></Card>
+  1871→                  <Card className="card-luxury"><CardHeader><CardTitle className="text-lg">توزيع المرضى</CardTitle></CardHeader><CardContent className="flex items-center justify-center"><ResponsiveContainer width="100%" height={220}><PieChart><Pie data={genderData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{genderData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer></CardContent></Card>
+  1872→                </div>
+  1873→                {renderQuickNotes('dashboard')}
+  1874→              </div>
+  1875→            )}
+  1876→
+  1877→            {/* ═══ PATIENTS ═══ */}
+  1878→            {activeTab === 'patients' && !selectedPatient && (
+  1879→              <div className="space-y-5">
+  1880→                <div className="section-header-animated rounded-2xl bg-gradient-to-l from-blue-50 via-indigo-50 to-violet-50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-violet-950/30 relative overflow-hidden">
+  1881→                  {/* Floating decorative dots */}
+  1882→                  <div className="float-dot w-3 h-3 bg-blue-400 dark:bg-blue-500 top-3 right-10" style={{animationDelay: '0s'}} />
+  1883→                  <div className="float-dot w-2 h-2 bg-indigo-400 dark:bg-indigo-500 top-8 right-24" style={{animationDelay: '1s'}} />
+  1884→                  <div className="float-dot w-4 h-4 bg-violet-300 dark:bg-violet-600 bottom-3 left-16" style={{animationDelay: '2s'}} />
+  1885→                  <div className="float-dot w-2 h-2 bg-pink-400 dark:bg-pink-500 bottom-6 left-8" style={{animationDelay: '0.5s'}} />
+  1886→                  <div className="relative z-10 flex items-center justify-between">
+  1887→                    <div className="flex items-center gap-4">
+  1888→                      <div className="header-3d-icon">
+  1889→                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/30" style={{transformStyle: 'preserve-3d'}}>
+  1890→                          <Users size={28} className="text-white" />
+  1891→                        </div>
+  1892→                      </div>
+  1893→                      <div>
+  1894→                        <h1 className="text-2xl font-bold">إدارة المرضى</h1>
+  1895→                        <p className="text-sm"><span className="patient-count-animated font-black text-lg">{patients.length}</span> <span className="text-muted-foreground">مريض</span></p>
+  1896→                      </div>
+  1897→                    </div>
+  1898→                    <Button className="btn-luxury bg-gradient-to-l from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-shadow" onClick={() => setShowAddPatient(true)}>
+  1899→                      <UserPlus size={16} className="ml-2" /> تسجيل مريض
+  1900→                    </Button>
+  1901→                  </div>
+  1902→                </div>
+  1903→                {/* Search + Filter Buttons */}
+  1904→                <div className="space-y-2">
+  1905→                  <div className="relative"><Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} /><Input placeholder="بحث ذكي... الاسم أو الهاتف أو رقم الملف" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 input-luxury rounded-xl h-12" /></div>
+  1906→                  {searchQuery && debouncedSearchQuery !== searchQuery && <p className="text-[10px] text-muted-foreground animate-pulse">جاري البحث...</p>}
+  1907→                  {debouncedSearchQuery && filteredPatients.length === 0 && patients.length > 0 && (
+  1908→                    <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+  1909→                      <Search size={14} className="text-amber-500" />
+  1910→                      <p className="text-[10px] text-amber-700 dark:text-amber-400">لا توجد نتائج لـ &quot;{debouncedSearchQuery}&quot; — يتم البحث بتصحيح تلقائي</p>
+  1911→                    </div>
+  1912→                  )}
+  1913→                  {debouncedSearchQuery && filteredPatients.length > 0 && filteredPatients.length < patients.length && (
+  1914→                    <p className="text-[10px] text-muted-foreground">عُثر على {filteredPatients.length} نتيجة</p>
+  1915→                  )}
+  1916→                  <div className="flex items-center gap-2">
+  1917→                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</motion.button>
+  1918→                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
+  1919→                    {patientFilter !== 'all' && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPatientFilter('all')}>إلغاء الفلتر</Button>}
+  1920→                  </div>
+  1921→                </div>
+  1922→                <div className="space-y-2">
+  1923→                  {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : 'لا توجد نتائج'}</p></Card>}
+  1924→                  {filteredPatients.slice(0, patientDisplayCount).map(p => {
+  1925→                    const stripeGradient = p.gender === 'female' ? 'bg-gradient-to-b from-pink-400 to-rose-500' : p.gender === 'male' ? 'bg-gradient-to-b from-blue-400 to-indigo-500' : 'bg-gradient-to-b from-gray-400 to-gray-500'
+  1926→                    return (
+  1927→                      <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="patient-card-3d rounded-2xl border border-border bg-card text-card-foreground p-4 cursor-pointer relative" onClick={() => setSelectedPatient(p)}>
+  1928→                        <div className={`patient-stripe ${stripeGradient}`} />
+  1929→                        <div className="flex items-center gap-3">
+  1930→                          <Avatar className="h-12 w-12 border-2 shadow-md" style={{ borderColor: p.colorTag || (p.gender === 'female' ? '#ec4899' : '#3b82f6') }}><AvatarFallback className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 font-bold text-lg">{p.name?.charAt(0)}</AvatarFallback></Avatar>
+  1931→                          <div className="flex-1 min-w-0">
+  1932→                            <div className="flex items-center gap-2">
+  1933→                              <p className="font-bold truncate">{safeName(p.name)}</p>
+  1934→                              {p.starred && <span className="badge-glow text-amber-500 text-sm">⭐</span>}
+  1935→                              {p.improved && <span className="badge-glow text-pink-500 text-sm" style={{animationDelay: '0.5s'}}>💗</span>}
+  1936→                            </div>
+  1937→                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+  1938→                              <span className="flex items-center gap-1 icon-3d px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px]"><Hash size={9} />{p.fileNumber}</span>
+  1939→                              {p.phone && <span className="flex items-center gap-1 icon-3d px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[10px]"><Phone size={9} />{p.phone}</span>}
+  1940→                              {p.age && <span className="flex items-center gap-1 icon-3d px-1.5 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 text-[10px]">🎂 {p.age} سنة</span>}
+  1941→                            </div>
+  1942→                          </div>
+  1943→                          {p.gender && <Badge className={cn('text-[10px] font-bold', p.gender === 'female' ? 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 dark:from-pink-900/30 dark:to-rose-900/30 dark:text-pink-400' : 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400')}>{p.gender === 'female' ? '♀' : '♂'} {p.gender}</Badge>}
+  1944→                        </div>
+  1945→                      </motion.div>
+  1946→                    )
+  1947→                  })}
+  1948→                </div>
+  1949→                {filteredPatients.length > patientDisplayCount && (
+  1950→                  <Button variant="outline" className="w-full rounded-xl text-sm font-bold" onClick={() => setPatientDisplayCount(c => c + 50)}>
+  1951→                    عرض المزيد ({filteredPatients.length - patientDisplayCount} متبقي)
+  1952→                  </Button>
+  1953→                )}
+  1954→                {renderQuickNotes('patients')}
+  1955→              </div>
+  1956→            )}
+  1957→
+  1958→            {/* ═══ PATIENT DETAIL - DEDICATED PROFILE ═══ */}
+  1959→            {activeTab === 'patients' && selectedPatient && (
+  1960→              <div className="space-y-4">
+  1961→                <motion.button initial={{ x: -10 }} animate={{ x: 0 }} onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 text-primary text-sm font-bold hover:underline"><ChevronDown size={16} className="rotate-90" /> العودة للقائمة</motion.button>
+  1962→
+  1963→                {/* ═══ PATIENT HEADER - Premium Design ═══ */}
+  1964→                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950/40 dark:via-blue-950/30 dark:to-indigo-950/40 border border-blue-200/60 dark:border-blue-800/60 shadow-lg">
+  1965→                  <div className="relative z-10 p-5">
+  1966→                    <div className="flex items-start gap-4">
+  1967→                      <div className="relative">
+  1968→                        <Avatar className="h-20 w-20 border-4 shadow-lg" style={{ borderColor: selectedPatient.colorTag || '#3b82f6' }}><AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-2xl font-bold">{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
+  1969→                        {selectedPatient.starred && <span className="absolute -top-1 -right-1 text-lg">⭐</span>}
+  1970→                        {selectedPatient.improved && <span className="absolute -bottom-1 -right-1 text-lg">💗</span>}
+  1971→                      </div>
+  1972→                      <div className="flex-1 min-w-0">
+  1973→                        <div className="flex items-center gap-3">
+  1974→                          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">{safeName(selectedPatient.name)}</h2>
+  1975→                          {/* Improvement Ring */}
+  1976→                          {(() => {
+  1977→                            const score = selectedPatient.improvementScore || 0
+  1978→                            const colors = getImprovementColor(score)
+  1979→                            const history = getImprovementHistory(selectedPatient.improvementHistory)
+  1980→                            const prevScore = history.length >= 2 ? history[history.length - 2]?.score : undefined
+  1981→                            const trend = prevScore !== undefined ? (score > prevScore ? 'up' : score < prevScore ? 'down' : 'same') : undefined
+  1982→                            const radius = 28
+  1983→                            const circumference = 2 * Math.PI * radius
+  1984→                            const progress = score > 0 ? (score / 10) * circumference : 0
+  1985→                            return (
+  1986→                              <div className="improvement-ring" style={{ width: 68, height: 68 }} onClick={() => { setImprovementSliderValue(score || 5); setImprovementNote(''); setShowImprovementSlider(true) }}>
+  1987→                                <svg width="68" height="68" viewBox="0 0 68 68">
+  1988→                                  <circle cx="34" cy="34" r={radius} fill="none" stroke="var(--muted)" strokeWidth="5" />
+  1989→                                  {score > 0 && <motion.circle cx="34" cy="34" r={radius} fill="none" stroke={colors.ring} strokeWidth="5" strokeLinecap="round" strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: circumference - progress }} transition={{ duration: 1, ease: 'easeOut' }} />}
+  1990→                                </svg>
+  1991→                                <div className="improvement-ring-label">
+  1992→                                  <span className="emoji">{score > 0 ? getImprovementEmoji(score) : '➕'}</span>
+  1993→                                  <span className="score text-sm" style={{ color: score > 0 ? colors.ring : 'var(--muted-foreground)' }}>{score > 0 ? score : '-'}</span>
+  1994→                                </div>
+  1995→                                {trend && (
+  1996→                                  <span className={cn('improvement-trend absolute -top-1 -left-1', trend === 'up' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : trend === 'down' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400')}>
+  1997→                                    {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
+  1998→                                  </span>
+  1999→                                )}
+  2000→                              </div>
+
+[showing lines 1-2000 of 6534; use offset=2001 with limit to continue reading]
