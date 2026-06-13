@@ -103,7 +103,16 @@ const getCairoDateParts = (date?: Date | string) => {
 }
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
-  if (!res.ok) { const e = await res.text().catch(() => ''); throw new Error(e || `Error ${res.status}`) }
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    try {
+      const errData = JSON.parse(text)
+      throw new Error(errData.error || errData.details || JSON.stringify(errData) || `Error ${res.status}`)
+    } catch (parseErr) {
+      if (parseErr instanceof Error && parseErr.message && !parseErr.message.includes('JSON')) throw parseErr
+      throw new Error(text || `Error ${res.status}`)
+    }
+  }
   if (res.status === 204) return undefined as T
   return res.json()
 }
@@ -379,14 +388,11 @@ export default function Home() {
   // Full restore from backup file — uses dedicated import endpoint
   const restoreFromBackup = async (backupData: any) => {
     try {
-      const response = await apiFetch('/backups/import', {
+      // apiFetch already parses JSON and throws on non-ok responses
+      const result: any = await apiFetch('/backups/import', {
         method: 'POST',
         body: JSON.stringify(backupData),
       })
-      const result = await response.json()
-      if (!response.ok) {
-        throw new Error(result.error || result.details || 'فشل الاستعادة')
-      }
       await loadAllData()
       setRestoreConfirmOpen(false)
       setPendingRestoreData(null)
