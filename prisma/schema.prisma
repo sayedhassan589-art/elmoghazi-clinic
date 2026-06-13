@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "cockroachdb"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -21,6 +21,7 @@ model User {
   sessions     Session[]
   notes        Note[]
   auditLogs    AuditLog[]
+  prescriptions Prescription[]
 }
 
 model Patient {
@@ -396,6 +397,7 @@ model Prescription {
   updatedAt   DateTime @updatedAt
 
   patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?             @relation(fields: [doctorId], references: [id])
   items       PrescriptionItem[]
 }
 
