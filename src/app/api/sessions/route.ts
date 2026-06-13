@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
         doctorId: body.doctorId || null,
         status: body.status || 'scheduled',
         notes: body.notes || null,
-        date: body.date ? new Date(body.date) : new Date(),
+        date: body.date ? toCairoDate(body.date) : toCairoDate(),
         price: body.price || 0,
         paid: body.paid || false,
       },

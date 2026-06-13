@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -18,7 +19,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         doctorId: body.doctorId ?? undefined,
         status: body.status ?? undefined,
         notes: body.notes ?? undefined,
-        date: body.date ? new Date(body.date) : undefined,
+        date: body.date ? toCairoDate(body.date) : undefined,
         price: body.price ?? undefined,
         paid: body.paid ?? undefined,
       },

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { cairoDayRange, toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -17,10 +18,15 @@ export async function GET(request: Request) {
     if (type) where.type = type
     if (category) where.category = category
     if (startDate || endDate) {
-      const dateFilter: Record<string, Date> = {}
-      if (startDate) dateFilter.gte = new Date(startDate)
-      if (endDate) dateFilter.lte = new Date(endDate)
-      where.date = dateFilter
+      if (startDate && endDate && startDate === endDate) {
+        // Same day — use Cairo day range for accurate filtering
+        where.date = cairoDayRange(startDate)
+      } else {
+        const dateFilter: Record<string, Date> = {}
+        if (startDate) dateFilter.gte = cairoDayRange(startDate).gte
+        if (endDate) dateFilter.lte = cairoDayRange(endDate).lt
+        where.date = dateFilter
+      }
     }
 
     const [transactions, total] = await Promise.all([
@@ -57,7 +63,7 @@ export async function POST(request: Request) {
         category: body.category || 'clinic',
         amount: body.amount,
         description: body.description || null,
-        date: body.date ? new Date(body.date) : new Date(),
+        date: body.date ? toCairoDate(body.date) : toCairoDate(),
       },
     })
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { cairoDayRange, toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -17,15 +18,11 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {}
 
     if (date) {
-      const start = new Date(date)
-      start.setHours(0, 0, 0, 0)
-      const end = new Date(date)
-      end.setHours(23, 59, 59, 999)
-      where.date = { gte: start, lte: end }
+      where.date = cairoDayRange(date)
     } else if (startDate || endDate) {
       const dateFilter: Record<string, Date> = {}
-      if (startDate) dateFilter.gte = new Date(startDate)
-      if (endDate) dateFilter.lte = new Date(endDate)
+      if (startDate) dateFilter.gte = cairoDayRange(startDate).gte
+      if (endDate) dateFilter.lte = cairoDayRange(endDate).lt
       where.date = dateFilter
     }
 
@@ -67,7 +64,7 @@ export async function POST(request: Request) {
     const appointment = await db.appointment.create({
       data: {
         patientId: body.patientId || null,
-        date: new Date(body.date),
+        date: toCairoDate(body.date),
         duration: body.duration || 30,
         type: body.type || 'consultation',
         status: body.status || 'scheduled',

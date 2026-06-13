@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     const visitData: Record<string, unknown> = {
       followUpId: body.followUpId,
       visitNumber,
-      visitDate: body.visitDate ? new Date(body.visitDate) : new Date(),
+      visitDate: body.visitDate ? toCairoDate(body.visitDate) : toCairoDate(),
       type: body.type || 'followup',
       findings: body.findings || null,
       vitals: body.vitals || null,
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       instructions: body.instructions || null,
       paid: body.paid || false,
       price: body.price || 0,
-      nextVisitDate: body.nextVisitDate ? new Date(body.nextVisitDate) : null,
+      nextVisitDate: body.nextVisitDate ? toCairoDate(body.nextVisitDate) : null,
       status: body.status || 'completed',
       notes: body.notes || null,
     }
@@ -78,10 +79,10 @@ export async function POST(request: Request) {
 
     // Update follow-up record: lastVisitDate, nextVisitDate, sessionsUsed
     const updateData: Record<string, unknown> = {
-      lastVisitDate: new Date(),
+      lastVisitDate: toCairoDate(),
       sessionsUsed: record.sessionsUsed + 1,
     }
-    if (body.nextVisitDate) updateData.nextVisitDate = new Date(body.nextVisitDate)
+    if (body.nextVisitDate) updateData.nextVisitDate = toCairoDate(body.nextVisitDate)
 
     await db.followUpRecord.update({
       where: { id: body.followUpId },
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
               category: 'متابعة',
               amount: body.price,
               description: `زيارة متابعة #${visitNumber} - ${patientName} - ${record.condition}`,
-              date: body.visitDate ? new Date(body.visitDate) : new Date(),
+              date: body.visitDate ? toCairoDate(body.visitDate) : toCairoDate(),
             },
           })
         } catch (e) { console.error('Failed to create visit transaction:', e) }

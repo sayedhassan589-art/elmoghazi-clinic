@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -54,8 +55,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         title: body.title ?? undefined,
         description: body.description ?? undefined,
         status: body.status ?? undefined,
-        startDate: body.startDate ? new Date(body.startDate) : undefined,
-        endDate: body.endDate ? new Date(body.endDate) : undefined,
+        startDate: body.startDate ? toCairoDate(body.startDate) : undefined,
+        endDate: body.endDate ? toCairoDate(body.endDate) : undefined,
       },
       include: {
         patient: { select: { id: true, name: true, fileNumber: true } },

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
         type: body.type || 'consultation',
         diagnosis: body.diagnosis || null,
         notes: body.notes || null,
-        date: body.date ? new Date(body.date) : new Date(),
+        date: body.date ? toCairoDate(body.date) : toCairoDate(),
       },
       include: {
         patient: { select: { id: true, name: true, fileNumber: true } },

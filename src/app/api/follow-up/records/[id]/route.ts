@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -34,13 +35,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (body.status !== undefined) data.status = body.status
     if (body.frequency !== undefined) data.frequency = body.frequency
     if (body.customDays !== undefined) data.customDays = body.customDays || null
-    if (body.nextVisitDate !== undefined) data.nextVisitDate = body.nextVisitDate ? new Date(body.nextVisitDate) : null
-    if (body.lastVisitDate !== undefined) data.lastVisitDate = body.lastVisitDate ? new Date(body.lastVisitDate) : null
+    if (body.nextVisitDate !== undefined) data.nextVisitDate = body.nextVisitDate ? toCairoDate(body.nextVisitDate) : null
+    if (body.lastVisitDate !== undefined) data.lastVisitDate = body.lastVisitDate ? toCairoDate(body.lastVisitDate) : null
     if (body.hasSubscription !== undefined) data.hasSubscription = body.hasSubscription
     if (body.subscriptionType !== undefined) data.subscriptionType = body.subscriptionType || null
     if (body.subscriptionPrice !== undefined) data.subscriptionPrice = body.subscriptionPrice
-    if (body.subscriptionStart !== undefined) data.subscriptionStart = body.subscriptionStart ? new Date(body.subscriptionStart) : null
-    if (body.subscriptionEnd !== undefined) data.subscriptionEnd = body.subscriptionEnd ? new Date(body.subscriptionEnd) : null
+    if (body.subscriptionStart !== undefined) data.subscriptionStart = body.subscriptionStart ? toCairoDate(body.subscriptionStart) : null
+    if (body.subscriptionEnd !== undefined) data.subscriptionEnd = body.subscriptionEnd ? toCairoDate(body.subscriptionEnd) : null
     if (body.sessionsIncluded !== undefined) data.sessionsIncluded = body.sessionsIncluded
     if (body.sessionsUsed !== undefined) data.sessionsUsed = body.sessionsUsed
     if (body.diagnosis !== undefined) data.diagnosis = body.diagnosis || null

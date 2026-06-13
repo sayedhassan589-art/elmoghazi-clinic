@@ -1,14 +1,11 @@
 import { db } from '@/lib/db'
+import { cairoDayRange, cairoTodayStr } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-
-    const dateFilter = { gte: today, lt: tomorrow }
+    const todayStr = cairoTodayStr()
+    const dateFilter = cairoDayRange(todayStr)
 
     const [
       totalVisits,
@@ -40,7 +37,7 @@ export async function GET(request: Request) {
     const expense = totalExpense._sum.amount || 0
 
     return NextResponse.json({
-      date: today.toISOString().split('T')[0],
+      date: todayStr,
       visits: totalVisits,
       sessions: {
         total: totalSessions,

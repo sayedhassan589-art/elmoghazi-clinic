@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       sessionNumber: body.sessionNumber || sessionNumber,
       price: body.price ?? record.price ?? 0,
       paid: body.paid ?? false,
-      date: body.date ? new Date(body.date) : new Date(),
+      date: body.date ? toCairoDate(body.date) : toCairoDate(),
     }
     if (body.energy) sessionData.energy = body.energy
     if (body.pulse) sessionData.pulse = body.pulse

@@ -1173,9 +1173,9 @@ export default function Home() {
   }
 
   // ─── Computed ─────────────────────────────────────────────────────────
-  const todayStr = useMemo(() => getLocalDateStr(), []) // Cairo timezone - computed once per mount
+  const todayStr = useMemo(() => getLocalDateStr(), []) // Cairo timezone - re-computed on data changes
   // Memoized Cairo date parts for "now" — avoids calling getCairoDateParts()/getLocalDateStr() with new Date() in every useMemo/render
-  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr]) // recomputes when todayStr changes (i.e. on mount)
+  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length]) // recomputes when data changes
   const todayStats = useMemo(() => {
     let todayIncome = 0, todayExpense = 0
     for (const t of transactions) {
@@ -1190,7 +1190,7 @@ export default function Home() {
   const todayIncome = todayStats.todayIncome
   const todayExpense = todayStats.todayExpense
   const todayNetProfit = todayStats.todayNetProfit
-  const todayVisits = useMemo(() => visits.filter(v => v.date?.startsWith(todayStr)), [visits, todayStr])
+  const todayVisits = useMemo(() => visits.filter(v => getLocalDateStr(v.date) === todayStr), [visits, todayStr])
 
   // Daily finance data - grouped by real date (Cairo timezone)
   const dailyFinanceData = useMemo(() => {
@@ -1205,7 +1205,7 @@ export default function Home() {
     })
     return Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date))
   }, [transactions])
-  const todayAppointments = useMemo(() => appointments.filter(a => a.date?.startsWith(todayStr)), [appointments, todayStr])
+  const todayAppointments = useMemo(() => appointments.filter(a => getLocalDateStr(a.date) === todayStr), [appointments, todayStr])
   const activeAlerts = useMemo(() => alerts.filter(a => a.active), [alerts])
 
   // Daily visit/session stats for reports (Cairo timezone)
@@ -1508,8 +1508,8 @@ export default function Home() {
     if (!patient) return
 
     const patientId = patient.id
-    // Use custom date if provided, otherwise use now (Cairo timezone)
-    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00+02:00').toISOString() : new Date().toISOString()
+    // Use custom date if provided, otherwise let the server use Cairo time (no date = server defaults to Cairo now)
+    const customDate = newPatientDate || undefined
     const vPrice = parseFloat(visitPrice) || 0
     const sPrice = parseFloat(customServicePrice) || 0
 
@@ -1734,11 +1734,11 @@ export default function Home() {
                 </div></CardContent></Card>
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => p.createdAt?.startsWith(todayStr)).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
+                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => getLocalDateStr(p.createdAt) === todayStr).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
                     { icon: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف`, gradient: 'from-emerald-500 to-emerald-700', anim: { rotate: [0, 10, -10, 0] } },
                     { icon: '💰', label: 'إيراد اليوم', value: formatCurrency(todayIncome), sub: `${transactions.filter(t => t.type === 'income').length} معاملة`, gradient: 'from-amber-500 to-amber-700', anim: { scale: [1, 1.2, 1] } },
                     { icon: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${appointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-purple-500 to-purple-700', anim: { y: [0, -5, 0] } },
-                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => s.date?.startsWith(todayStr)).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
+                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => getLocalDateStr(s.date) === todayStr).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
                     { icon: '💎', label: 'سجلات الليزر', value: laserRecords.filter(r => r.status === 'active').length, sub: `${new Set(laserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-700', anim: { scale: [1, 1.1, 1] } },
                   ].map((s, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, type: 'spring' }} className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br', s.gradient)}>
@@ -1770,8 +1770,8 @@ export default function Home() {
                         const todayCheckupRev = transactions.filter(t => t.type === 'income' && t.category === 'كشف' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
                         const todayRevisitRev = transactions.filter(t => t.type === 'income' && t.category === 'إعادة' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
                         const todaySessionRev = transactions.filter(t => t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة') && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-                        const todayUnpaid = sessions.filter(s => !s.paid && s.date?.startsWith(todayStr)).reduce((s, ses) => s + ses.price, 0)
-                        const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && s.date?.startsWith(todayStr)).length
+                        const todayUnpaid = sessions.filter(s => !s.paid && getLocalDateStr(s.date) === todayStr).reduce((s, ses) => s + ses.price, 0)
+                        const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && getLocalDateStr(s.date) === todayStr).length
                         return (
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg">
@@ -2158,7 +2158,7 @@ export default function Home() {
                         <div className="grid grid-cols-2 gap-2">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setProfileVisitType(vt.id)} className={cn('flex items-center gap-1.5 p-2 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700' : 'border-transparent bg-muted/50 text-muted-foreground')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div>
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileVisitPrice} onChange={e => setProfileVisitPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileVisitNotes} onChange={e => setProfileVisitNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
                         <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الزيارة (اختياري)</Label><Input type="date" value={profileVisitDate} onChange={e => setProfileVisitDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const vDate = profileVisitDate ? new Date(profileVisitDate + 'T00:00:00').toISOString() : new Date().toISOString(); await addItem('/visits', { patientId: selectedPatient.id, type: profileVisitType, notes: profileVisitNotes || undefined, date: vDate }, setVisits); const vPrice = parseFloat(profileVisitPrice) || 0; if (vPrice > 0) { const cat = profileVisitType === 'checkup' ? 'كشف' : 'إعادة'; await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${selectedPatient.name}`, date: vDate }, setTransactions); } setShowAddVisitProfile(false); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success('تم إضافة الزيارة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const vDate = profileVisitDate || undefined; await addItem('/visits', { patientId: selectedPatient.id, type: profileVisitType, notes: profileVisitNotes || undefined, date: vDate }, setVisits); const vPrice = parseFloat(profileVisitPrice) || 0; if (vPrice > 0) { const cat = profileVisitType === 'checkup' ? 'كشف' : 'إعادة'; await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${selectedPatient.name}`, date: vDate }, setTransactions); } setShowAddVisitProfile(false); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success('تم إضافة الزيارة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {visits.filter(v => v.patientId === selectedPatient.id).length === 0 && !showAddVisitProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد زيارات</p>}
@@ -2173,7 +2173,7 @@ export default function Home() {
                         {services.length > 0 && <div><Label className="text-[10px] font-bold">الخدمة</Label><Select value={profileSessionServiceId} onValueChange={setProfileSessionServiceId}><SelectTrigger className="rounded-xl h-9 mt-0.5 text-xs"><SelectValue placeholder="اختر الخدمة..." /></SelectTrigger><SelectContent>{services.filter(s => s.active).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>}
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileSessionPrice} onChange={e => setProfileSessionPrice(e.target.value)} placeholder="0" className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileSessionNotes} onChange={e => setProfileSessionNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
                         <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الجلسة (اختياري)</Label><Input type="date" value={profileSessionDate} onChange={e => setProfileSessionDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
-                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const sDate = profileSessionDate ? new Date(profileSessionDate + 'T00:00:00').toISOString() : new Date().toISOString(); const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: sDate }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: sDate }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); setProfileSessionDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
+                        <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white" onClick={async () => { const sDate = profileSessionDate || undefined; const sPrice = parseFloat(profileSessionPrice) || 0; await addItem('/sessions', { patientId: selectedPatient.id, serviceId: profileSessionServiceId || undefined, status: 'completed', price: sPrice, paid: true, notes: profileSessionNotes || undefined, date: sDate }, setSessions); if (sPrice > 0) { const svcName = services.find(sv => sv.id === profileSessionServiceId)?.name || 'جلسة'; await addItem('/finance/transactions', { type: 'income', category: 'جلسات', amount: sPrice, description: `${svcName} - ${selectedPatient.name}`, date: sDate }, setTransactions); } setShowAddSessionProfile(false); setProfileSessionServiceId(''); setProfileSessionPrice(''); setProfileSessionNotes(''); setProfileSessionDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success('تم إضافة الجلسة') }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddSessionProfile(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد جلسات</p>}
@@ -2305,7 +2305,7 @@ export default function Home() {
                 {/* Laser Stats - 4 cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 shadow-lg"><Activity className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">سجلات نشطة</p><p className="text-xl font-bold">{laserRecords.filter(r => r.status === 'active').length}</p></div></div></motion.div>
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{laserHairSessions.filter(s => s.date?.startsWith(todayStr)).length}</p></div></div></motion.div>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Zap className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">جلسات اليوم</p><p className="text-xl font-bold">{laserHairSessions.filter(s => getLocalDateStr(s.date) === todayStr).length}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg"><DollarSign className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد الليزر</p><p className="text-xl font-bold">{formatCurrency(laserRevenue)}</p></div></div></motion.div>
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="section-card p-3"><div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg"><Package className="text-white" size={18} /></div><div><p className="text-[10px] text-muted-foreground">باقات نشطة</p><p className="text-xl font-bold">{laserPackages.filter(p => p.active).length}</p></div></div></motion.div>
                 </div>
@@ -2906,7 +2906,7 @@ export default function Home() {
                       <Select value={laserFinancePatientId} onValueChange={setLaserFinancePatientId}><SelectTrigger className="rounded-xl h-10"><SelectValue placeholder="اختار المريض..." /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.fileNumber})</SelectItem>)}</SelectContent></Select>
                       <div><Label className="text-xs font-bold flex items-center gap-1"><DollarSign size={12} /> قيمة الجلسة (ج.م)</Label><Input type="number" value={laserFinancePrice} onChange={e => setLaserFinancePrice(e.target.value)} placeholder="السعر بالجنيه..." className="input-luxury rounded-xl h-10 mt-1 text-lg font-bold" /></div>
                       <Input value={laserFinanceNotes} onChange={e => setLaserFinanceNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-10" />
-                      <Button className="btn-luxury rounded-xl w-full bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={async () => { if (!laserFinancePatientId || !laserFinancePrice) return toast.error('اختار المريض وحدد السعر'); const now = new Date().toISOString(); const price = parseFloat(laserFinancePrice) || 0; const pName = patients.find(p => p.id === laserFinancePatientId)?.name || 'مريض'; await addItem('/sessions', { patientId: laserFinancePatientId, status: 'completed', price, paid: true, notes: laserFinanceNotes ? `ليزر - ${laserFinanceNotes}` : 'ليزر', date: now }, setSessions); if (price > 0) { await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: price, description: `جلسة ليزر - ${pName}`, date: now }, setTransactions); } setLaserFinancePatientId(''); setLaserFinancePrice(''); setLaserFinanceNotes(''); toast.success('تم تسجيل جلسة الليزر') }}>تسجيل الجلسة</Button>
+                      <Button className="btn-luxury rounded-xl w-full bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={async () => { if (!laserFinancePatientId || !laserFinancePrice) return toast.error('اختار المريض وحدد السعر'); const price = parseFloat(laserFinancePrice) || 0; const pName = patients.find(p => p.id === laserFinancePatientId)?.name || 'مريض'; await addItem('/sessions', { patientId: laserFinancePatientId, status: 'completed', price, paid: true, notes: laserFinanceNotes ? `ليزر - ${laserFinanceNotes}` : 'ليزر' }, setSessions); if (price > 0) { await addItem('/finance/transactions', { type: 'income', category: 'ليزر', amount: price, description: `جلسة ليزر - ${pName}` }, setTransactions); } setLaserFinancePatientId(''); setLaserFinancePrice(''); setLaserFinanceNotes(''); toast.success('تم تسجيل جلسة الليزر') }}>تسجيل الجلسة</Button>
                     </CardContent></Card>
                     {/* Unpaid Dues */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
@@ -3403,7 +3403,7 @@ export default function Home() {
                   {/* Animated Stats Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                      { icon: <Activity size={20} />, label: 'جلسات اليوم', value: sessions.filter(s => s.date?.startsWith(todayStr)).length, gradient: 'from-violet-500 to-purple-600', emoji: '⚡' },
+                      { icon: <Activity size={20} />, label: 'جلسات اليوم', value: sessions.filter(s => getLocalDateStr(s.date) === todayStr).length, gradient: 'from-violet-500 to-purple-600', emoji: '⚡' },
                       { icon: <CheckCircle size={20} />, label: 'مدفوعة', value: sessions.filter(s => s.paid).length, gradient: 'from-emerald-500 to-teal-600', emoji: '✅' },
                       { icon: <Clock size={20} />, label: 'غير مدفوعة', value: sessions.filter(s => !s.paid).length, gradient: 'from-amber-500 to-orange-600', emoji: '⏳' },
                       { icon: <DollarSign size={20} />, label: 'إجمالي الإيرادات', value: formatCurrency(sessions.reduce((s, ses) => s + (ses.price || 0), 0)), gradient: 'from-blue-500 to-indigo-600', emoji: '💰' },
@@ -3425,7 +3425,7 @@ export default function Home() {
                     const total = sessions.length || 1
                     const paidCount = sessions.filter(s => s.paid).length
                     const unpaidCount = sessions.filter(s => !s.paid).length
-                    const todayCount = sessions.filter(s => s.date?.startsWith(todayStr)).length
+                    const todayCount = sessions.filter(s => getLocalDateStr(s.date) === todayStr).length
                     const paidPct = Math.round((paidCount / total) * 100)
                     const unpaidPct = 100 - paidPct
                     return (
@@ -3459,11 +3459,11 @@ export default function Home() {
                     <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800 overflow-hidden">
                       <div className="bg-gradient-to-l from-violet-500 to-purple-600 p-3 flex items-center justify-between">
                         <div className="flex items-center gap-2"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-xl">📅</motion.div><CardTitle className="text-sm text-white font-bold">جلسات اليوم</CardTitle></div>
-                        <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => s.date?.startsWith(todayStr)).length}</Badge>
+                        <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => getLocalDateStr(s.date) === todayStr).length}</Badge>
                       </div>
                       <CardContent className="p-3 space-y-2">
                         {(() => {
-                          const todaySessions = sessions.filter(s => s.date?.startsWith(todayStr))
+                          const todaySessions = sessions.filter(s => getLocalDateStr(s.date) === todayStr)
                           if (todaySessions.length === 0) return <div className="text-center py-8"><motion.div animate={{ y: [0, -10, 0], rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">😴</motion.div><p className="text-muted-foreground font-medium">لا توجد جلسات اليوم</p><p className="text-xs text-muted-foreground mt-1">أضف جلسة جديدة من الأعلى</p></div>
                           return todaySessions.map((s, idx) => {
                             const p = patients.find(pt => pt.id === s.patientId)
@@ -3819,7 +3819,7 @@ export default function Home() {
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                       <Card className="border-2 border-sky-200 dark:border-sky-800 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 p-3 text-center">
                         <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">📅</motion.div>
-                        <p className="text-xl font-black text-sky-700 dark:text-sky-300">{appointments.filter(a => a.date?.startsWith(todayStr)).length}</p>
+                        <p className="text-xl font-black text-sky-700 dark:text-sky-300">{appointments.filter(a => getLocalDateStr(a.date) === todayStr).length}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">حجز اليوم</p>
                       </Card>
                     </motion.div>
@@ -3860,7 +3860,7 @@ export default function Home() {
                       if (bookingFilterDate !== 'all') {
                         const aDate = new Date(a.date)
                         const now = new Date()
-                        if (bookingFilterDate === 'today' && !a.date?.startsWith(todayStr)) return false
+                        if (bookingFilterDate === 'today' && getLocalDateStr(a.date) !== todayStr) return false
                         if (bookingFilterDate === 'week') { const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); if (aDate < weekStart) return false }
                         if (bookingFilterDate === 'month') { const ad = getCairoDateParts(a.date); if (ad.year !== cairoNow.year || ad.month !== cairoNow.month) return false }
                       }
@@ -3883,7 +3883,7 @@ export default function Home() {
                       const tc = typeConfig[apt.type] || typeConfig.consultation
                       const aptDate = new Date(apt.date)
                       const isPast = aptDate < new Date() && apt.status === 'scheduled'
-                      const isToday = apt.date?.startsWith(todayStr)
+                      const isToday = getLocalDateStr(apt.date) === todayStr
 
                       return (
                         <motion.div key={apt.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}>
@@ -3934,7 +3934,7 @@ export default function Home() {
                   
                   {/* Today's Reminders Highlighted Card */}
                   {(() => {
-                    const todayReminders = reminders.filter(r => r.date?.startsWith(todayStr) && r.status !== 'completed')
+                    const todayReminders = reminders.filter(r => getLocalDateStr(r.date) === todayStr && r.status !== 'completed')
                     if (todayReminders.length === 0) return null
                     return (
                       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
@@ -5728,7 +5728,7 @@ export default function Home() {
         <DialogFooter><Button className="rounded-xl bg-gradient-to-l from-[#0891B2] to-[#06B6D4] text-white w-full" onClick={async () => {
           if (!selectedFU) return
           try {
-            const fuVisitDate = fuVisitForm.date ? new Date(fuVisitForm.date + 'T00:00:00').toISOString() : new Date().toISOString()
+            const fuVisitDate = fuVisitForm.date || undefined
             const body: Record<string, unknown> = { followUpId: selectedFU.id, findings: fuVisitForm.findings || undefined, treatmentNotes: fuVisitForm.treatmentNotes || undefined, medications: fuVisitForm.medications || undefined, instructions: fuVisitForm.instructions || undefined, diagnosis: fuVisitForm.diagnosis || undefined, paid: fuVisitForm.paid, price: parseFloat(fuVisitForm.price) || 0, nextVisitDate: fuVisitForm.nextVisitDate || undefined, notes: fuVisitForm.notes || undefined, visitDate: fuVisitDate }
             const res = await apiFetch<any>('/follow-up/visits', { method: 'POST', body: JSON.stringify(body) })
             const newVisit = res?.visit || res?.data || res

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { cairoNow } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
     ])
 
     const backupData = JSON.stringify({
-      exportedAt: new Date().toISOString(),
+      exportedAt: cairoNow().toISOString(),
       version: '1.0',
       data: {
         users,

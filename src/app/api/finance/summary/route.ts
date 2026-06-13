@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { cairoDayRange } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -7,9 +8,13 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate') || ''
     const endDate = searchParams.get('endDate') || ''
 
-    const dateFilter: Record<string, Date> = {}
-    if (startDate) dateFilter.gte = new Date(startDate)
-    if (endDate) dateFilter.lte = new Date(endDate)
+    let dateFilter: Record<string, Date> = {}
+    if (startDate && endDate && startDate === endDate) {
+      dateFilter = cairoDayRange(startDate)
+    } else {
+      if (startDate) dateFilter.gte = cairoDayRange(startDate).gte
+      if (endDate) dateFilter.lt = cairoDayRange(endDate).lt
+    }
 
     const where: Record<string, unknown> = {}
     if (Object.keys(dateFilter).length > 0) where.date = dateFilter

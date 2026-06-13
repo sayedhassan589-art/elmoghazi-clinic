@@ -1,26 +1,21 @@
 import { db } from '@/lib/db'
+import { cairoMonthRange, cairoNow } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') // Format: YYYY-MM
-    const now = new Date()
 
-    let year: number, monthNum: number
+    let year: number | undefined, monthNum: number | undefined
     if (month) {
       const parts = month.split('-')
       year = parseInt(parts[0])
-      monthNum = parseInt(parts[1]) - 1
-    } else {
-      year = now.getFullYear()
-      monthNum = now.getMonth()
+      monthNum = parseInt(parts[1])
     }
 
-    const monthStart = new Date(year, monthNum, 1)
-    const monthEnd = new Date(year, monthNum + 1, 1)
-
-    const dateFilter = { gte: monthStart, lt: monthEnd }
+    const { gte, lt, monthStr } = cairoMonthRange(year, monthNum)
+    const dateFilter = { gte, lt }
 
     const [
       totalVisits,
@@ -74,9 +69,9 @@ export async function GET(request: Request) {
     }))
 
     return NextResponse.json({
-      month: `${year}-${String(monthNum + 1).padStart(2, '0')}`,
-      monthStart: monthStart.toISOString().split('T')[0],
-      monthEnd: monthEnd.toISOString().split('T')[0],
+      month: monthStr,
+      monthStart: gte.toISOString().split('T')[0],
+      monthEnd: lt.toISOString().split('T')[0],
       visits: totalVisits,
       sessions: {
         total: totalSessions,

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -53,13 +54,13 @@ export async function POST(request: Request) {
       status: body.status || 'active',
       frequency: body.frequency || 'monthly',
       customDays: body.customDays || null,
-      nextVisitDate: body.nextVisitDate ? new Date(body.nextVisitDate) : null,
-      lastVisitDate: body.lastVisitDate ? new Date(body.lastVisitDate) : null,
+      nextVisitDate: body.nextVisitDate ? toCairoDate(body.nextVisitDate) : null,
+      lastVisitDate: body.lastVisitDate ? toCairoDate(body.lastVisitDate) : null,
       hasSubscription: body.hasSubscription || false,
       subscriptionType: body.subscriptionType || null,
       subscriptionPrice: body.subscriptionPrice || 0,
-      subscriptionStart: body.subscriptionStart ? new Date(body.subscriptionStart) : null,
-      subscriptionEnd: body.subscriptionEnd ? new Date(body.subscriptionEnd) : null,
+      subscriptionStart: body.subscriptionStart ? toCairoDate(body.subscriptionStart) : null,
+      subscriptionEnd: body.subscriptionEnd ? toCairoDate(body.subscriptionEnd) : null,
       sessionsIncluded: body.sessionsIncluded || 0,
       sessionsUsed: 0,
       diagnosis: body.diagnosis || null,
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
             category: 'متابعة',
             amount: body.subscriptionPrice,
             description: `باقة متابعة - ${patientName} - ${body.condition}`,
-            date: new Date(),
+            date: toCairoDate(),
           },
         })
       } catch (e) { console.error('Failed to create subscription transaction:', e) }

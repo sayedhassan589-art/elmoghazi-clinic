@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +27,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         notes: body.notes === '' ? null : body.notes ?? undefined,
         price: body.price ?? undefined,
         paid: body.paid ?? undefined,
-        date: body.date ? new Date(body.date) : undefined,
+        date: body.date ? toCairoDate(body.date) : undefined,
       },
       include: {
         laserRecord: {
@@ -47,7 +48,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             category: 'ليزر',
             amount: body.price ?? existing.price ?? 0,
             description: `جلسة ليزر #${existing.sessionNumber} - ${patientName}`,
-            date: new Date(),
+            date: toCairoDate(),
           },
         })
       } catch (e) { console.error('Failed to create transaction:', e) }

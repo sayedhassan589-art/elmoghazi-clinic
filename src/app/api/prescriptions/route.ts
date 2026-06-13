@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { toCairoDate } from '@/lib/cairo-time'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
         doctorId: body.doctorId || null,
         diagnosis: body.diagnosis || null,
         notes: body.notes || null,
-        date: body.date ? new Date(body.date) : new Date(),
+        date: body.date ? toCairoDate(body.date) : toCairoDate(),
         items: {
           create: (body.items || []).map((item: { medicationId: string; dosage?: string; frequency?: string; duration?: string; instructions?: string }) => ({
             medicationId: item.medicationId,
