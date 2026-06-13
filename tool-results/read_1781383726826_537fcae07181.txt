@@ -1,0 +1,899 @@
+     1→// ─── Elmoghazi Clinic – Comprehensive API Helpers ────────────────────────────
+     2→// All typed fetch functions for every entity in the clinic management system.
+     3→
+     4→// ─── Base Types ──────────────────────────────────────────────────────────────
+     5→
+     6→export interface ApiResponse<T> {
+     7→  data: T
+     8→  message?: string
+     9→}
+    10→
+    11→export interface PaginatedResponse<T> {
+    12→  data: T[]
+    13→  total: number
+    14→  page: number
+    15→  limit: number
+    16→  totalPages: number
+    17→}
+    18→
+    19→export interface PaginationParams {
+    20→  page?: number
+    21→  limit?: number
+    22→  search?: string
+    23→  sortBy?: string
+    24→  sortOrder?: 'asc' | 'desc'
+    25→}
+    26→
+    27→// ─── Entity Types ────────────────────────────────────────────────────────────
+    28→
+    29→export interface User {
+    30→  id: string
+    31→  name: string
+    32→  email: string
+    33→  role: 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'ASSISTANT'
+    34→  createdAt: string
+    35→  updatedAt: string
+    36→}
+    37→
+    38→export interface Patient {
+    39→  id: string
+    40→  fileNumber: string
+    41→  name: string
+    42→  phone: string
+    43→  phone2?: string
+    44→  email?: string
+    45→  gender: 'MALE' | 'FEMALE'
+    46→  dateOfBirth?: string
+    47→  age?: number
+    48→  nationalId?: string
+    49→  address?: string
+    50→  medicalHistory?: string
+    51→  allergies?: string
+    52→  chronicConditions?: string
+    53→  notes?: string
+    54→  createdAt: string
+    55→  updatedAt: string
+    56→}
+    57→
+    58→export interface Visit {
+    59→  id: string
+    60→  patientId: string
+    61→  doctorId: string
+    62→  date: string
+    63→  chiefComplaint: string
+    64→  diagnosis?: string
+    65→  treatmentPlan?: string
+    66→  notes?: string
+    67→  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+    68→  followUpDate?: string
+    69→  createdAt: string
+    70→  updatedAt: string
+    71→}
+    72→
+    73→export interface Session {
+    74→  id: string
+    75→  visitId: string
+    76→  patientId: string
+    77→  serviceId: string
+    78→  doctorId: string
+    79→  date: string
+    80→  notes?: string
+    81→  status: 'PENDING' | 'COMPLETED' | 'CANCELLED'
+    82→  createdAt: string
+    83→  updatedAt: string
+    84→}
+    85→
+    86→export interface Service {
+    87→  id: string
+    88→  name: string
+    89→  nameEn?: string
+    90→  category: string
+    91→  price: number
+    92→  duration?: number
+    93→  description?: string
+    94→  isActive: boolean
+    95→  createdAt: string
+    96→  updatedAt: string
+    97→}
+    98→
+    99→export interface Note {
+   100→  id: string
+   101→  patientId: string
+   102→  createdBy: string
+   103→  content: string
+   104→  type: 'GENERAL' | 'MEDICAL' | 'FOLLOW_UP' | 'ALERT'
+   105→  isPinned: boolean
+   106→  createdAt: string
+   107→  updatedAt: string
+   108→}
+   109→
+   110→export interface Alert {
+   111→  id: string
+   112→  patientId: string
+   113→  type: 'ALLERGY' | 'CHRONIC' | 'MEDICATION' | 'CUSTOM'
+   114→  title: string
+   115→  description?: string
+   116→  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+   117→  isActive: boolean
+   118→  createdAt: string
+   119→  updatedAt: string
+   120→}
+   121→
+   122→export interface Reminder {
+   123→  id: string
+   124→  patientId: string
+   125→  type: 'FOLLOW_UP' | 'MEDICATION' | 'APPOINTMENT' | 'CUSTOM'
+   126→  title: string
+   127→  description?: string
+   128→  dueDate: string
+   129→  isCompleted: boolean
+   130→  createdAt: string
+   131→  updatedAt: string
+   132→}
+   133→
+   134→export interface LaserRecord {
+   135→  id: string
+   136→  patientId: string
+   137→  bodyArea: string
+   138→  hairType?: string
+   139→  skinType?: string
+   140→  notes?: string
+   141→  createdAt: string
+   142→  updatedAt: string
+   143→}
+   144→
+   145→export interface LaserSession {
+   146→  id: string
+   147→  laserRecordId: string
+   148→  patientId: string
+   149→  settingId?: string
+   150→  packageId?: string
+   151→  sessionNumber: number
+   152→  date: string
+   153→  fluence?: number
+   154→  pulseWidth?: number
+   155→  spotSize?: number
+   156→  notes?: string
+   157→  status: 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+   158→  createdAt: string
+   159→  updatedAt: string
+   160→}
+   161→
+   162→export interface LaserPackage {
+   163→  id: string
+   164→  name: string
+   165→  bodyArea: string
+   166→  totalSessions: number
+   167→  price: number
+   168→  description?: string
+   169→  isActive: boolean
+   170→  createdAt: string
+   171→  updatedAt: string
+   172→}
+   173→
+   174→export interface LaserSetting {
+   175→  id: string
+   176→  name: string
+   177→  machineType: string
+   178→  fluence: number
+   179→  pulseWidth: number
+   180→  spotSize: number
+   181→  skinType: string
+   182→  hairType?: string
+   183→  notes?: string
+   184→  createdAt: string
+   185→  updatedAt: string
+   186→}
+   187→
+   188→export interface Transaction {
+   189→  id: string
+   190→  patientId: string
+   191→  visitId?: string
+   192→  type: 'INCOME' | 'EXPENSE'
+   193→  category: string
+   194→  amount: number
+   195→  description?: string
+   196→  paymentMethod: 'CASH' | 'CARD' | 'TRANSFER' | 'INSURANCE'
+   197→  date: string
+   198→  createdAt: string
+   199→  updatedAt: string
+   200→}
+   201→
+   202→export interface FinanceSummary {
+   203→  totalIncome: number
+   204→  totalExpense: number
+   205→  netProfit: number
+   206→  pendingPayments: number
+   207→  monthlyBreakdown: { month: string; income: number; expense: number }[]
+   208→}
+   209→
+   210→export interface Appointment {
+   211→  id: string
+   212→  patientId: string
+   213→  doctorId: string
+   214→  serviceId?: string
+   215→  date: string
+   216→  startTime: string
+   217→  endTime: string
+   218→  status: 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+   219→  notes?: string
+   220→  createdAt: string
+   221→  updatedAt: string
+   222→}
+   223→
+   224→export interface QueueItem {
+   225→  id: string
+   226→  patientId: string
+   227→  appointmentId?: string
+   228→  doctorId: string
+   229→  queueNumber: number
+   230→  status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+   231→  estimatedWait?: number
+   232→  notes?: string
+   233→  createdAt: string
+   234→  updatedAt: string
+   235→}
+   236→
+   237→export interface InventoryItem {
+   238→  id: string
+   239→  name: string
+   240→  nameEn?: string
+   241→  category: string
+   242→  unit: string
+   243→  quantity: number
+   244→  minQuantity: number
+   245→  costPrice: number
+   246→  sellingPrice?: number
+   247→  supplier?: string
+   248→  expiryDate?: string
+   249→  notes?: string
+   250→  createdAt: string
+   251→  updatedAt: string
+   252→}
+   253→
+   254→export interface ItemTransaction {
+   255→  id: string
+   256→  itemId: string
+   257→  type: 'IN' | 'OUT'
+   258→  quantity: number
+   259→  reason?: string
+   260→  performedBy: string
+   261→  date: string
+   262→  createdAt: string
+   263→}
+   264→
+   265→export interface TreatmentPlan {
+   266→  id: string
+   267→  patientId: string
+   268→  visitId?: string
+   269→  title: string
+   270→  description?: string
+   271→  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
+   272→  startDate: string
+   273→  endDate?: string
+   274→  createdAt: string
+   275→  updatedAt: string
+   276→}
+   277→
+   278→export interface TreatmentPhase {
+   279→  id: string
+   280→  planId: string
+   281→  title: string
+   282→  description?: string
+   283→  order: number
+   284→  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+   285→  duration?: number
+   286→  notes?: string
+   287→  createdAt: string
+   288→  updatedAt: string
+   289→}
+   290→
+   291→export interface Photo {
+   292→  id: string
+   293→  patientId: string
+   294→  visitId?: string
+   295→  url: string
+   296→  type: 'BEFORE' | 'AFTER' | 'DURING' | 'MEDICAL' | 'GENERAL'
+   297→  description?: string
+   298→  takenAt: string
+   299→  createdAt: string
+   300→}
+   301→
+   302→export interface Prescription {
+   303→  id: string
+   304→  patientId: string
+   305→  visitId?: string
+   306→  doctorId: string
+   307→  notes?: string
+   308→  createdAt: string
+   309→  updatedAt: string
+   310→}
+   311→
+   312→export interface Medication {
+   313→  id: string
+   314→  prescriptionId: string
+   315→  name: string
+   316→  dosage: string
+   317→  frequency: string
+   318→  duration: string
+   319→  instructions?: string
+   320→  createdAt: string
+   321→}
+   322→
+   323→export interface Notification {
+   324→  id: string
+   325→  userId: string
+   326→  title: string
+   327→  message: string
+   328→  type: 'INFO' | 'WARNING' | 'ALERT' | 'REMINDER'
+   329→  isRead: boolean
+   330→  link?: string
+   331→  createdAt: string
+   332→}
+   333→
+   334→export interface BackupRecord {
+   335→  id: string
+   336→  filename: string
+   337→  size: number
+   338→  createdAt: string
+   339→}
+   340→
+   341→export interface AuditLogEntry {
+   342→  id: string
+   343→  userId: string
+   344→  action: string
+   345→  entity: string
+   346→  entityId?: string
+   347→  details?: string
+   348→  ipAddress?: string
+   349→  createdAt: string
+   350→}
+   351→
+   352→export interface DailyReport {
+   353→  date: string
+   354→  totalVisits: number
+   355→  totalIncome: number
+   356→  totalExpense: number
+   357→  newPatients: number
+   358→  completedAppointments: number
+   359→  cancelledAppointments: number
+   360→}
+   361→
+   362→export interface WeeklyReport {
+   363→  weekStart: string
+   364→  weekEnd: string
+   365→  totalVisits: number
+   366→  totalIncome: number
+   367→  totalExpense: number
+   368→  newPatients: number
+   369→  dailyBreakdown: DailyReport[]
+   370→}
+   371→
+   372→export interface MonthlyReport {
+   373→  month: string
+   374→  totalVisits: number
+   375→  totalIncome: number
+   376→  totalExpense: number
+   377→  newPatients: number
+   378→  weeklyBreakdown: WeeklyReport[]
+   379→  topServices: { serviceId: string; serviceName: string; count: number; revenue: number }[]
+   380→}
+   381→
+   382→// ─── Base Fetch Helper ───────────────────────────────────────────────────────
+   383→
+   384→async function fetchAPI<T>(
+   385→  path: string,
+   386→  options: RequestInit = {}
+   387→): Promise<T> {
+   388→  const url = `/api${path}`
+   389→
+   390→  const headers: HeadersInit = {
+   391→    'Content-Type': 'application/json',
+   392→    ...options.headers,
+   393→  }
+   394→
+   395→  const response = await fetch(url, {
+   396→    ...options,
+   397→    headers,
+   398→  })
+   399→
+   400→  if (!response.ok) {
+   401→    const errorBody = await response.text().catch(() => 'Unknown error')
+   402→    throw new Error(
+   403→      `API Error ${response.status}: ${response.statusText} – ${errorBody}`
+   404→    )
+   405→  }
+   406→
+   407→  // Handle 204 No Content
+   408→  if (response.status === 204) {
+   409→    return undefined as T
+   410→  }
+   411→
+   412→  return response.json() as Promise<T>
+   413→}
+   414→
+   415→// ─── Auth ────────────────────────────────────────────────────────────────────
+   416→
+   417→export const authApi = {
+   418→  login: (email: string, password: string) =>
+   419→    fetchAPI<ApiResponse<{ user: User; token: string }>>('/auth/login', {
+   420→      method: 'POST',
+   421→      body: JSON.stringify({ email, password }),
+   422→    }),
+   423→
+   424→  getCurrentUser: () =>
+   425→    fetchAPI<ApiResponse<User>>('/auth/me'),
+   426→}
+   427→
+   428→// ─── Patients ────────────────────────────────────────────────────────────────
+   429→
+   430→export const patientsApi = {
+   431→  getPatients: (params?: PaginationParams & { gender?: string }) =>
+   432→    fetchAPI<PaginatedResponse<Patient>>(
+   433→      `/patients?${new URLSearchParams(params as Record<string, string>).toString()}`
+   434→    ),
+   435→
+   436→  getPatient: (id: string) =>
+   437→    fetchAPI<ApiResponse<Patient>>(`/patients/${id}`),
+   438→
+   439→  createPatient: (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) =>
+   440→    fetchAPI<ApiResponse<Patient>>('/patients', {
+   441→      method: 'POST',
+   442→      body: JSON.stringify(data),
+   443→    }),
+   444→
+   445→  updatePatient: (id: string, data: Partial<Patient>) =>
+   446→    fetchAPI<ApiResponse<Patient>>(`/patients/${id}`, {
+   447→      method: 'PUT',
+   448→      body: JSON.stringify(data),
+   449→    }),
+   450→
+   451→  deletePatient: (id: string) =>
+   452→    fetchAPI<void>(`/patients/${id}`, { method: 'DELETE' }),
+   453→}
+   454→
+   455→// ─── Visits ──────────────────────────────────────────────────────────────────
+   456→
+   457→export const visitsApi = {
+   458→  getVisits: (params?: PaginationParams & { patientId?: string; status?: string }) =>
+   459→    fetchAPI<PaginatedResponse<Visit>>(
+   460→      `/visits?${new URLSearchParams(params as Record<string, string>).toString()}`
+   461→    ),
+   462→
+   463→  createVisit: (data: Omit<Visit, 'id' | 'createdAt' | 'updatedAt'>) =>
+   464→    fetchAPI<ApiResponse<Visit>>('/visits', {
+   465→      method: 'POST',
+   466→      body: JSON.stringify(data),
+   467→    }),
+   468→
+   469→  updateVisit: (id: string, data: Partial<Visit>) =>
+   470→    fetchAPI<ApiResponse<Visit>>(`/visits/${id}`, {
+   471→      method: 'PUT',
+   472→      body: JSON.stringify(data),
+   473→    }),
+   474→
+   475→  deleteVisit: (id: string) =>
+   476→    fetchAPI<void>(`/visits/${id}`, { method: 'DELETE' }),
+   477→}
+   478→
+   479→// ─── Sessions ────────────────────────────────────────────────────────────────
+   480→
+   481→export const sessionsApi = {
+   482→  getSessions: (params?: PaginationParams & { patientId?: string; visitId?: string }) =>
+   483→    fetchAPI<PaginatedResponse<Session>>(
+   484→      `/sessions?${new URLSearchParams(params as Record<string, string>).toString()}`
+   485→    ),
+   486→
+   487→  createSession: (data: Omit<Session, 'id' | 'createdAt' | 'updatedAt'>) =>
+   488→    fetchAPI<ApiResponse<Session>>('/sessions', {
+   489→      method: 'POST',
+   490→      body: JSON.stringify(data),
+   491→    }),
+   492→
+   493→  updateSession: (id: string, data: Partial<Session>) =>
+   494→    fetchAPI<ApiResponse<Session>>(`/sessions/${id}`, {
+   495→      method: 'PUT',
+   496→      body: JSON.stringify(data),
+   497→    }),
+   498→
+   499→  deleteSession: (id: string) =>
+   500→    fetchAPI<void>(`/sessions/${id}`, { method: 'DELETE' }),
+   501→}
+   502→
+   503→// ─── Services ────────────────────────────────────────────────────────────────
+   504→
+   505→export const servicesApi = {
+   506→  getServices: (params?: PaginationParams & { category?: string; isActive?: boolean }) =>
+   507→    fetchAPI<PaginatedResponse<Service>>(
+   508→      `/services?${new URLSearchParams(params as Record<string, string>).toString()}`
+   509→    ),
+   510→
+   511→  createService: (data: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) =>
+   512→    fetchAPI<ApiResponse<Service>>('/services', {
+   513→      method: 'POST',
+   514→      body: JSON.stringify(data),
+   515→    }),
+   516→
+   517→  updateService: (id: string, data: Partial<Service>) =>
+   518→    fetchAPI<ApiResponse<Service>>(`/services/${id}`, {
+   519→      method: 'PUT',
+   520→      body: JSON.stringify(data),
+   521→    }),
+   522→
+   523→  deleteService: (id: string) =>
+   524→    fetchAPI<void>(`/services/${id}`, { method: 'DELETE' }),
+   525→}
+   526→
+   527→// ─── Notes ───────────────────────────────────────────────────────────────────
+   528→
+   529→export const notesApi = {
+   530→  getNotes: (params?: PaginationParams & { patientId?: string; type?: string }) =>
+   531→    fetchAPI<PaginatedResponse<Note>>(
+   532→      `/notes?${new URLSearchParams(params as Record<string, string>).toString()}`
+   533→    ),
+   534→
+   535→  createNote: (data: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) =>
+   536→    fetchAPI<ApiResponse<Note>>('/notes', {
+   537→      method: 'POST',
+   538→      body: JSON.stringify(data),
+   539→    }),
+   540→
+   541→  updateNote: (id: string, data: Partial<Note>) =>
+   542→    fetchAPI<ApiResponse<Note>>(`/notes/${id}`, {
+   543→      method: 'PUT',
+   544→      body: JSON.stringify(data),
+   545→    }),
+   546→
+   547→  deleteNote: (id: string) =>
+   548→    fetchAPI<void>(`/notes/${id}`, { method: 'DELETE' }),
+   549→}
+   550→
+   551→// ─── Alerts ──────────────────────────────────────────────────────────────────
+   552→
+   553→export const alertsApi = {
+   554→  getAlerts: (params?: PaginationParams & { patientId?: string; severity?: string }) =>
+   555→    fetchAPI<PaginatedResponse<Alert>>(
+   556→      `/alerts?${new URLSearchParams(params as Record<string, string>).toString()}`
+   557→    ),
+   558→
+   559→  createAlert: (data: Omit<Alert, 'id' | 'createdAt' | 'updatedAt'>) =>
+   560→    fetchAPI<ApiResponse<Alert>>('/alerts', {
+   561→      method: 'POST',
+   562→      body: JSON.stringify(data),
+   563→    }),
+   564→
+   565→  updateAlert: (id: string, data: Partial<Alert>) =>
+   566→    fetchAPI<ApiResponse<Alert>>(`/alerts/${id}`, {
+   567→      method: 'PUT',
+   568→      body: JSON.stringify(data),
+   569→    }),
+   570→
+   571→  deleteAlert: (id: string) =>
+   572→    fetchAPI<void>(`/alerts/${id}`, { method: 'DELETE' }),
+   573→}
+   574→
+   575→// ─── Reminders ───────────────────────────────────────────────────────────────
+   576→
+   577→export const remindersApi = {
+   578→  getReminders: (params?: PaginationParams & { patientId?: string; type?: string }) =>
+   579→    fetchAPI<PaginatedResponse<Reminder>>(
+   580→      `/reminders?${new URLSearchParams(params as Record<string, string>).toString()}`
+   581→    ),
+   582→
+   583→  createReminder: (data: Omit<Reminder, 'id' | 'createdAt' | 'updatedAt'>) =>
+   584→    fetchAPI<ApiResponse<Reminder>>('/reminders', {
+   585→      method: 'POST',
+   586→      body: JSON.stringify(data),
+   587→    }),
+   588→
+   589→  updateReminder: (id: string, data: Partial<Reminder>) =>
+   590→    fetchAPI<ApiResponse<Reminder>>(`/reminders/${id}`, {
+   591→      method: 'PUT',
+   592→      body: JSON.stringify(data),
+   593→    }),
+   594→
+   595→  deleteReminder: (id: string) =>
+   596→    fetchAPI<void>(`/reminders/${id}`, { method: 'DELETE' }),
+   597→}
+   598→
+   599→// ─── Laser ───────────────────────────────────────────────────────────────────
+   600→
+   601→export const laserApi = {
+   602→  getLaserRecords: (params?: PaginationParams & { patientId?: string }) =>
+   603→    fetchAPI<PaginatedResponse<LaserRecord>>(
+   604→      `/laser/records?${new URLSearchParams(params as Record<string, string>).toString()}`
+   605→    ),
+   606→
+   607→  createLaserRecord: (data: Omit<LaserRecord, 'id' | 'createdAt' | 'updatedAt'>) =>
+   608→    fetchAPI<ApiResponse<LaserRecord>>('/laser/records', {
+   609→      method: 'POST',
+   610→      body: JSON.stringify(data),
+   611→    }),
+   612→
+   613→  getLaserSessions: (params?: PaginationParams & { laserRecordId?: string; patientId?: string }) =>
+   614→    fetchAPI<PaginatedResponse<LaserSession>>(
+   615→      `/laser/sessions?${new URLSearchParams(params as Record<string, string>).toString()}`
+   616→    ),
+   617→
+   618→  createLaserSession: (data: Omit<LaserSession, 'id' | 'createdAt' | 'updatedAt'>) =>
+   619→    fetchAPI<ApiResponse<LaserSession>>('/laser/sessions', {
+   620→      method: 'POST',
+   621→      body: JSON.stringify(data),
+   622→    }),
+   623→
+   624→  getLaserPackages: (params?: PaginationParams & { isActive?: boolean }) =>
+   625→    fetchAPI<PaginatedResponse<LaserPackage>>(
+   626→      `/laser/packages?${new URLSearchParams(params as Record<string, string>).toString()}`
+   627→    ),
+   628→
+   629→  createLaserPackage: (data: Omit<LaserPackage, 'id' | 'createdAt' | 'updatedAt'>) =>
+   630→    fetchAPI<ApiResponse<LaserPackage>>('/laser/packages', {
+   631→      method: 'POST',
+   632→      body: JSON.stringify(data),
+   633→    }),
+   634→
+   635→  getLaserSettings: (params?: PaginationParams & { machineType?: string; skinType?: string }) =>
+   636→    fetchAPI<PaginatedResponse<LaserSetting>>(
+   637→      `/laser/settings?${new URLSearchParams(params as Record<string, string>).toString()}`
+   638→    ),
+   639→
+   640→  createLaserSetting: (data: Omit<LaserSetting, 'id' | 'createdAt' | 'updatedAt'>) =>
+   641→    fetchAPI<ApiResponse<LaserSetting>>('/laser/settings', {
+   642→      method: 'POST',
+   643→      body: JSON.stringify(data),
+   644→    }),
+   645→}
+   646→
+   647→// ─── Finance ─────────────────────────────────────────────────────────────────
+   648→
+   649→export const financeApi = {
+   650→  getTransactions: (params?: PaginationParams & { patientId?: string; type?: string; category?: string; dateFrom?: string; dateTo?: string }) =>
+   651→    fetchAPI<PaginatedResponse<Transaction>>(
+   652→      `/finance/transactions?${new URLSearchParams(params as Record<string, string>).toString()}`
+   653→    ),
+   654→
+   655→  createTransaction: (data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) =>
+   656→    fetchAPI<ApiResponse<Transaction>>('/finance/transactions', {
+   657→      method: 'POST',
+   658→      body: JSON.stringify(data),
+   659→    }),
+   660→
+   661→  updateTransaction: (id: string, data: Partial<Transaction>) =>
+   662→    fetchAPI<ApiResponse<Transaction>>(`/finance/transactions/${id}`, {
+   663→      method: 'PUT',
+   664→      body: JSON.stringify(data),
+   665→    }),
+   666→
+   667→  deleteTransaction: (id: string) =>
+   668→    fetchAPI<void>(`/finance/transactions/${id}`, { method: 'DELETE' }),
+   669→
+   670→  getFinanceSummary: (params?: { period?: 'daily' | 'weekly' | 'monthly' | 'yearly'; dateFrom?: string; dateTo?: string }) =>
+   671→    fetchAPI<ApiResponse<FinanceSummary>>(
+   672→      `/finance/summary?${new URLSearchParams(params as Record<string, string>).toString()}`
+   673→    ),
+   674→}
+   675→
+   676→// ─── Appointments ────────────────────────────────────────────────────────────
+   677→
+   678→export const appointmentsApi = {
+   679→  getAppointments: (params?: PaginationParams & { doctorId?: string; patientId?: string; date?: string; status?: string }) =>
+   680→    fetchAPI<PaginatedResponse<Appointment>>(
+   681→      `/appointments?${new URLSearchParams(params as Record<string, string>).toString()}`
+   682→    ),
+   683→
+   684→  createAppointment: (data: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) =>
+   685→    fetchAPI<ApiResponse<Appointment>>('/appointments', {
+   686→      method: 'POST',
+   687→      body: JSON.stringify(data),
+   688→    }),
+   689→
+   690→  updateAppointment: (id: string, data: Partial<Appointment>) =>
+   691→    fetchAPI<ApiResponse<Appointment>>(`/appointments/${id}`, {
+   692→      method: 'PUT',
+   693→      body: JSON.stringify(data),
+   694→    }),
+   695→
+   696→  deleteAppointment: (id: string) =>
+   697→    fetchAPI<void>(`/appointments/${id}`, { method: 'DELETE' }),
+   698→}
+   699→
+   700→// ─── Waiting Queue ───────────────────────────────────────────────────────────
+   701→
+   702→export const waitingApi = {
+   703→  getWaitingQueue: (params?: { doctorId?: string; status?: string }) =>
+   704→    fetchAPI<ApiResponse<QueueItem[]>>(
+   705→      `/waiting?${new URLSearchParams(params as Record<string, string>).toString()}`
+   706→    ),
+   707→
+   708→  addToQueue: (data: Omit<QueueItem, 'id' | 'createdAt' | 'updatedAt' | 'queueNumber'>) =>
+   709→    fetchAPI<ApiResponse<QueueItem>>('/waiting', {
+   710→      method: 'POST',
+   711→      body: JSON.stringify(data),
+   712→    }),
+   713→
+   714→  updateQueueItem: (id: string, data: Partial<QueueItem>) =>
+   715→    fetchAPI<ApiResponse<QueueItem>>(`/waiting/${id}`, {
+   716→      method: 'PUT',
+   717→      body: JSON.stringify(data),
+   718→    }),
+   719→
+   720→  removeFromQueue: (id: string) =>
+   721→    fetchAPI<void>(`/waiting/${id}`, { method: 'DELETE' }),
+   722→}
+   723→
+   724→// ─── Inventory ───────────────────────────────────────────────────────────────
+   725→
+   726→export const inventoryApi = {
+   727→  getItems: (params?: PaginationParams & { category?: string; lowStock?: boolean }) =>
+   728→    fetchAPI<PaginatedResponse<InventoryItem>>(
+   729→      `/inventory?${new URLSearchParams(params as Record<string, string>).toString()}`
+   730→    ),
+   731→
+   732→  createItem: (data: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) =>
+   733→    fetchAPI<ApiResponse<InventoryItem>>('/inventory', {
+   734→      method: 'POST',
+   735→      body: JSON.stringify(data),
+   736→    }),
+   737→
+   738→  updateItem: (id: string, data: Partial<InventoryItem>) =>
+   739→    fetchAPI<ApiResponse<InventoryItem>>(`/inventory/${id}`, {
+   740→      method: 'PUT',
+   741→      body: JSON.stringify(data),
+   742→    }),
+   743→
+   744→  deleteItem: (id: string) =>
+   745→    fetchAPI<void>(`/inventory/${id}`, { method: 'DELETE' }),
+   746→
+   747→  getItemTransactions: (itemId: string, params?: PaginationParams) =>
+   748→    fetchAPI<PaginatedResponse<ItemTransaction>>(
+   749→      `/inventory/${itemId}/transactions?${new URLSearchParams(params as Record<string, string>).toString()}`
+   750→    ),
+   751→
+   752→  createItemTransaction: (itemId: string, data: Omit<ItemTransaction, 'id' | 'createdAt'>) =>
+   753→    fetchAPI<ApiResponse<ItemTransaction>>(`/inventory/${itemId}/transactions`, {
+   754→      method: 'POST',
+   755→      body: JSON.stringify(data),
+   756→    }),
+   757→}
+   758→
+   759→// ─── Treatment Plans ─────────────────────────────────────────────────────────
+   760→
+   761→export const treatmentPlansApi = {
+   762→  getPlans: (params?: PaginationParams & { patientId?: string; status?: string }) =>
+   763→    fetchAPI<PaginatedResponse<TreatmentPlan>>(
+   764→      `/treatment-plans?${new URLSearchParams(params as Record<string, string>).toString()}`
+   765→    ),
+   766→
+   767→  createPlan: (data: Omit<TreatmentPlan, 'id' | 'createdAt' | 'updatedAt'>) =>
+   768→    fetchAPI<ApiResponse<TreatmentPlan>>('/treatment-plans', {
+   769→      method: 'POST',
+   770→      body: JSON.stringify(data),
+   771→    }),
+   772→
+   773→  updatePlan: (id: string, data: Partial<TreatmentPlan>) =>
+   774→    fetchAPI<ApiResponse<TreatmentPlan>>(`/treatment-plans/${id}`, {
+   775→      method: 'PUT',
+   776→      body: JSON.stringify(data),
+   777→    }),
+   778→
+   779→  deletePlan: (id: string) =>
+   780→    fetchAPI<void>(`/treatment-plans/${id}`, { method: 'DELETE' }),
+   781→
+   782→  getPhases: (planId: string) =>
+   783→    fetchAPI<ApiResponse<TreatmentPhase[]>>(`/treatment-plans/${planId}/phases`),
+   784→
+   785→  createPhase: (planId: string, data: Omit<TreatmentPhase, 'id' | 'planId' | 'createdAt' | 'updatedAt'>) =>
+   786→    fetchAPI<ApiResponse<TreatmentPhase>>(`/treatment-plans/${planId}/phases`, {
+   787→      method: 'POST',
+   788→      body: JSON.stringify(data),
+   789→    }),
+   790→}
+   791→
+   792→// ─── Photos ──────────────────────────────────────────────────────────────────
+   793→
+   794→export const photosApi = {
+   795→  getPhotos: (params?: PaginationParams & { patientId?: string; visitId?: string; type?: string }) =>
+   796→    fetchAPI<PaginatedResponse<Photo>>(
+   797→      `/photos?${new URLSearchParams(params as Record<string, string>).toString()}`
+   798→    ),
+   799→
+   800→  uploadPhoto: (formData: FormData) =>
+   801→    fetch('/api/photos', {
+   802→      method: 'POST',
+   803→      body: formData,
+   804→    }).then((res) => {
+   805→      if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+   806→      return res.json() as Promise<ApiResponse<Photo>>
+   807→    }),
+   808→
+   809→  deletePhoto: (id: string) =>
+   810→    fetchAPI<void>(`/photos/${id}`, { method: 'DELETE' }),
+   811→}
+   812→
+   813→// ─── Prescriptions ───────────────────────────────────────────────────────────
+   814→
+   815→export const prescriptionsApi = {
+   816→  getPrescriptions: (params?: PaginationParams & { patientId?: string; visitId?: string }) =>
+   817→    fetchAPI<PaginatedResponse<Prescription>>(
+   818→      `/prescriptions?${new URLSearchParams(params as Record<string, string>).toString()}`
+   819→    ),
+   820→
+   821→  createPrescription: (data: Omit<Prescription, 'id' | 'createdAt' | 'updatedAt'>) =>
+   822→    fetchAPI<ApiResponse<Prescription>>('/prescriptions', {
+   823→      method: 'POST',
+   824→      body: JSON.stringify(data),
+   825→    }),
+   826→
+   827→  getMedications: (prescriptionId: string) =>
+   828→    fetchAPI<ApiResponse<Medication[]>>(`/prescriptions/${prescriptionId}/medications`),
+   829→
+   830→  createMedication: (prescriptionId: string, data: Omit<Medication, 'id' | 'prescriptionId' | 'createdAt'>) =>
+   831→    fetchAPI<ApiResponse<Medication>>(`/prescriptions/${prescriptionId}/medications`, {
+   832→      method: 'POST',
+   833→      body: JSON.stringify(data),
+   834→    }),
+   835→}
+   836→
+   837→// ─── Notifications ───────────────────────────────────────────────────────────
+   838→
+   839→export const notificationsApi = {
+   840→  getNotifications: (params?: PaginationParams & { isRead?: boolean }) =>
+   841→    fetchAPI<PaginatedResponse<Notification>>(
+   842→      `/notifications?${new URLSearchParams(params as Record<string, string>).toString()}`
+   843→    ),
+   844→
+   845→  markAsRead: (id: string) =>
+   846→    fetchAPI<ApiResponse<Notification>>(`/notifications/${id}/read`, {
+   847→      method: 'PUT',
+   848→    }),
+   849→
+   850→  createNotification: (data: Omit<Notification, 'id' | 'createdAt'>) =>
+   851→    fetchAPI<ApiResponse<Notification>>('/notifications', {
+   852→      method: 'POST',
+   853→      body: JSON.stringify(data),
+   854→    }),
+   855→}
+   856→
+   857→// ─── Backup ──────────────────────────────────────────────────────────────────
+   858→
+   859→export const backupApi = {
+   860→  createBackup: () =>
+   861→    fetchAPI<ApiResponse<BackupRecord>>('/backup', { method: 'POST' }),
+   862→
+   863→  getBackups: () =>
+   864→    fetchAPI<ApiResponse<BackupRecord[]>>('/backup'),
+   865→
+   866→  restoreBackup: (id: string) =>
+   867→    fetchAPI<ApiResponse<{ success: boolean }>>(`/backup/${id}/restore`, {
+   868→      method: 'POST',
+   869→    }),
+   870→}
+   871→
+   872→// ─── Audit Log ───────────────────────────────────────────────────────────────
+   873→
+   874→export const auditLogApi = {
+   875→  getAuditLogs: (params?: PaginationParams & { userId?: string; action?: string; entity?: string }) =>
+   876→    fetchAPI<PaginatedResponse<AuditLogEntry>>(
+   877→      `/audit-logs?${new URLSearchParams(params as Record<string, string>).toString()}`
+   878→    ),
+   879→}
+   880→
+   881→// ─── Reports ─────────────────────────────────────────────────────────────────
+   882→
+   883→export const reportsApi = {
+   884→  getDailyReport: (date?: string) =>
+   885→    fetchAPI<ApiResponse<DailyReport>>(
+   886→      `/reports/daily?${date ? new URLSearchParams({ date }).toString() : ''}`
+   887→    ),
+   888→
+   889→  getWeeklyReport: (weekStart?: string) =>
+   890→    fetchAPI<ApiResponse<WeeklyReport>>(
+   891→      `/reports/weekly?${weekStart ? new URLSearchParams({ weekStart }).toString() : ''}`
+   892→    ),
+   893→
+   894→  getMonthlyReport: (month?: string) =>
+   895→    fetchAPI<ApiResponse<MonthlyReport>>(
+   896→      `/reports/monthly?${month ? new URLSearchParams({ month }).toString() : ''}`
+   897→    ),
+   898→}
+   899→

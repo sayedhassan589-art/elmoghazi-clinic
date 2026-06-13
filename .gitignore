@@ -2,5 +2,3 @@ skills/
 node_modules/
 .vercel
 .next/
-.next/
-tool-results/
