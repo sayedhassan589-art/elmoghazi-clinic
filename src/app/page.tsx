@@ -374,6 +374,47 @@ export default function Home() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
+  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
+
+  // Full restore from backup file
+  const restoreFromBackup = async (backupData: any) => {
+    try {
+      // Restore each data type via API
+      const restoreOrder = [
+        { key: 'users', endpoint: '/auth/register', label: 'مستخدمين' },
+        { key: 'services', endpoint: '/services', label: 'خدمات' },
+        { key: 'patients', endpoint: '/patients', label: 'مرضى' },
+        { key: 'visits', endpoint: '/visits', label: 'زيارات' },
+        { key: 'sessions', endpoint: '/sessions', label: 'جلسات' },
+        { key: 'transactions', endpoint: '/finance/transactions', label: 'معاملات مالية' },
+        { key: 'appointments', endpoint: '/appointments', label: 'مواعيد' },
+        { key: 'notes', endpoint: '/notes', label: 'ملاحظات' },
+        { key: 'alerts', endpoint: '/alerts', label: 'تنبيهات' },
+        { key: 'reminders', endpoint: '/reminders', label: 'تذكيرات' },
+        { key: 'laserRecords', endpoint: '/laser/records', label: 'سجلات ليزر' },
+        { key: 'laserPackages', endpoint: '/laser/packages', label: 'باقات ليزر' },
+        { key: 'laserSettings', endpoint: '/laser/settings', label: 'إعدادات ليزر' },
+        { key: 'medications', endpoint: '/medications', label: 'أدوية' },
+        { key: 'inventoryItems', endpoint: '/inventory/items', label: 'مخزون' },
+      ]
+      let restored = 0
+      for (const { key, endpoint, label } of restoreOrder) {
+        const items = backupData[key]
+        if (items?.length) {
+          for (const item of items) {
+            try { await apiFetch(endpoint, { method: 'POST', body: JSON.stringify(item) }); restored++ } catch { /* skip duplicates */ }
+          }
+        }
+      }
+      await loadAllData()
+      setRestoreConfirmOpen(false)
+      setPendingRestoreData(null)
+      toast.success(`تمت الاستعادة بنجاح - ${restored} عنصر ✓`)
+    } catch (e: any) {
+      toast.error('خطأ في الاستعادة: ' + (e.message || ''))
+    }
+  }
 
   // Service price editing & quick notes
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
@@ -1458,16 +1499,64 @@ export default function Home() {
   const createBackup = async () => { try { await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) }); setLastBackup(new Date().toISOString()); toast.success('تم إنشاء نسخة احتياطية'); loadAllData() } catch { toast.error('فشل إنشاء النسخة') } }
   const exportBackup = async (format: string) => {
     try {
-      const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, inventoryItems, medications, reminders, notes, exportDate: new Date().toISOString() }
-      let content: string; let filename: string; let mimeType: string
-      if (format === 'csv') { const headers = Object.keys(patients[0] || {}).join(','); const rows = patients.map(p => Object.values(p).join(',')).join('\n'); content = headers + '\n' + rows; filename = `elmoghazi-${todayStr}.csv`; mimeType = 'text/csv' }
-      else { content = JSON.stringify(data, null, 2); filename = `elmoghazi-${todayStr}.json`; mimeType = 'application/json' }
-      const blob = new Blob([content], { type: mimeType }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`تم تصدير النسخة ${format.toUpperCase()}`)
+      if (format === 'full') {
+        // Full backup: download all data from the server as a complete JSON file
+        const res = await apiFetch<any>('/backups?limit=1')
+        // Create a fresh full backup first
+        await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) })
+        // Get the latest backup with full data
+        const backupsRes = await apiFetch<any>('/backups?limit=1')
+        const latestBackup = backupsRes?.backups?.[0]
+        if (latestBackup) {
+          // Fetch the backup with its data
+          const backupDetail = await apiFetch<any>(`/backups/${latestBackup.id}`)
+          const backupData = backupDetail?.backup || backupDetail
+          if (backupData?.data) {
+            const content = typeof backupData.data === 'string' ? backupData.data : JSON.stringify(backupData.data, null, 2)
+            const blob = new Blob([content], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-full-backup-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+            toast.success('تم تصدير نسخة احتياطية كاملة ✓')
+            return
+          }
+        }
+        // Fallback: export from local state
+        const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, laserSettings, inventoryItems, medications, reminders, notes, alerts, followUpRecords, doctors, exportDate: new Date().toISOString(), type: 'full-backup' }
+        const content = JSON.stringify(data, null, 2)
+        const blob = new Blob([content], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-full-backup-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+        toast.success('تم تصدير نسخة احتياطية كاملة ✓')
+      } else {
+        const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, inventoryItems, medications, reminders, notes, exportDate: new Date().toISOString() }
+        let content: string; let filename: string; let mimeType: string
+        if (format === 'csv') { const headers = Object.keys(patients[0] || {}).join(','); const rows = patients.map(p => Object.values(p).join(',')).join('\n'); content = headers + '\n' + rows; filename = `elmoghazi-${todayStr}.csv`; mimeType = 'text/csv' }
+        else { content = JSON.stringify(data, null, 2); filename = `elmoghazi-${todayStr}.json`; mimeType = 'application/json' }
+        const blob = new Blob([content], { type: mimeType }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`تم تصدير النسخة ${format.toUpperCase()}`)
+      }
     } catch { toast.error('فشل التصدير') }
   }
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
-    try { const text = await file.text(); if (file.name.endsWith('.json')) { const data = JSON.parse(text); if (data?.patients) for (const p of data.patients) await addItem('/patients', p, setPatients); toast.success(`تم استيراد ${file.name}`) } else { toast.error('صيغة غير مدعومة') } } catch { toast.error('فشل الاستيراد') }
+    try {
+      const text = await file.text()
+      if (file.name.endsWith('.json')) {
+        const data = JSON.parse(text)
+        // Check if this is a full backup (has data property from server backup)
+        const backupData = data?.data || data
+        if (backupData?.patients && (backupData?.visits || backupData?.transactions)) {
+          // Full backup restore via API
+          setRestoreConfirmOpen(true)
+          setPendingRestoreData(backupData)
+        } else if (data?.patients) {
+          // Simple patient import
+          for (const p of data.patients) await addItem('/patients', p, setPatients)
+          toast.success(`تم استيراد ${data.patients.length} مريض`)
+        } else {
+          toast.error('صيغة الملف غير مدعومة')
+        }
+      } else { toast.error('صيغة غير مدعومة') }
+    } catch { toast.error('فشل الاستيراد') }
     e.target.value = ''
   }
 
@@ -4622,9 +4711,13 @@ export default function Home() {
                     {lastBackup && <p className="text-xs text-muted-foreground">آخر نسخة: {formatDate(lastBackup)}</p>}
                     <div className="grid grid-cols-2 gap-3">
                       <motion.button whileTap={{ scale: 0.95 }} onClick={createBackup} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800"><HardDrive className="text-emerald-600" size={24} /><span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">إنشاء نسخة</span></motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('full')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 border-2 border-rose-300 dark:border-rose-700"><Download className="text-rose-600" size={24} /><span className="text-sm font-bold text-rose-700 dark:text-rose-400">نسخة احتياطية كاملة</span><span className="text-[9px] text-rose-500">تحميل ملف JSON</span></motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('json')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800"><FileDown className="text-blue-600" size={24} /><span className="text-sm font-medium text-blue-700 dark:text-blue-400">تصدير JSON</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-medium text-amber-700 dark:text-amber-400">استيراد</span></motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border-2 border-amber-300 dark:border-amber-700"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-bold text-amber-700 dark:text-amber-400">استعادة من ملف</span><span className="text-[9px] text-amber-500">استيراد نسخة احتياطية</span></motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('csv')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-800"><Archive className="text-violet-600" size={24} /><span className="text-sm font-medium text-violet-700 dark:text-violet-400">تصدير CSV</span></motion.button>
+                    </div>
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800">
+                      <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1"><AlertTriangle size={12} /> مهم: حمل النسخة الاحتياطية الكاملة بانتظام واحفظها على جهازك. النسخ المخزنة في النظام فقط قد تضيع!</p>
                     </div>
                     <input ref={fileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={handleFileImport} />
                     {backups.length > 0 && <div className="space-y-2">{backups.map(b => <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm"><div className="flex items-center gap-2"><Database size={14} className="text-muted-foreground" /><span>{b.type === 'auto' ? 'تلقائي' : 'يدوي'}</span></div><Badge variant="outline" className={b.status === 'completed' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'}>{b.status === 'completed' ? 'مكتمل' : b.status}</Badge></div>)}</div>}
@@ -6415,6 +6508,25 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Restore Backup Confirmation Dialog */}
+      <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              استعادة نسخة احتياطية
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم استعادة البيانات من ملف النسخة الاحتياطية. البيانات المكررة سيتم تخطيها تلقائياً. هل تريد المتابعة؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction className="bg-amber-600" onClick={() => { if (pendingRestoreData) restoreFromBackup(pendingRestoreData) }}>استعادة</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   )

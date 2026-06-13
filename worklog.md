@@ -28,3 +28,24 @@ Stage Summary:
 - Revenue chart now shows all days of the month
 - All financial transactions now properly persist to database
 - Build succeeds, application is ready to use
+
+---
+Task ID: 2
+Agent: Main
+Task: Prevent future data loss - add full backup/restore protection
+
+Work Log:
+- Added "full backup download" button that exports ALL data as a downloadable JSON file (survives DB loss)
+- Added "restore from file" button with confirmation dialog for importing backup files
+- Added restoreFromBackup function that restores data type by type via API (skips duplicates)
+- Added restore confirmation AlertDialog to prevent accidental restores
+- Added warning message in backup section: "Download full backup regularly and save to your device"
+- Added GET endpoint to /api/backups/[id] for downloading backup data
+- Removed prisma db push from build script (now only runs prisma generate + next build)
+- Added separate db:setup script for initial database setup
+- This means rebuilds will NOT touch the database schema, preventing accidental data loss
+
+Stage Summary:
+- Users can now download full backup files to their device and restore from them
+- Build script no longer runs prisma db push, preventing schema changes during rebuilds
+- Data is protected against future DB loss through file-based backups

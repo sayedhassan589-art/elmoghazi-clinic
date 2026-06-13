@@ -1,6 +1,22 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+
+    const backup = await db.backup.findUnique({ where: { id } })
+    if (!backup) {
+      return NextResponse.json({ error: 'Backup not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ backup })
+  } catch (error) {
+    console.error('Get backup error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
