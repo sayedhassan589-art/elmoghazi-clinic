@@ -1,0 +1,3 @@
+{
+  "/api/laser/sessions/[id]/route": "app/api/laser/sessions/[id]/route.js"
+}
