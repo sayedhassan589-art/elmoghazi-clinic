@@ -377,40 +377,23 @@ export default function Home() {
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
   const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
 
-  // Full restore from backup file
+  // Full restore from backup file — uses dedicated import endpoint
+  // This sends the entire backup JSON to /api/backups/import which restores
+  // directly via Prisma createMany, preserving original IDs and all relationships.
   const restoreFromBackup = async (backupData: any) => {
     try {
-      // Restore each data type via API
-      const restoreOrder = [
-        { key: 'users', endpoint: '/auth/register', label: 'مستخدمين' },
-        { key: 'services', endpoint: '/services', label: 'خدمات' },
-        { key: 'patients', endpoint: '/patients', label: 'مرضى' },
-        { key: 'visits', endpoint: '/visits', label: 'زيارات' },
-        { key: 'sessions', endpoint: '/sessions', label: 'جلسات' },
-        { key: 'transactions', endpoint: '/finance/transactions', label: 'معاملات مالية' },
-        { key: 'appointments', endpoint: '/appointments', label: 'مواعيد' },
-        { key: 'notes', endpoint: '/notes', label: 'ملاحظات' },
-        { key: 'alerts', endpoint: '/alerts', label: 'تنبيهات' },
-        { key: 'reminders', endpoint: '/reminders', label: 'تذكيرات' },
-        { key: 'laserRecords', endpoint: '/laser/records', label: 'سجلات ليزر' },
-        { key: 'laserPackages', endpoint: '/laser/packages', label: 'باقات ليزر' },
-        { key: 'laserSettings', endpoint: '/laser/settings', label: 'إعدادات ليزر' },
-        { key: 'medications', endpoint: '/medications', label: 'أدوية' },
-        { key: 'inventoryItems', endpoint: '/inventory/items', label: 'مخزون' },
-      ]
-      let restored = 0
-      for (const { key, endpoint, label } of restoreOrder) {
-        const items = backupData[key]
-        if (items?.length) {
-          for (const item of items) {
-            try { await apiFetch(endpoint, { method: 'POST', body: JSON.stringify(item) }); restored++ } catch { /* skip duplicates */ }
-          }
-        }
+      const response = await apiFetch('/backups/import', {
+        method: 'POST',
+        body: JSON.stringify(backupData),
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || result.details || 'فشل الاستعادة')
       }
       await loadAllData()
       setRestoreConfirmOpen(false)
       setPendingRestoreData(null)
-      toast.success(`تمت الاستعادة بنجاح - ${restored} عنصر ✓`)
+      toast.success(`تمت الاستعادة بنجاح - ${result.totalRestored || ''} عنصر ✓`)
     } catch (e: any) {
       toast.error('خطأ في الاستعادة: ' + (e.message || ''))
     }
@@ -1542,21 +1525,26 @@ export default function Home() {
       const text = await file.text()
       if (file.name.endsWith('.json')) {
         const data = JSON.parse(text)
-        // Check if this is a full backup (has data property from server backup)
+        // Support both backup formats:
+        // 1. Full backup with wrapper: { exportedAt, version, data: { ... } }
+        // 2. Direct data format: { patients: [...], visits: [...], ... }
         const backupData = data?.data || data
-        if (backupData?.patients && (backupData?.visits || backupData?.transactions)) {
-          // Full backup restore via API
+        // Check if this looks like a full backup (has any known data type array)
+        const knownKeys = ['users','patients','services','visits','sessions','transactions','laserRecords','laserSessions','laserNotes','laserPackages','laserSettings','appointments','notes','alerts','reminders','medications','inventoryItems','inventoryTransactions','treatmentPlans','treatmentPhases','treatmentPlanSessions','patientPhotos','prescriptions','prescriptionItems','notifications','auditLogs','partnerDoctors','followUpRecords','followUpVisits']
+        const hasBackupData = knownKeys.some(k => Array.isArray(backupData?.[k]) && backupData[k].length > 0)
+        if (hasBackupData) {
+          // Full backup restore via dedicated import endpoint
           setRestoreConfirmOpen(true)
           setPendingRestoreData(backupData)
-        } else if (data?.patients) {
-          // Simple patient import
+        } else if (data?.patients && Array.isArray(data.patients)) {
+          // Simple patient import (only patients, no other data)
           for (const p of data.patients) await addItem('/patients', p, setPatients)
           toast.success(`تم استيراد ${data.patients.length} مريض`)
         } else {
-          toast.error('صيغة الملف غير مدعومة')
+          toast.error('صيغة الملف غير مدعومة - الملف لا يحتوي على بيانات صالحة')
         }
-      } else { toast.error('صيغة غير مدعومة') }
-    } catch { toast.error('فشل الاستيراد') }
+      } else { toast.error('صيغة غير مدعومة - يجب أن يكون الملف بامتداد .json') }
+    } catch (err: any) { toast.error('فشل الاستيراد: ' + (err.message || 'ملف تالف')) }
     e.target.value = ''
   }
 
@@ -6518,7 +6506,8 @@ export default function Home() {
               استعادة نسخة احتياطية
             </AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم استعادة البيانات من ملف النسخة الاحتياطية. البيانات المكررة سيتم تخطيها تلقائياً. هل تريد المتابعة؟
+              <span className="text-red-600 font-bold">تحذير: سيتم حذف جميع البيانات الحالية واستبدالها ببيانات النسخة الاحتياطية!</span>
+              <br />هذا الإجراء لا يمكن التراجع عنه. هل تريد المتابعة؟
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

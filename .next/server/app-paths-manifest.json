@@ -10,6 +10,7 @@
   "/api/auth/login/route": "app/api/auth/login/route.js",
   "/api/auth/me/route": "app/api/auth/me/route.js",
   "/api/backups/[id]/route": "app/api/backups/[id]/route.js",
+  "/api/backups/import/route": "app/api/backups/import/route.js",
   "/api/backups/route": "app/api/backups/route.js",
   "/api/clear-data/route": "app/api/clear-data/route.js",
   "/api/doctors/[id]/route": "app/api/doctors/[id]/route.js",

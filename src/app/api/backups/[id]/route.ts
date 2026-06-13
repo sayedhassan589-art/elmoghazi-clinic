@@ -33,6 +33,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Note: This is a simple restore. In production, you'd want transactions and more careful handling.
 
     // Delete in reverse dependency order
+    await db.followUpVisit.deleteMany()
+    await db.followUpRecord.deleteMany()
     await db.treatmentPlanSession.deleteMany()
     await db.treatmentPhase.deleteMany()
     await db.treatmentPlan.deleteMany()
@@ -58,6 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await db.session.deleteMany()
     await db.visit.deleteMany()
     await db.service.deleteMany()
+    await db.partnerDoctor.deleteMany()
     await db.patient.deleteMany()
     await db.user.deleteMany()
 
@@ -89,6 +92,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (data.prescriptionItems?.length) await db.prescriptionItem.createMany({ data: data.prescriptionItems })
     if (data.notifications?.length) await db.notification.createMany({ data: data.notifications })
     if (data.auditLogs?.length) await db.auditLog.createMany({ data: data.auditLogs })
+    if (data.partnerDoctors?.length) await db.partnerDoctor.createMany({ data: data.partnerDoctors })
+    if (data.followUpRecords?.length) await db.followUpRecord.createMany({ data: data.followUpRecords })
+    if (data.followUpVisits?.length) await db.followUpVisit.createMany({ data: data.followUpVisits })
 
     return NextResponse.json({ message: 'Backup restored successfully' })
   } catch (error) {

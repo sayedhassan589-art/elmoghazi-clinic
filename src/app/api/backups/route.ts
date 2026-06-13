@@ -72,6 +72,9 @@ export async function POST(request: Request) {
       prescriptionItems,
       notifications,
       auditLogs,
+      partnerDoctors,
+      followUpRecords,
+      followUpVisits,
     ] = await Promise.all([
       db.user.findMany(),
       db.patient.findMany(),
@@ -100,11 +103,15 @@ export async function POST(request: Request) {
       db.prescriptionItem.findMany(),
       db.notification.findMany(),
       db.auditLog.findMany(),
+      db.partnerDoctor.findMany(),
+      db.followUpRecord.findMany(),
+      db.followUpVisit.findMany(),
     ])
 
     const backupData = JSON.stringify({
       exportedAt: new Date().toISOString(),
-      version: '1.0',
+      version: '2.0',
+      app: 'elmoghazi-clinic',
       data: {
         users,
         patients,
@@ -133,6 +140,9 @@ export async function POST(request: Request) {
         prescriptionItems,
         notifications,
         auditLogs,
+        partnerDoctors,
+        followUpRecords,
+        followUpVisits,
       },
     })
 

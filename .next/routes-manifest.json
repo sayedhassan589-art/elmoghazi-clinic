@@ -314,6 +314,12 @@
       "namedRegex": "^/api/backups(?:/)?$"
     },
     {
+      "page": "/api/backups/import",
+      "regex": "^/api/backups/import(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/backups/import(?:/)?$"
+    },
+    {
       "page": "/api/clear-data",
       "regex": "^/api/clear\\-data(?:/)?$",
       "routeKeys": {},

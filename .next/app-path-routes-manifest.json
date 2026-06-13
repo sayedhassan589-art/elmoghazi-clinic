@@ -10,6 +10,7 @@
   "/api/auth/login/route": "/api/auth/login",
   "/api/auth/me/route": "/api/auth/me",
   "/api/backups/[id]/route": "/api/backups/[id]",
+  "/api/backups/import/route": "/api/backups/import",
   "/api/backups/route": "/api/backups",
   "/api/clear-data/route": "/api/clear-data",
   "/api/doctors/[id]/route": "/api/doctors/[id]",
