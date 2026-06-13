@@ -373,6 +373,28 @@ export default function Home() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
+  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
+
+  // Full restore from backup file — uses dedicated import endpoint
+  const restoreFromBackup = async (backupData: any) => {
+    try {
+      const response = await apiFetch('/backups/import', {
+        method: 'POST',
+        body: JSON.stringify(backupData),
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || result.details || 'فشل الاستعادة')
+      }
+      await loadAllData()
+      setRestoreConfirmOpen(false)
+      setPendingRestoreData(null)
+      toast.success(`تمت الاستعادة بنجاح - ${result.totalRestored || ''} عنصر`)
+    } catch (e: any) {
+      toast.error('خطأ في الاستعادة: ' + (e.message || ''))
+    }
+  }
 
   // Service price editing & quick notes
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
@@ -1445,7 +1467,30 @@ export default function Home() {
   }
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
-    try { const text = await file.text(); if (file.name.endsWith('.json')) { const data = JSON.parse(text); if (data?.patients) for (const p of data.patients) await addItem('/patients', p, setPatients); toast.success(`تم استيراد ${file.name}`) } else { toast.error('صيغة غير مدعومة') } } catch { toast.error('فشل الاستيراد') }
+    try {
+      const text = await file.text()
+      if (file.name.endsWith('.json')) {
+        const data = JSON.parse(text)
+        // Support both backup formats:
+        // 1. Full backup with wrapper: { exportedAt, version, data: { ... } }
+        // 2. Direct data format: { patients: [...], visits: [...], ... }
+        const backupData = data?.data || data
+        // Check if this looks like a full backup
+        const knownKeys = ['users','patients','services','visits','sessions','transactions','laserRecords','laserSessions','laserNotes','laserPackages','laserSettings','appointments','notes','alerts','reminders','medications','inventoryItems','inventoryTransactions','treatmentPlans','treatmentPhases','treatmentPlanSessions','patientPhotos','prescriptions','prescriptionItems','notifications','auditLogs','partnerDoctors','followUpRecords','followUpVisits']
+        const hasBackupData = knownKeys.some(k => Array.isArray(backupData?.[k]) && backupData[k].length > 0)
+        if (hasBackupData) {
+          // Full backup restore via dedicated import endpoint
+          setRestoreConfirmOpen(true)
+          setPendingRestoreData(backupData)
+        } else if (data?.patients && Array.isArray(data.patients)) {
+          // Simple patient import (only patients, no other data)
+          for (const p of data.patients) await addItem('/patients', p, setPatients)
+          toast.success(`تم استيراد ${data.patients.length} مريض`)
+        } else {
+          toast.error('صيغة الملف غير مدعومة - الملف لا يحتوي على بيانات صالحة')
+        }
+      } else { toast.error('صيغة غير مدعومة - يجب أن يكون الملف بامتداد .json') }
+    } catch (err: any) { toast.error('فشل الاستيراد: ' + (err.message || 'ملف تالف')) }
     e.target.value = ''
   }
 
@@ -1458,7 +1503,7 @@ export default function Home() {
 
     const patientId = patient.id
     // Use custom date if provided, otherwise use now (Cairo timezone)
-    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00').toISOString() : new Date().toISOString()
+    const customDate = newPatientDate ? new Date(newPatientDate + 'T00:00:00+02:00').toISOString() : new Date().toISOString()
     const vPrice = parseFloat(visitPrice) || 0
     const sPrice = parseFloat(customServicePrice) || 0
 
@@ -5329,6 +5374,26 @@ export default function Home() {
             } catch { toast.error('خطأ في الحذف') }
             setDeleteLaserSessionConfirmId(null)
           }}>حذف</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Backup Confirmation Dialog */}
+      <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              استعادة نسخة احتياطية
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-red-600 font-bold">تحذير: سيتم حذف جميع البيانات الحالية واستبدالها ببيانات النسخة الاحتياطية!</span>
+              <br />هذا الإجراء لا يمكن التراجع عنه. هل تريد المتابعة؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction className="bg-amber-600" onClick={() => { if (pendingRestoreData) restoreFromBackup(pendingRestoreData) }}>استعادة</AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
