@@ -5,3 +5,4 @@ node_modules/
 .next/
 tool-results/
 db/*.db
+.env
