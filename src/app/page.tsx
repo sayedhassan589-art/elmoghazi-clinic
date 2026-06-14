@@ -2354,36 +2354,162 @@ export default function Home() {
                     <TabsTrigger value="notes" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><FileText size={12} className="inline ml-1 text-amber-500" />ملاحظات</TabsTrigger>
                   </TabsList>
 
-                  {/* ═══ OVERVIEW ═══ */}
-                  <TabsContent value="overview" className="space-y-3 mt-3">
+                  {/* ═══ OVERVIEW — Premium Dashboard Style ═══ */}
+                  <TabsContent value="overview" className="space-y-4 mt-4">
+                    {(() => {
+                      const pVisits = visits.filter(v => v.patientId === selectedPatient.id)
+                      const pSessions = sessions.filter(s => s.patientId === selectedPatient.id)
+                      const pLaser = laserRecords.filter(l => l.patientId === selectedPatient.id)
+                      const pLaserSessions = pLaser.flatMap(r => r.laserSessions || [])
+                      const pNotes = notes.filter(n => n.patientId === selectedPatient.id)
+                      const totalSpent = pSessions.reduce((a, s) => a + s.price, 0) + pLaserSessions.reduce((a, s) => a + (s.price || 0), 0)
+                      const totalPaid = pSessions.filter(s => s.paid).reduce((a, s) => a + s.price, 0) + pLaserSessions.filter(s => s.paid).reduce((a, s) => a + (s.price || 0), 0)
+                      const totalUnpaid = totalSpent - totalPaid
+                      const latestVisit = pVisits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+                      const latestDiagnosis = latestVisit?.diagnosis || latestVisit?.notes
+                      return (
+                    <>
+
+                    {/* ─── Hero Info Cards ─── */}
                     <div className="grid grid-cols-2 gap-3">
-                      <Card className="border border-slate-200 dark:border-slate-800"><CardHeader className="pb-2"><CardTitle className="text-xs flex items-center gap-2"><Phone size={13} className="text-blue-500" /> بيانات الاتصال</CardTitle></CardHeader><CardContent className="space-y-1.5 text-xs">{selectedPatient.phone && <p className="flex items-center gap-2"><Phone size={11} className="text-blue-500" /><span className="text-muted-foreground">هاتف:</span> <a href={`tel:${selectedPatient.phone}`} className="text-primary hover:underline font-bold">{selectedPatient.phone}</a></p>}{selectedPatient.phone2 && <p className="flex items-center gap-2"><Phone size={11} className="text-teal-500" /><span className="text-muted-foreground">هاتف2:</span> <a href={`tel:${selectedPatient.phone2}`} className="text-primary hover:underline">{selectedPatient.phone2}</a></p>}{selectedPatient.address && <p className="flex items-center gap-2"><MapPin size={11} className="text-indigo-500" /><span className="text-muted-foreground">عنوان:</span> {selectedPatient.address}</p>}{!selectedPatient.phone && !selectedPatient.phone2 && !selectedPatient.address && <p className="text-muted-foreground text-[10px]">لا توجد بيانات اتصال</p>}</CardContent></Card>
-                      <Card className="border border-slate-200 dark:border-slate-800"><CardHeader className="pb-2"><CardTitle className="text-xs flex items-center gap-2"><Heart size={13} className="text-red-500" /> بيانات طبية</CardTitle></CardHeader><CardContent className="space-y-1.5 text-xs">{selectedPatient.bloodType && <p className="flex items-center gap-2"><span className="text-muted-foreground">فصيلة:</span> <Badge variant="outline" className="font-bold text-[10px]">{selectedPatient.bloodType}</Badge></p>}{selectedPatient.medicalHistory && <p><span className="text-muted-foreground">تاريخ:</span> {selectedPatient.medicalHistory}</p>}{selectedPatient.notes && <p><span className="text-muted-foreground">ملاحظات:</span> {selectedPatient.notes}</p>}{!selectedPatient.bloodType && !selectedPatient.medicalHistory && !selectedPatient.notes && <p className="text-muted-foreground text-[10px]">لا توجد بيانات طبية</p>}</CardContent></Card>
-                    </div>
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-4 gap-2">
-                      <motion.div whileTap={{ scale: 0.97 }} onClick={() => setPatientDetailTab('visits')} className="p-3 text-center rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 cursor-pointer"><Stethoscope size={18} className="text-blue-500 mx-auto mb-1" /><p className="text-lg font-black text-blue-600">{visits.filter(v => v.patientId === selectedPatient.id).length}</p><p className="text-[9px] text-muted-foreground font-bold">زيارة</p></motion.div>
-                      <motion.div whileTap={{ scale: 0.97 }} onClick={() => setPatientDetailTab('sessions')} className="p-3 text-center rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20 cursor-pointer"><Zap size={18} className="text-orange-500 mx-auto mb-1" /><p className="text-lg font-black text-orange-600">{sessions.filter(s => s.patientId === selectedPatient.id).length}</p><p className="text-[9px] text-muted-foreground font-bold">جلسة</p></motion.div>
-                      <motion.div whileTap={{ scale: 0.97 }} onClick={() => setPatientDetailTab('laser')} className="p-3 text-center rounded-xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/50 dark:bg-cyan-950/20 cursor-pointer"><Zap size={18} className="text-cyan-500 mx-auto mb-1" /><p className="text-lg font-black text-cyan-600">{laserRecords.filter(l => l.patientId === selectedPatient.id).length}</p><p className="text-[9px] text-muted-foreground font-bold">ليزر</p></motion.div>
-                      <motion.div whileTap={{ scale: 0.97 }} onClick={() => setPatientDetailTab('finance')} className="p-3 text-center rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer"><DollarSign size={18} className="text-emerald-500 mx-auto mb-1" /><p className="text-lg font-black text-emerald-600">{formatCurrency(sessions.filter(s => s.patientId === selectedPatient.id).reduce((a,s)=>a+s.price,0))}</p><p className="text-[9px] text-muted-foreground font-bold">إجمالي</p></motion.div>
-                    </div>
-                    {/* Timeline */}
-                    <Card className="border border-slate-200 dark:border-slate-800"><CardHeader className="pb-2"><CardTitle className="text-xs flex items-center gap-2"><Activity size={13} className="text-indigo-500" /> سجل النشاط</CardTitle></CardHeader>
-                      <CardContent className="space-y-1.5">{(() => {
-                        const pV = visits.filter(v => v.patientId === selectedPatient.id).map(v => ({ id: v.id, t: 'visit' as const, date: v.date, icon: <Stethoscope size={14} className="text-violet-500" />, label: VISIT_TYPES.find(ti => ti.id === v.type)?.label || v.type, detail: v.notes || v.diagnosis || '' }))
-                        const pS = sessions.filter(s => s.patientId === selectedPatient.id).map(s => ({ id: s.id, t: 'session' as const, date: s.date, icon: <Zap size={14} className={s.paid ? 'text-emerald-500' : 'text-amber-500'} />, label: (services.find(sv => sv.id === s.serviceId)?.name || 'جلسة') + (s.paid ? ' ✅' : ''), detail: `${formatCurrency(s.price)}` }))
-                        const pN = notes.filter(n => n.patientId === selectedPatient.id).map(n => ({ id: n.id, t: 'note' as const, date: n.createdAt, icon: <FileText size={14} className="text-amber-500" />, label: 'ملاحظة', detail: n.content }))
-                        const tl = [...pV, ...pS, ...pN].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        if (tl.length === 0) return <p className="text-center text-muted-foreground text-xs py-6">لا توجد عمليات بعد</p>
-                        return tl.slice(0, 20).map(item => (
-                          <div key={`${item.t}-${item.id}`} className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                            <div className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">{item.icon}</div>
-                            <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><Badge variant="outline" className="text-[8px]">{item.label}</Badge><span className="text-[9px] text-muted-foreground">{formatDate(item.date)}</span></div>{item.detail && <p className="text-[11px] mt-0.5 truncate">{item.detail}</p>}</div>
-                            <div className="flex gap-0.5">{item.t === 'visit' && <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/visits', item.id, setVisits)}><Trash2 size={9} className="text-red-400" /></Button>}{item.t === 'session' && <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/sessions', item.id, setSessions)}><Trash2 size={9} className="text-red-400" /></Button>}{item.t === 'note' && <><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingNoteId(item.id); setEditingNoteContent(item.detail) }}><Edit3 size={9} className="text-blue-400" /></Button><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/notes', item.id, setNotes)}><Trash2 size={9} className="text-red-400" /></Button></>}</div>
+                      {/* Contact Card */}
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className="relative overflow-hidden rounded-2xl border-2 border-blue-200 dark:border-blue-800/60 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/20 dark:via-slate-900/40 dark:to-indigo-950/20 p-4 shadow-sm">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-blue-200/30 dark:bg-blue-700/10 rounded-full -translate-y-4 translate-x-4 blur-xl" />
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md"><Phone size={14} className="text-white" /></div>
+                            <h4 className="text-sm font-black text-blue-700 dark:text-blue-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>بيانات الاتصال</h4>
                           </div>
-                        ))
-                      })()}</CardContent>
-                    </Card>
+                          <div className="space-y-2">
+                            {selectedPatient.phone && <div className="flex items-center gap-2 p-2 rounded-xl bg-blue-50/80 dark:bg-blue-900/20"><Phone size={13} className="text-blue-500" /><div><p className="text-[10px] text-muted-foreground font-bold">الهاتف</p><a href={`tel:${selectedPatient.phone}`} className="text-sm font-bold text-blue-700 dark:text-blue-300 hover:underline" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.phone}</a></div></div>}
+                            {selectedPatient.phone2 && <div className="flex items-center gap-2 p-2 rounded-xl bg-teal-50/80 dark:bg-teal-900/20"><Phone size={13} className="text-teal-500" /><div><p className="text-[10px] text-muted-foreground font-bold">هاتف آخر</p><a href={`tel:${selectedPatient.phone2}`} className="text-sm font-bold text-teal-700 dark:text-teal-300 hover:underline" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.phone2}</a></div></div>}
+                            {selectedPatient.address && <div className="flex items-center gap-2 p-2 rounded-xl bg-indigo-50/80 dark:bg-indigo-900/20"><MapPin size={13} className="text-indigo-500" /><div><p className="text-[10px] text-muted-foreground font-bold">العنوان</p><p className="text-sm font-bold text-indigo-700 dark:text-indigo-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.address}</p></div></div>}
+                            {!selectedPatient.phone && !selectedPatient.phone2 && !selectedPatient.address && <p className="text-center text-muted-foreground text-xs py-3">لا توجد بيانات اتصال</p>}
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Medical Card */}
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative overflow-hidden rounded-2xl border-2 border-rose-200 dark:border-rose-800/60 bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-slate-900/40 dark:to-pink-950/20 p-4 shadow-sm">
+                        <div className="absolute top-0 left-0 w-16 h-16 bg-rose-200/30 dark:bg-rose-700/10 rounded-full -translate-y-4 -translate-x-4 blur-xl" />
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 shadow-md"><Heart size={14} className="text-white" /></div>
+                            <h4 className="text-sm font-black text-rose-700 dark:text-rose-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>البيانات الطبية</h4>
+                          </div>
+                          <div className="space-y-2">
+                            {selectedPatient.bloodType && <div className="flex items-center gap-2 p-2 rounded-xl bg-red-50/80 dark:bg-red-900/20"><div className="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center font-black text-xs shadow-sm">{selectedPatient.bloodType}</div><div><p className="text-[10px] text-muted-foreground font-bold">فصيلة الدم</p><p className="text-sm font-bold text-red-700 dark:text-red-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.bloodType}</p></div></div>}
+                            {selectedPatient.allergies && <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-50/80 dark:bg-amber-900/20"><AlertTriangle size={13} className="text-amber-500" /><div><p className="text-[10px] text-muted-foreground font-bold">الحساسية</p><p className="text-sm font-bold text-amber-700 dark:text-amber-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.allergies}</p></div></div>}
+                            {selectedPatient.medicalHistory && <div className="flex items-center gap-2 p-2 rounded-xl bg-purple-50/80 dark:bg-purple-900/20"><ClipboardCheck size={13} className="text-purple-500" /><div><p className="text-[10px] text-muted-foreground font-bold">التاريخ المرضي</p><p className="text-sm font-bold text-purple-700 dark:text-purple-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.medicalHistory}</p></div></div>}
+                            {latestDiagnosis && <div className="flex items-center gap-2 p-2 rounded-xl bg-violet-50/80 dark:bg-violet-900/20"><Stethoscope size={13} className="text-violet-500" /><div><p className="text-[10px] text-muted-foreground font-bold">آخر تشخيص</p><p className="text-sm font-bold text-violet-700 dark:text-violet-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{latestDiagnosis}</p></div></div>}
+                            {!selectedPatient.bloodType && !selectedPatient.medicalHistory && !selectedPatient.allergies && !latestDiagnosis && <p className="text-center text-muted-foreground text-xs py-3">لا توجد بيانات طبية</p>}
+                          </div>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* ─── Patient Notes ─── */}
+                    {selectedPatient.notes && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="relative overflow-hidden rounded-2xl border-2 border-amber-200 dark:border-amber-800/60 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-orange-950/20 p-4 shadow-sm">
+                        <div className="absolute top-0 left-0 w-20 h-20 bg-amber-200/30 dark:bg-amber-700/10 rounded-full -translate-y-6 -translate-x-6 blur-2xl" />
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 shadow-md"><StickyNote size={14} className="text-white" /></div>
+                            <h4 className="text-sm font-black text-amber-700 dark:text-amber-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>ملاحظات المريض</h4>
+                          </div>
+                          <p className="text-[15px] font-semibold leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-wrap" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif", lineHeight: '1.9' }}>{selectedPatient.notes}</p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* ─── Quick Stats — Modern Dashboard Cards ─── */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} whileTap={{ scale: 0.95 }} onClick={() => setPatientDetailTab('visits')} className="relative overflow-hidden rounded-2xl p-4 text-center cursor-pointer border-2 border-blue-200 dark:border-blue-800/60 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-sm hover:shadow-lg transition-all group">
+                        <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-200/20 dark:bg-blue-700/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+                        <div className="relative z-10">
+                          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 w-fit mx-auto mb-2 shadow-md"><Stethoscope size={18} className="text-white" /></div>
+                          <p className="text-2xl font-black text-blue-600 dark:text-blue-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{pVisits.length}</p>
+                          <p className="text-xs font-bold text-blue-500/70 mt-0.5" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>زيارة</p>
+                        </div>
+                      </motion.div>
+                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }} whileTap={{ scale: 0.95 }} onClick={() => setPatientDetailTab('sessions')} className="relative overflow-hidden rounded-2xl p-4 text-center cursor-pointer border-2 border-orange-200 dark:border-orange-800/60 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 shadow-sm hover:shadow-lg transition-all group">
+                        <div className="absolute -top-4 -right-4 w-20 h-20 bg-orange-200/20 dark:bg-orange-700/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+                        <div className="relative z-10">
+                          <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 w-fit mx-auto mb-2 shadow-md"><Zap size={18} className="text-white" /></div>
+                          <p className="text-2xl font-black text-orange-600 dark:text-orange-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{pSessions.length}</p>
+                          <p className="text-xs font-bold text-orange-500/70 mt-0.5" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>جلسة</p>
+                        </div>
+                      </motion.div>
+                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} whileTap={{ scale: 0.95 }} onClick={() => setPatientDetailTab('laser')} className="relative overflow-hidden rounded-2xl p-4 text-center cursor-pointer border-2 border-cyan-200 dark:border-cyan-800/60 bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 shadow-sm hover:shadow-lg transition-all group">
+                        <div className="absolute -top-4 -right-4 w-20 h-20 bg-cyan-200/20 dark:bg-cyan-700/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+                        <div className="relative z-10">
+                          <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 w-fit mx-auto mb-2 shadow-md"><Zap size={18} className="text-white" /></div>
+                          <p className="text-2xl font-black text-cyan-600 dark:text-cyan-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{pLaser.length}</p>
+                          <p className="text-xs font-bold text-cyan-500/70 mt-0.5" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>ليزر</p>
+                        </div>
+                      </motion.div>
+                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }} whileTap={{ scale: 0.95 }} onClick={() => setPatientDetailTab('finance')} className="relative overflow-hidden rounded-2xl p-4 text-center cursor-pointer border-2 border-emerald-200 dark:border-emerald-800/60 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 shadow-sm hover:shadow-lg transition-all group">
+                        <div className="absolute -top-4 -right-4 w-20 h-20 bg-emerald-200/20 dark:bg-emerald-700/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+                        <div className="relative z-10">
+                          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 w-fit mx-auto mb-2 shadow-md"><DollarSign size={18} className="text-white" /></div>
+                          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{formatCurrency(totalSpent)}</p>
+                          <p className="text-xs font-bold text-emerald-500/70 mt-0.5" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>إجمالي</p>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* ─── Financial Summary ─── */}
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="relative overflow-hidden rounded-2xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-gradient-to-br from-emerald-50 via-white to-green-50 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-green-950/20 p-4 shadow-sm">
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-200/20 dark:bg-emerald-700/10 rounded-full translate-y-8 -translate-x-8 blur-2xl" />
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 shadow-md"><Wallet size={14} className="text-white" /></div>
+                          <h4 className="text-sm font-black text-emerald-700 dark:text-emerald-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>الملخص المالي</h4>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50">
+                            <p className="text-[10px] text-muted-foreground font-bold mb-1">المدفوع</p>
+                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{formatCurrency(totalPaid)}</p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50">
+                            <p className="text-[10px] text-muted-foreground font-bold mb-1">المتبقي</p>
+                            <p className="text-lg font-black text-amber-600 dark:text-amber-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{formatCurrency(totalUnpaid)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* ─── Activity Timeline — Premium ─── */}
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="relative overflow-hidden rounded-2xl border-2 border-indigo-200 dark:border-indigo-800/60 bg-gradient-to-br from-indigo-50 via-white to-violet-50 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-violet-950/20 p-4 shadow-sm">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-200/20 dark:bg-indigo-700/10 rounded-full -translate-y-6 translate-x-6 blur-2xl" />
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md"><Activity size={14} className="text-white" /></div>
+                          <h4 className="text-sm font-black text-indigo-700 dark:text-indigo-400" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>سجل النشاط</h4>
+                          <Badge variant="outline" className="text-[9px] font-bold">{pVisits.length + pSessions.length + pNotes.length} حدث</Badge>
+                        </div>
+                        <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
+                          {(() => {
+                            const pV = visits.filter(v => v.patientId === selectedPatient.id).map(v => ({ id: v.id, t: 'visit' as const, date: v.date, icon: <Stethoscope size={14} className="text-violet-500" />, label: VISIT_TYPES.find(ti => ti.id === v.type)?.label || v.type, detail: v.notes || v.diagnosis || '', color: 'bg-violet-500' }))
+                            const pS = sessions.filter(s => s.patientId === selectedPatient.id).map(s => ({ id: s.id, t: 'session' as const, date: s.date, icon: <Zap size={14} className={s.paid ? 'text-emerald-500' : 'text-amber-500'} />, label: (services.find(sv => sv.id === s.serviceId)?.name || 'جلسة') + (s.paid ? ' ✅' : ''), detail: `${formatCurrency(s.price)}`, color: s.paid ? 'bg-emerald-500' : 'bg-amber-500' }))
+                            const pN = notes.filter(n => n.patientId === selectedPatient.id).map(n => ({ id: n.id, t: 'note' as const, date: n.createdAt, icon: <FileText size={14} className="text-amber-500" />, label: 'ملاحظة', detail: n.content, color: 'bg-amber-500' }))
+                            const tl = [...pV, ...pS, ...pN].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            if (tl.length === 0) return <div className="text-center py-8"><p className="text-sm font-bold text-muted-foreground" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>لا توجد عمليات بعد</p></div>
+                            return tl.slice(0, 15).map((item, idx) => (
+                              <div key={`${item.t}-${item.id}`} className="flex items-start gap-3 p-2.5 rounded-xl bg-white/60 dark:bg-slate-800/40 hover:bg-white/90 dark:hover:bg-slate-800/60 transition-all border border-slate-100 dark:border-slate-800">
+                                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0 shadow-sm', item.color)}>{item.icon}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2"><Badge variant="outline" className="text-[10px] font-bold" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{item.label}</Badge><span className="text-[10px] text-muted-foreground font-medium">{formatDate(item.date)}</span></div>
+                                  {item.detail && <p className="text-[13px] mt-1 font-medium text-slate-700 dark:text-slate-300 truncate" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{item.detail}</p>}
+                                </div>
+                              </div>
+                            ))
+                          })()}
+                        </div>
+                      </div>
+                    </motion.div>
+                    </>
+                    )})()}
                   </TabsContent>
 
                   {/* ═══ VISITS ═══ */}
