@@ -84,15 +84,9 @@ const waPhone = (phone?: string) => {
 }
 
 // Helper: get local date string in Cairo timezone (fixes UTC offset issue)
-const _dateCache = new Map<string, string>()
 const getLocalDateStr = (date?: Date | string) => {
   const d = date ? new Date(date) : new Date()
-  const key = d.toISOString().slice(0, 10)
-  const cached = _dateCache.get(key)
-  if (cached) return cached
-  const result = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
-  _dateCache.set(key, result)
-  return result
+  return d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
 }
 
 // Helper: get Cairo timezone date parts (year, month, day) — avoids UTC offset on Vercel
@@ -1223,7 +1217,7 @@ export default function Home() {
   }
 
   // ─── Computed ─────────────────────────────────────────────────────────
-  const todayStr = useMemo(() => getLocalDateStr(), []) // Cairo timezone - re-computed on data changes
+  const todayStr = useMemo(() => getLocalDateStr(), [transactions.length, visits.length, sessions.length]) // Cairo timezone - re-computed when data changes
   // Memoized Cairo date parts for "now" — avoids calling getCairoDateParts()/getLocalDateStr() with new Date() in every useMemo/render
   const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length]) // recomputes when data changes
   const todayStats = useMemo(() => {
@@ -3549,31 +3543,46 @@ export default function Home() {
             {/* ═══ MORE ═══ - ALL SUB-TABS WORKING */}
             {activeTab === 'more' && (
               <div className="space-y-5">
-                <div className="section-header-animated rounded-2xl bg-pink-50 dark:bg-pink-950/30">
-                  <div className="relative z-10 flex items-center gap-3"><motion.div animate={{ rotate: [0, 180, 360] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">📋</motion.div><div><h1 className="text-2xl font-bold">المزيد</h1><p className="text-muted-foreground text-sm">خدمات وأدوات إضافية</p></div></div>
-                </div>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                {/* ─── Premium Header ─── */}
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-600 p-6 shadow-2xl">
+                  <div className="absolute inset-0 opacity-20">
+                    <motion.div animate={{ x: [0, 120, 0], y: [0, -60, 0] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-48 h-48 bg-white/30 rounded-full blur-3xl" />
+                    <motion.div animate={{ x: [0, -80, 0], y: [0, 80, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-36 h-36 bg-fuchsia-300/30 rounded-full blur-3xl" />
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+                  </div>
+                  <div className="relative z-10 flex items-center gap-4">
+                    <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-lg">📋</motion.div>
+                    <div>
+                      <h1 className="text-3xl font-black text-white" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>المزيد</h1>
+                      <p className="text-white/80 text-sm font-medium">خدمات وأدوات إضافية لإدارة عيادتك</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* ─── Premium Navigation Grid ─── */}
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
                   {[
-                    { id: 'followup', label: 'المتابعات', emoji: '🔄', gradient: 'from-[#0891B2] to-[#06B6D4]' },
-                    { id: 'services', label: 'الخدمات', emoji: '⚙️', gradient: 'from-teal-500 to-teal-700' },
-                    { id: 'sessions', label: 'الجلسات', emoji: '⚡', gradient: 'from-violet-500 to-purple-600' },
-                    { id: 'visits', label: 'الزيارات', emoji: '🩺', gradient: 'from-violet-500 to-violet-700' },
-                    { id: 'doctors', label: 'الأطباء المشاركون', emoji: '👨‍⚕️', gradient: 'from-emerald-500 to-emerald-700' },
-                    { id: 'inventory', label: 'المخزون', emoji: '📦', gradient: 'from-amber-500 to-amber-700' },
-                    { id: 'bookings', label: 'الحجز', emoji: '📅', gradient: 'from-sky-500 to-sky-700' },
-                    { id: 'medications', label: 'الأدوية', emoji: '💊', gradient: 'from-green-500 to-green-700' },
-                    { id: 'reminders', label: 'التذكيرات', emoji: '⏰', gradient: 'from-rose-500 to-rose-700' },
-                    { id: 'templates', label: 'قوالب العلاج', emoji: '📋', gradient: 'from-lime-500 to-lime-700' },
-                    { id: 'waiting', label: 'قائمة الانتظار', emoji: '⏳', gradient: 'from-red-500 to-red-700' },
-                    { id: 'reports', label: 'التقارير', emoji: '📊', gradient: 'from-cyan-500 to-cyan-700' },
-                    { id: 'backup', label: 'النسخ', emoji: '💾', gradient: 'from-slate-500 to-slate-700' },
-                    { id: 'notes', label: 'الملاحظات', emoji: '📝', gradient: 'from-fuchsia-500 to-fuchsia-700' },
-                    { id: 'personal', label: 'شخصى', emoji: '🌟', gradient: 'from-orange-400 to-amber-500' },
-                    { id: 'settings', label: 'الإعدادات', emoji: '🎨', gradient: 'from-indigo-500 to-indigo-700' },
+                    { id: 'followup', label: 'المتابعات', emoji: '🔄', gradient: 'from-cyan-500 to-teal-600', ring: 'ring-cyan-400/50', bg: 'bg-cyan-50 dark:bg-cyan-950/30' },
+                    { id: 'services', label: 'الخدمات', emoji: '⚙️', gradient: 'from-teal-500 to-emerald-600', ring: 'ring-teal-400/50', bg: 'bg-teal-50 dark:bg-teal-950/30' },
+                    { id: 'sessions', label: 'الجلسات', emoji: '⚡', gradient: 'from-violet-500 to-purple-600', ring: 'ring-violet-400/50', bg: 'bg-violet-50 dark:bg-violet-950/30' },
+                    { id: 'visits', label: 'الزيارات', emoji: '🩺', gradient: 'from-blue-500 to-indigo-600', ring: 'ring-blue-400/50', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+                    { id: 'doctors', label: 'الأطباء', emoji: '👨‍⚕️', gradient: 'from-emerald-500 to-green-600', ring: 'ring-emerald-400/50', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+                    { id: 'inventory', label: 'المخزون', emoji: '📦', gradient: 'from-amber-500 to-yellow-600', ring: 'ring-amber-400/50', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+                    { id: 'bookings', label: 'الحجز', emoji: '📅', gradient: 'from-sky-500 to-blue-600', ring: 'ring-sky-400/50', bg: 'bg-sky-50 dark:bg-sky-950/30' },
+                    { id: 'medications', label: 'الأدوية', emoji: '💊', gradient: 'from-lime-500 to-green-600', ring: 'ring-lime-400/50', bg: 'bg-lime-50 dark:bg-lime-950/30' },
+                    { id: 'reminders', label: 'التذكيرات', emoji: '⏰', gradient: 'from-rose-500 to-red-600', ring: 'ring-rose-400/50', bg: 'bg-rose-50 dark:bg-rose-950/30' },
+                    { id: 'templates', label: 'القوالب', emoji: '📋', gradient: 'from-fuchsia-500 to-pink-600', ring: 'ring-fuchsia-400/50', bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/30' },
+                    { id: 'waiting', label: 'الانتظار', emoji: '⏳', gradient: 'from-red-500 to-orange-600', ring: 'ring-red-400/50', bg: 'bg-red-50 dark:bg-red-950/30' },
+                    { id: 'reports', label: 'التقارير', emoji: '📊', gradient: 'from-cyan-500 to-sky-600', ring: 'ring-cyan-400/50', bg: 'bg-cyan-50 dark:bg-cyan-950/30' },
+                    { id: 'backup', label: 'النسخ', emoji: '💾', gradient: 'from-slate-500 to-gray-600', ring: 'ring-slate-400/50', bg: 'bg-slate-50 dark:bg-slate-950/30' },
+                    { id: 'notes', label: 'الملاحظات', emoji: '📝', gradient: 'from-indigo-500 to-violet-600', ring: 'ring-indigo-400/50', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+                    { id: 'personal', label: 'شخصي', emoji: '🌟', gradient: 'from-orange-500 to-amber-600', ring: 'ring-orange-400/50', bg: 'bg-orange-50 dark:bg-orange-950/30' },
+                    { id: 'settings', label: 'الإعدادات', emoji: '🎨', gradient: 'from-purple-500 to-fuchsia-600', ring: 'ring-purple-400/50', bg: 'bg-purple-50 dark:bg-purple-950/30' },
                   ].map(s => (
-                    <motion.button key={s.id} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => setMoreSubTab(s.id)} className={cn('flex flex-col items-center gap-1 p-3 rounded-xl transition-all border', moreSubTab === s.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-transparent hover:bg-muted/50')}>
-                      <motion.div animate={moreSubTab === s.id ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.5, repeat: moreSubTab === s.id ? 2 : 0 }} className="text-2xl">{s.emoji}</motion.div>
-                      <span className="text-[11px] font-medium">{s.label}</span>
+                    <motion.button key={s.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.05, y: -2 }} onClick={() => setMoreSubTab(s.id)} className={cn('relative overflow-hidden flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all border-2', moreSubTab === s.id ? cn('border-transparent ring-2 shadow-lg scale-105', s.ring) : 'border-transparent hover:shadow-md')}>
+                      {moreSubTab === s.id && <div className={cn('absolute inset-0 bg-gradient-to-br opacity-10', s.gradient)} />}
+                      <motion.div animate={moreSubTab === s.id ? { scale: [1, 1.25, 1], y: [0, -3, 0] } : {}} transition={{ duration: 0.6, repeat: moreSubTab === s.id ? 1 : 0 }} className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-md transition-all', moreSubTab === s.id ? cn('bg-gradient-to-br text-white', s.gradient) : 'bg-muted/50')}>{s.emoji}</motion.div>
+                      <span className={cn('text-[10px] font-bold transition-colors', moreSubTab === s.id ? 'text-foreground' : 'text-muted-foreground')}>{s.label}</span>
                     </motion.button>
                   ))}
                 </div>
@@ -3842,9 +3851,15 @@ export default function Home() {
                   )
                 })()}
 
-                {/* Services Sub-tab - Enhanced with Price Editing */}
-                {moreSubTab === 'services' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Tag size={18} className="text-teal-500" /> الخدمات</h3><div className="flex items-center gap-2"><Badge variant="outline">{services.length} خدمة</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 text-white" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button></div></div>
+                {/* Services Sub-tab - Premium Design */}
+                {moreSubTab === 'services' && (<div className="space-y-4">
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 via-emerald-500 to-green-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, 80, 0] }} transition={{ duration: 12, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="text-4xl">⚙️</motion.div><div><h2 className="text-2xl font-black text-white">الخدمات</h2><p className="text-white/80 text-sm">{services.length} خدمة مسجلة</p></div></div>
+                      <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button>
+                    </div>
+                  </motion.div>
                   {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
                   {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div>{editingServiceId === s.id ? (<div className="flex items-center gap-2"><Input value={editingServiceName} onChange={e => setEditingServiceName(e.target.value)} className="h-8 text-sm rounded-lg font-medium w-32" placeholder="اسم الخدمة" /><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-24 h-8 text-sm rounded-lg font-bold" /><Button size="sm" className="h-8 rounded-lg text-xs bg-teal-600 text-white" onClick={async () => { const newPrice = parseFloat(editingServicePrice); const newName = editingServiceName.trim(); if (isNaN(newPrice)) { toast.error('أدخل سعر صحيح'); return } if (!newName) { toast.error('أدخل اسم الخدمة'); return } try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, name: newName, price: newPrice } : sv)); toast.success('تم التحديث ✓'); setEditingServiceId(null) } catch (e: any) { toast.error(e?.message || 'خطأ'); setEditingServiceId(null) } }}>✓</Button><Button variant="ghost" size="sm" className="h-8 rounded-lg" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><p className="font-medium text-sm cursor-pointer hover:text-teal-600 hover:underline decoration-dashed underline-offset-2" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}>{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></>)}</div></div><div className="flex items-center gap-2">{editingServiceId !== s.id && (<><motion.button whileTap={{ scale: 0.95 }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-dashed border-teal-300 dark:border-teal-700 hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-all cursor-pointer" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><span className="font-bold text-sm text-teal-700 dark:text-teal-300">{s.price}</span><span className="text-xs text-muted-foreground">ج.م</span><Edit3 size={10} className="text-teal-400" /></motion.button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
                 </div>)}
@@ -4081,7 +4096,10 @@ export default function Home() {
 
                 {/* Visits Sub-tab - ENHANCED */}
                 {moreSubTab === 'visits' && (<div className="space-y-4">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Stethoscope size={18} className="text-violet-500" /> الزيارات</h3><div className="flex items-center gap-2"><Badge variant="outline">{visits.length} زيارة</Badge></div></div>
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, -60, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute bottom-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center gap-3"><motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🩺</motion.div><div><h2 className="text-2xl font-black text-white">الزيارات</h2><p className="text-white/80 text-sm">{visits.length} زيارة مسجلة</p></div></div>
+                  </motion.div>
                   
                   {/* Filter by visit type */}
                   <div className="flex gap-2 flex-wrap">
@@ -4145,8 +4163,14 @@ export default function Home() {
                 </div>)}
 
                 {/* Partner Doctors Sub-tab - Complete System */}
-                {moreSubTab === 'doctors' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Stethoscope size={18} className="text-emerald-500" /> الأطباء المشاركون</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-emerald-600 to-emerald-700 text-white" onClick={() => { setDoctorForm({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' }); setShowAddDoctor(true) }}><Plus size={14} className="ml-1" /> طبيب جديد</Button></div>
+                {moreSubTab === 'doctors' && (<div className="space-y-4">
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ y: [0, 40, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">👨‍⚕️</motion.div><div><h2 className="text-2xl font-black text-white">الأطباء المشاركون</h2><p className="text-white/80 text-sm">{doctors.length} طبيب مشارك</p></div></div>
+                      <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => { setDoctorForm({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' }); setShowAddDoctor(true) }}><Plus size={14} className="ml-1" /> طبيب جديد</Button>
+                    </div>
+                  </motion.div>
                   {/* Doctor Revenue Summary */}
                   {doctors.length > 0 && <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={14} className="text-emerald-500" /> ملخص حصص الأطباء</CardTitle></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
@@ -4398,15 +4422,27 @@ export default function Home() {
                 </div>)}
 
                 {/* Medications Sub-tab - Enhanced */}
-                {moreSubTab === 'medications' && (<div className="space-y-3">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Pill size={18} className="text-green-500" /> الأدوية</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-green-600 to-green-700 text-white" onClick={() => setShowAddMedication(true)}><Plus size={14} className="ml-1" /> دواء</Button></div>
+                {moreSubTab === 'medications' && (<div className="space-y-4">
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-lime-500 via-green-500 to-emerald-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">💊</motion.div><div><h2 className="text-2xl font-black text-white">الأدوية</h2><p className="text-white/80 text-sm">{medications.length} دواء مسجل</p></div></div>
+                      <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddMedication(true)}><Plus size={14} className="ml-1" /> دواء جديد</Button>
+                    </div>
+                  </motion.div>
                   {medications.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">💊</p><p className="text-muted-foreground">لا توجد أدوية بعد</p></Card>}
                   <div className="space-y-2">{medications.map(m => <Card key={m.id} className="section-card p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className={cn('p-1.5 rounded-lg', m.active ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-900/30')}><Pill className={m.active ? 'text-green-600' : 'text-gray-400'} size={14} /></div><div><p className="font-medium text-sm">{m.name}</p><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{m.category || 'عام'}</span>{m.dosage && <span className="text-xs text-muted-foreground">- الجرعة: {m.dosage}</span>}{m.instructions && <span className="text-xs text-muted-foreground">- {m.instructions}</span>}</div></div></div><div className="flex items-center gap-2"><Badge className={m.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{m.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/medications', m.id, setMedications)}><Trash2 size={12} className="text-red-500" /></Button></div></div></Card>)}</div>
                 </div>)}
 
                 {/* Reminders Sub-tab - ENHANCED Professional */}
                 {moreSubTab === 'reminders' && (<div className="space-y-4">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Bell size={18} className="text-rose-500" /> التذكيرات</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-rose-500 to-rose-600 text-white" onClick={() => setShowAddReminder(true)}><Plus size={14} className="ml-1" /> تذكير</Button></div>
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500 via-red-500 to-orange-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, 60, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute bottom-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">⏰</motion.div><div><h2 className="text-2xl font-black text-white">التذكيرات</h2><p className="text-white/80 text-sm">{reminders.length} تذكير مسجل</p></div></div>
+                      <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddReminder(true)}><Plus size={14} className="ml-1" /> تذكير جديد</Button>
+                    </div>
+                  </motion.div>
                   
                   {/* Today's Reminders Highlighted Card */}
                   {(() => {
@@ -4485,7 +4521,13 @@ export default function Home() {
 
                 {/* Treatment Templates Sub-tab - قوالب العلاج */}
                 {moreSubTab === 'templates' && (<div className="space-y-4">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Layers size={18} className="text-lime-500" /> قوالب العلاج</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-lime-500 to-lime-600 text-white" onClick={() => { const name = prompt('اسم القالب:'); if (!name) return; const desc = prompt('الوصف:') || ''; const sess = parseInt(prompt('عدد الجلسات:', '6') || '6'); const price = parseFloat(prompt('السعر التقديري:', '1000') || '1000'); const cat = prompt('الفئة:', 'جلدية') || 'جلدية'; setTreatmentTemplates(prev => [...prev, { id: Date.now().toString(), name, description: desc, sessions: sess, estimatedPrice: price, category: cat }]); toast.success('تم إضافة القالب') }}><Plus size={14} className="ml-1" /> قالب جديد</Button></div>
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-fuchsia-500 via-pink-500 to-rose-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 right-0 w-28 h-28 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">📋</motion.div><div><h2 className="text-2xl font-black text-white">قوالب العلاج</h2><p className="text-white/80 text-sm">{treatmentTemplates.length} قالب جاهز</p></div></div>
+                      <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => { const name = prompt('اسم القالب:'); if (!name) return; const desc = prompt('الوصف:') || ''; const sess = parseInt(prompt('عدد الجلسات:', '6') || '6'); const price = parseFloat(prompt('السعر التقديري:', '1000') || '1000'); const cat = prompt('الفئة:', 'جلدية') || 'جلدية'; setTreatmentTemplates(prev => [...prev, { id: Date.now().toString(), name, description: desc, sessions: sess, estimatedPrice: price, category: cat }]); toast.success('تم إضافة القالب') }}><Plus size={14} className="ml-1" /> قالب جديد</Button>
+                    </div>
+                  </motion.div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {treatmentTemplates.map((t, i) => {
                       const catColors: Record<string, string> = { 'جلدية': 'from-blue-500 to-blue-700', 'تجميل': 'from-pink-500 to-pink-700', 'ليزر': 'from-cyan-500 to-cyan-700' }
@@ -4522,7 +4564,13 @@ export default function Home() {
 
                 {/* Waiting Queue Sub-tab - قائمة الانتظار */}
                 {moreSubTab === 'waiting' && (<div className="space-y-4">
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Clock size={18} className="text-red-500" /> قائمة الانتظار</h3><Button className="btn-luxury rounded-xl bg-gradient-to-l from-red-500 to-red-600 text-white" onClick={() => setShowAddWaiting(true)}><Plus size={14} className="ml-1" /> إضافة مريض</Button></div>
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 via-orange-500 to-amber-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, -40, 0] }} transition={{ duration: 9, repeat: Infinity }} className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-4xl">⏳</motion.div><div><h2 className="text-2xl font-black text-white">قائمة الانتظار</h2><p className="text-white/80 text-sm">إدارة المرضى في الانتظار</p></div></div>
+                      <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddWaiting(true)}><Plus size={14} className="ml-1" /> إضافة مريض</Button>
+                    </div>
+                  </motion.div>
                   
                   {/* Queue Stats */}
                   <div className="grid grid-cols-3 gap-2">
