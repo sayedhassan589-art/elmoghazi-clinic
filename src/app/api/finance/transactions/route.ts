@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       } else {
         const dateFilter: Record<string, Date> = {}
         if (startDate) dateFilter.gte = cairoDayRange(startDate).gte
-        if (endDate) dateFilter.lte = cairoDayRange(endDate).lt
+        if (endDate) dateFilter.lt = cairoDayRange(endDate).lt
         where.date = dateFilter
       }
     }

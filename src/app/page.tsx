@@ -101,6 +101,26 @@ const getCairoDateParts = (date?: Date | string) => {
   const parts = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }).split('-').map(Number)
   return { year: parts[0], month: parts[1], day: parts[2], dateStr: parts.join('-') }
 }
+
+// Helper: get all 7 days of the current Egyptian week (Saturday–Friday) as date strings
+// Returns array of { dateStr, dayName } from Saturday to Friday of the current week
+const getEgyptianWeekDays = () => {
+  const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+  const dayOfWeek = nowCairo.getDay() // 0=Sun, 6=Sat
+  const daysSinceSaturday = (dayOfWeek + 1) % 7 // Sat=0, Sun=1, ..., Fri=6
+  const saturday = new Date(nowCairo)
+  saturday.setDate(nowCairo.getDate() - daysSinceSaturday)
+  const days: { dateStr: string; dayName: string }[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(saturday)
+    d.setDate(saturday.getDate() + i)
+    days.push({
+      dateStr: d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }),
+      dayName: d.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' })
+    })
+  }
+  return days
+}
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
   if (!res.ok) {
@@ -818,19 +838,16 @@ export default function Home() {
     })
     const importantNotes = periodNotes.filter(n => n.important).length
 
-    // Chart data for daily breakdown (Cairo timezone)
+    // Chart data for daily breakdown (Cairo timezone - Egyptian week: Saturday→Friday)
     let chartData: { label: string; income: number; expense: number }[] = []
     if (personalReportPeriod === 'daily') {
-      // Last 7 days using Cairo timezone
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date()
-        const cairoDate = new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
-        cairoDate.setDate(cairoDate.getDate() - i)
-        const ds = cairoDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
-        const dayIncome = income.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
-        const dayExpense = expense.filter(t => getLocalDateStr(t.date) === ds).reduce((s, t) => s + (t.amount || 0), 0)
-        chartData.push({ label: cairoDate.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), income: dayIncome, expense: dayExpense })
-      }
+      // Current Egyptian week (Saturday–Friday)
+      const weekDays = getEgyptianWeekDays()
+      chartData = weekDays.map(wd => {
+        const dayIncome = income.filter(t => getLocalDateStr(t.date) === wd.dateStr).reduce((s, t) => s + (t.amount || 0), 0)
+        const dayExpense = expense.filter(t => getLocalDateStr(t.date) === wd.dateStr).reduce((s, t) => s + (t.amount || 0), 0)
+        return { label: wd.dayName, income: dayIncome, expense: dayExpense }
+      })
     } else if (personalReportPeriod === 'weekly') {
       // Last 4 weeks (Saturday–Friday Egyptian weeks)
       for (let i = 3; i >= 0; i--) {
@@ -1258,17 +1275,12 @@ export default function Home() {
       if (t.type === 'income') txByDate[ds].income += t.amount
       else txByDate[ds].expense += t.amount
     }
-    const days: { name: string; إيراد: number; مصروف: number }[] = []
-    // Use Cairo-based date iteration instead of new Date() which uses UTC on Vercel
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date()
-      // Subtract i days in Cairo timezone
-      const cairoDate = new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
-      cairoDate.setDate(cairoDate.getDate() - i)
-      const ds = cairoDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
-      const dayData = txByDate[ds] || { income: 0, expense: 0 }
-      days.push({ name: cairoDate.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' }), إيراد: dayData.income, مصروف: dayData.expense })
-    }
+    // Use Egyptian week days (Saturday→Friday) for consistent week display
+    const weekDays = getEgyptianWeekDays()
+    const days: { name: string; إيراد: number; مصروف: number }[] = weekDays.map(wd => {
+      const dayData = txByDate[wd.dateStr] || { income: 0, expense: 0 }
+      return { name: wd.dayName, إيراد: dayData.income, مصروف: dayData.expense }
+    })
     return days
   }, [transactions])
   const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
@@ -4360,15 +4372,32 @@ export default function Home() {
                     </CardContent>
                   </Card>
 
-                  {/* ═══ NEW: Detailed Weekly Report ═══ */}
+                  {/* ═══ NEW: Detailed Weekly Report (Egyptian week: Saturday–Friday) ═══ */}
                   <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800">
-                    <CardHeader><CardTitle className="flex items-center gap-2"><CalendarCheck size={18} className="text-emerald-600" /> تقرير أسبوعي مفصل</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><CalendarCheck size={18} className="text-emerald-600" /> تقرير أسبوعي مفصل (السبت–الجمعة)</CardTitle></CardHeader>
                     <CardContent className="space-y-2">
                       {(() => {
-                        const last7Days = dailyVisitStats.slice(0, 7)
-                        const weekTotalCases = last7Days.reduce((s, d) => s + d.checkupCount + d.revisitCount + d.sessionCount, 0)
-                        const weekTotalRevenue = last7Days.reduce((s, d) => s + d.checkupRevenue + d.revisitRevenue + d.sessionRevenue, 0)
-                        if (last7Days.length === 0) return <p className="text-center text-muted-foreground text-sm py-4">لا توجد بيانات بعد</p>
+                        // Generate ALL 7 days of the current Egyptian week (Saturday→Friday)
+                        const weekDays = getEgyptianWeekDays()
+                        // Build a lookup map from dailyVisitStats for O(1) access
+                        const statsByDate: Record<string, typeof dailyVisitStats[0]> = {}
+                        for (const s of dailyVisitStats) statsByDate[s.date] = s
+                        // Merge: always show all 7 days, zero-fill missing
+                        const fullWeekDays = weekDays.map(wd => {
+                          const stats = statsByDate[wd.dateStr]
+                          return {
+                            date: wd.dateStr,
+                            dayName: wd.dayName,
+                            checkupCount: stats?.checkupCount || 0,
+                            revisitCount: stats?.revisitCount || 0,
+                            sessionCount: stats?.sessionCount || 0,
+                            checkupRevenue: stats?.checkupRevenue || 0,
+                            revisitRevenue: stats?.revisitRevenue || 0,
+                            sessionRevenue: stats?.sessionRevenue || 0,
+                          }
+                        })
+                        const weekTotalCases = fullWeekDays.reduce((s, d) => s + d.checkupCount + d.revisitCount + d.sessionCount, 0)
+                        const weekTotalRevenue = fullWeekDays.reduce((s, d) => s + d.checkupRevenue + d.revisitRevenue + d.sessionRevenue, 0)
                         return (
                           <>
                             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -4381,16 +4410,17 @@ export default function Home() {
                                 <p className="text-xl font-black text-amber-600">{formatCurrency(weekTotalRevenue)}</p>
                               </div>
                             </div>
-                            {last7Days.map(day => {
+                            {fullWeekDays.map(day => {
                               const totalCases = day.checkupCount + day.revisitCount + day.sessionCount
                               const totalRev = day.checkupRevenue + day.revisitRevenue + day.sessionRevenue
                               const dayDate = new Date(day.date + 'T00:00:00')
-                              const dayName = new Date(day.date + 'T00:00:00').toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' })
+                              const isToday = day.date === todayStr
                               return (
-                                <div key={day.date} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                                <div key={day.date} className={cn('flex items-center justify-between p-2 rounded-lg', isToday ? 'bg-emerald-100/60 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700' : 'bg-muted/50')}>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{dayName}</span>
+                                    <span className={cn('text-xs font-bold', isToday ? 'text-emerald-900 dark:text-emerald-300' : 'text-emerald-700 dark:text-emerald-400')}>{day.dayName}</span>
                                     <span className="text-[10px] text-muted-foreground">{dayDate.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span>
+                                    {isToday && <Badge className="bg-emerald-500 text-white text-[7px] px-1 py-0">اليوم</Badge>}
                                   </div>
                                   <div className="flex items-center gap-3">
                                     <span className="text-[10px] font-bold">{totalCases} حالة</span>
