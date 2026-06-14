@@ -635,6 +635,9 @@ export default function Home() {
   const [patientImportData, setPatientImportData] = useState<any[]>([])
   const [patientImportPreview, setPatientImportPreview] = useState(false)
   const [patientImportFile, setPatientImportFile] = useState<File | null>(null)
+  const [patientImportLoading, setPatientImportLoading] = useState(false)
+  const [patientImportProgress, setPatientImportProgress] = useState('')
+  const [patientImportDragOver, setPatientImportDragOver] = useState(false)
 
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
@@ -1506,6 +1509,145 @@ export default function Home() {
     }
     try { const res = await apiFetch<{message: string}>('/ai/chat', { method: 'POST', body: JSON.stringify({ messages: [...aiMessages, { role: 'user', content: msg }] }) }); setAiMessages(prev => [...prev, { role: 'assistant', content: res.message || 'عذراً، لم أتمكن من الرد.' }]) } catch { setAiMessages(prev => [...prev, { role: 'assistant', content: 'عذراً، حدث خطأ.' }]) }
     setAiLoading(false)
+  }
+
+  // ─── Patient Import Parser (supports JSON, CSV, TSV, XLSX) ───
+  const parsePatientFile = async (file: File): Promise<any[]> => {
+    const fileName = file.name.toLowerCase()
+    const text = await file.text()
+
+    // Remove BOM if present
+    const cleanText = text.replace(/^\uFEFF/, '')
+
+    // ─── JSON ───
+    if (fileName.endsWith('.json')) {
+      const data = JSON.parse(cleanText)
+      // Support multiple JSON formats:
+      // 1. { patients: [...] }
+      // 2. { type: 'patients-only', patients: [...] }
+      // 3. [ {...}, {...} ]  (array directly)
+      // 4. { data: [...] }
+      const patientList = data?.patients || data?.data || (Array.isArray(data) ? data : [])
+      if (!Array.isArray(patientList) || patientList.length === 0) throw new Error('الملف لا يحتوي على بيانات مرضى')
+      return patientList.map(normalizePatientFields)
+    }
+
+    // ─── XLSX ───
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const XLSX = await import('xlsx')
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+      const firstSheet = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[firstSheet]
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' })
+      if (!jsonData.length) throw new Error('ملف Excel فارغ')
+      return jsonData.map(normalizePatientFields)
+    }
+
+    // ─── CSV / TSV / TXT ───
+    if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+      // Auto-detect delimiter: tab for TSV, comma for CSV, semicolon as fallback
+      const firstLine = cleanText.split('\n')[0] || ''
+      let delimiter = ','
+      if (fileName.endsWith('.tsv') || firstLine.includes('\t')) delimiter = '\t'
+      else if (!firstLine.includes(',') && firstLine.includes(';')) delimiter = ';'
+
+      const lines = cleanText.split(/\r?\n/).filter(l => l.trim())
+      if (lines.length < 2) throw new Error('الملف فارغ أو لا يحتوي على بيانات')
+
+      // Parse headers
+      const headers = parseCSVLine(lines[0], delimiter).map(h => h.trim().replace(/^"|"$/g, ''))
+
+      // Parse data rows
+      const patients: any[] = []
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i], delimiter)
+        const obj: Record<string, string> = {}
+        headers.forEach((h, idx) => {
+          obj[h] = (values[idx] || '').trim().replace(/^"|"$/g, '')
+        })
+        patients.push(normalizePatientFields(obj))
+      }
+      const validPatients = patients.filter(p => p.name)
+      if (!validPatients.length) throw new Error('لم يتم العثور على أسماء مرضى في الملف')
+      return validPatients
+    }
+
+    throw new Error('صيغة الملف غير مدعومة. استخدم JSON أو CSV أو Excel')
+  }
+
+  // Parse a single CSV line respecting quoted fields
+  const parseCSVLine = (line: string, delimiter: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (inQuotes) {
+        if (char === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            current += '"' // Escaped quote
+            i++
+          } else {
+            inQuotes = false // End of quoted field
+          }
+        } else {
+          current += char
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true
+        } else if (char === delimiter) {
+          result.push(current)
+          current = ''
+        } else {
+          current += char
+        }
+      }
+    }
+    result.push(current)
+    return result
+  }
+
+  // Normalize patient fields from various header names (Arabic/English)
+  const normalizePatientFields = (raw: any): any => {
+    const find = (...keys: string[]): any => {
+      for (const k of keys) {
+        if (raw[k] !== undefined && raw[k] !== null && String(raw[k]).trim() !== '') return raw[k]
+      }
+      return undefined
+    }
+    const name = find('name', 'الاسم', 'Name', 'اسم المريض', 'اسم', 'Patient Name', 'patient_name')
+    const phone = find('phone', 'الموبايل', 'هاتف', 'Phone', 'موبايل', 'موبايل ١', 'رقم الهاتف', 'التليفون', 'phone1')
+    const phone2 = find('phone2', 'الموبايل ٢', 'موبايل ٢', 'Phone2', 'هاتف ٢', 'رقم هاتف ٢', 'phone_2')
+    const age = find('age', 'العمر', 'Age', 'عمر')
+    const gender = find('gender', 'الجنس', 'Gender', 'جنس')
+    const bloodType = find('bloodType', 'فصيلة الدم', 'BloodType', 'فصيلة', 'blood_type')
+    const address = find('address', 'العنوان', 'Address', 'عنوان')
+    const notes = find('notes', 'ملاحظات', 'Notes', 'الملاحظات', 'ملاحظه', 'ملاحظة')
+    const allergies = find('allergies', 'الحساسية', 'Allergies', 'حساسية', 'حساسيه')
+    const medicalHistory = find('medicalHistory', 'التاريخ المرضي', 'MedicalHistory', 'تاريخ مرضي', 'medical_history', 'أمراض مزمنة', 'امراض')
+
+    // Normalize gender
+    let normalizedGender: string | null = null
+    const genderStr = gender?.toString().trim().toLowerCase()
+    if (genderStr) {
+      if (['male', 'm', 'ذكر', 'ذكرى'].includes(genderStr)) normalizedGender = 'male'
+      else if (['female', 'f', 'أنثى', 'انثى'].includes(genderStr)) normalizedGender = 'female'
+      else normalizedGender = genderStr
+    }
+
+    return {
+      name: name?.toString().trim() || '',
+      phone: phone?.toString().trim() || null,
+      phone2: phone2?.toString().trim() || null,
+      age: age ? (parseInt(String(age)) || null) : null,
+      gender: normalizedGender,
+      bloodType: bloodType?.toString().trim() || null,
+      address: address?.toString().trim() || null,
+      notes: notes?.toString().trim() || null,
+      allergies: allergies?.toString().trim() || null,
+      medicalHistory: medicalHistory?.toString().trim() || null,
+    }
   }
 
   // ─── Backup Functions ─────────────────────────────────────────────────
@@ -4777,81 +4919,98 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => { patientImportInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"><UserPlus size={24} className="text-cyan-600" /><span className="text-sm font-medium text-cyan-700 dark:text-cyan-400">استيراد أسماء المرضى</span></motion.button>
                     </div>
                     <input ref={fileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={handleFileImport} />
-                    <input ref={patientImportInputRef} type="file" accept=".json,.csv" className="hidden" onChange={async (e) => {
+                    <input ref={patientImportInputRef} type="file" accept=".json,.csv,.xlsx,.xls,.tsv,.txt" className="hidden" onChange={async (e) => {
                       const file = e.target.files?.[0]; if (!file) return
                       try {
-                        const text = await file.text()
-                        if (file.name.endsWith('.json')) {
-                          const data = JSON.parse(text)
-                          // Support multiple formats
-                          const patientList = data?.patients || (Array.isArray(data) ? data : [])
-                          if (!patientList.length) { toast.error('الملف لا يحتوي على بيانات مرضى'); return }
-                          setPatientImportData(patientList)
-                          setPatientImportPreview(true)
-                        } else if (file.name.endsWith('.csv')) {
-                          // Parse CSV: first row is headers
-                          const lines = text.trim().split('\n')
-                          if (lines.length < 2) { toast.error('الملف فارغ'); return }
-                          const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim())
-                          const csvPatients = lines.slice(1).map(line => {
-                            const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []
-                            const cleanValues = values.map(v => v.replace(/^"|"$/g, '').trim())
-                            const obj: any = {}
-                            headers.forEach((h, i) => {
-                              if (h.includes('اسم') || h.toLowerCase() === 'name') obj.name = cleanValues[i] || ''
-                              else if (h.includes('موبايل') || h.includes('هاتف') || h.toLowerCase() === 'phone') obj.phone = cleanValues[i] || ''
-                              else if (h.includes('عنوان') || h.toLowerCase() === 'address') obj.address = cleanValues[i] || ''
-                              else if (h.includes('عمر') || h.toLowerCase() === 'age') obj.age = parseInt(cleanValues[i]) || null
-                              else if (h.includes('جنس') || h.toLowerCase() === 'gender') obj.gender = cleanValues[i] || ''
-                              else if (h.includes('ملاحظ') || h.toLowerCase() === 'notes') obj.notes = cleanValues[i] || ''
-                              else if (h.includes('حساس') || h.toLowerCase() === 'allergies') obj.allergies = cleanValues[i] || ''
-                              else if (h.includes('تاريخ') && h.includes('مرض') || h.toLowerCase() === 'medicalhistory') obj.medicalHistory = cleanValues[i] || ''
-                            })
-                            return obj
-                          }).filter(p => p.name)
-                          if (!csvPatients.length) { toast.error('لم يتم العثور على أسماء مرضى في الملف'); return }
-                          setPatientImportData(csvPatients)
-                          setPatientImportPreview(true)
-                        }
-                      } catch { toast.error('فشل قراءة الملف') }
+                        setPatientImportProgress('جاري قراءة الملف...')
+                        const parsed = await parsePatientFile(file)
+                        setPatientImportData(parsed)
+                        setPatientImportFile(file)
+                        setPatientImportPreview(true)
+                        setPatientImportProgress('')
+                      } catch (err: any) {
+                        toast.error(err.message || 'فشل قراءة الملف')
+                        setPatientImportProgress('')
+                      }
                       e.target.value = ''
                     }} />
-                    {/* ─── Patient Import Preview Dialog ─── */}
-                    {patientImportPreview && <Card className="border-2 border-cyan-300 dark:border-cyan-700 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/20 dark:to-blue-950/20">
-                      <CardHeader><CardTitle className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400"><UserPlus size={18} /> استيراد أسماء المرضى</CardTitle></CardHeader>
+                    {/* ─── Patient Import Preview (Professional) ─── */}
+                    {patientImportPreview && <Card className="border-2 border-cyan-400 dark:border-cyan-600 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/20 dark:to-blue-950/20 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
+                          <UserPlus size={20} /> استيراد بيانات المرضى
+                          <Badge className="bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 text-[10px]">{patientImportFile?.name}</Badge>
+                        </CardTitle>
+                        <CardDescription>مراجعة البيانات قبل الاستيراد — يتم تخطي المرضى المكررين تلقائياً</CardDescription>
+                      </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-cyan-100/60 dark:bg-cyan-900/30">
-                          <span className="text-sm font-bold">{patientImportData.length} مريض جاهز للاستيراد</span>
-                          <Badge className="bg-cyan-600 text-white text-[9px]">{patientImportData.filter(p => p.name).length} اسم صالح</Badge>
+                        {/* Stats Row */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="p-2.5 rounded-xl bg-cyan-100/60 dark:bg-cyan-900/30 text-center">
+                            <p className="text-[10px] text-muted-foreground">إجمالي</p>
+                            <p className="text-lg font-black text-cyan-700 dark:text-cyan-300">{patientImportData.length}</p>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-emerald-100/60 dark:bg-emerald-900/30 text-center">
+                            <p className="text-[10px] text-muted-foreground">أسماء صالحة</p>
+                            <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">{patientImportData.filter(p => p.name).length}</p>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-amber-100/60 dark:bg-amber-900/30 text-center">
+                            <p className="text-[10px] text-muted-foreground">مكرر محتمل</p>
+                            <p className="text-lg font-black text-amber-700 dark:text-amber-300">{patientImportData.filter(p => p.name && patients.some(ep => ep.name === p.name && (ep.phone === p.phone || (!ep.phone && !p.phone)))).length}</p>
+                          </div>
                         </div>
-                        <div className="max-h-48 overflow-y-auto space-y-1">
-                          {patientImportData.slice(0, 50).map((p, i) => (
-                            <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-white/60 dark:bg-black/20 text-xs">
-                              <span className="font-bold text-cyan-700 dark:text-cyan-400">{p.name || '—'}</span>
-                              {p.phone && <span className="text-muted-foreground">📞 {p.phone}</span>}
-                              {p.age && <span className="text-muted-foreground">{p.age} سنة</span>}
-                            </div>
-                          ))}
-                          {patientImportData.length > 50 && <p className="text-center text-xs text-muted-foreground">... و {patientImportData.length - 50} آخر</p>}
+                        {/* Patient List Preview */}
+                        <div className="max-h-56 overflow-y-auto space-y-1 rounded-xl border border-cyan-200 dark:border-cyan-800 p-2">
+                          {patientImportData.filter(p => p.name).slice(0, 80).map((p, i) => {
+                            const isDuplicate = patients.some(ep => ep.name === p.name && (ep.phone === p.phone || (!ep.phone && !p.phone)))
+                            return (
+                              <div key={i} className={cn('flex items-center gap-2 p-2 rounded-lg text-xs transition-all', isDuplicate ? 'bg-amber-50 dark:bg-amber-900/20 opacity-60' : 'bg-white/60 dark:bg-black/20')}>
+                                <span className="w-5 h-5 rounded-full bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center text-[9px] font-bold text-cyan-700">{i + 1}</span>
+                                <span className="font-bold text-cyan-800 dark:text-cyan-300 min-w-[80px] truncate">{p.name}</span>
+                                {p.phone && <span className="text-muted-foreground text-[10px]">📞 {p.phone}</span>}
+                                {p.age && <span className="text-muted-foreground text-[10px]">{p.age} سنة</span>}
+                                {p.gender && <span className="text-muted-foreground text-[10px]">{p.gender === 'male' ? '♂' : p.gender === 'female' ? '♀' : p.gender}</span>}
+                                {p.address && <span className="text-muted-foreground text-[10px] truncate max-w-[80px]">📍 {p.address}</span>}
+                                {isDuplicate && <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-[7px] px-1">مكرر</Badge>}
+                              </div>
+                            )
+                          })}
+                          {patientImportData.filter(p => p.name).length > 80 && <p className="text-center text-xs text-muted-foreground py-2">... و {patientImportData.filter(p => p.name).length - 80} مريض آخر</p>}
                         </div>
+                        {/* Progress */}
+                        {patientImportProgress && <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center"><p className="text-sm font-bold text-blue-700 dark:text-blue-300">{patientImportProgress}</p></div>}
+                        {/* Action Buttons */}
                         <div className="flex gap-2">
-                          <Button className="flex-1 rounded-xl bg-gradient-to-l from-cyan-500 to-blue-600 text-white font-bold" onClick={async () => {
-                            let imported = 0; let skipped = 0
-                            for (const p of patientImportData) {
-                              if (!p.name) { skipped++; continue }
-                              // Check for duplicate by name+phone
-                              const exists = patients.some(ep => ep.name === p.name && (ep.phone === p.phone || (!ep.phone && !p.phone)))
-                              if (exists) { skipped++; continue }
-                              try {
-                                await apiFetch('/patients', { method: 'POST', body: JSON.stringify(p) })
-                                imported++
-                              } catch { skipped++ }
+                          <Button className="flex-1 rounded-xl bg-gradient-to-l from-cyan-500 to-blue-600 text-white font-bold h-11" disabled={patientImportLoading} onClick={async () => {
+                            setPatientImportLoading(true)
+                            setPatientImportProgress('جاري استيراد البيانات...')
+                            try {
+                              // Use bulk import API for efficiency
+                              const validPatients = patientImportData.filter(p => p.name)
+                              const result: any = await apiFetch('/patients/import', {
+                                method: 'POST',
+                                body: JSON.stringify({ patients: validPatients }),
+                              })
+                              await loadAllData()
+                              setPatientImportPreview(false)
+                              setPatientImportData([])
+                              setPatientImportFile(null)
+                              if (result.skipped > 0) {
+                                toast.success(`تم استيراد ${result.imported} مريض ✓ (تم تخطي ${result.skipped} مكرر/غير صالح)`)
+                              } else {
+                                toast.success(`تم استيراد ${result.imported} مريض بنجاح ✓`)
+                              }
+                            } catch (err: any) {
+                              toast.error('خطأ في الاستيراد: ' + (err.message || ''))
+                            } finally {
+                              setPatientImportLoading(false)
+                              setPatientImportProgress('')
                             }
-                            await loadAllData()
-                            setPatientImportPreview(false); setPatientImportData([])
-                            toast.success(`تم استيراد ${imported} مريض${skipped > 0 ? ` (تم تخطي ${skipped} مكرر/غير صالح)` : ''} ✓`)
-                          }}>تأكيد الاستيراد</Button>
-                          <Button variant="outline" className="rounded-xl" onClick={() => { setPatientImportPreview(false); setPatientImportData([]) }}>إلغاء</Button>
+                          }}>
+                            {patientImportLoading ? <RefreshCw size={16} className="animate-spin ml-2" /> : <UserPlus size={16} className="ml-2" />}
+                            {patientImportLoading ? 'جاري الاستيراد...' : `تأكيد استيراد ${patientImportData.filter(p => p.name).length} مريض`}
+                          </Button>
+                          <Button variant="outline" className="rounded-xl h-11" disabled={patientImportLoading} onClick={() => { setPatientImportPreview(false); setPatientImportData([]); setPatientImportFile(null) }}>إلغاء</Button>
                         </div>
                       </CardContent>
                     </Card>}
