@@ -46,3 +46,25 @@ Stage Summary:
 - Server-side export includes ALL data types (26 types)
 - Import endpoint reports errors instead of silently failing
 - Build successful
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Add patient export/import buttons and real features to backup section
+
+Work Log:
+- Added "تصدير أسماء المرضى" (Export Patient Names) button — exports clean JSON with patient data only (name, phone, address, notes, etc.)
+- Added "استيراد أسماء المرضى" (Import Patient Names) button — supports JSON and CSV file import
+- CSV parser supports both Arabic and English column headers (اسم/name, موبايل/phone, etc.)
+- Added patient import preview dialog showing list of patients before confirming import
+- Import automatically skips duplicate patients (by name+phone match)
+- Added patientImportInputRef, patientImportData, patientImportPreview state variables
+- Changed "استيراد" label to "استيراد نسخة" for clarity (distinguishes from patient-only import)
+- Improved stored backups list to show "تصدير" type for export backups
+- Build successful
+
+Stage Summary:
+- 6 backup action buttons now available in grid layout
+- Patient-only export creates clean shareable JSON without virtual fields
+- Patient import supports JSON and CSV with preview before confirming
+- Duplicates are automatically detected and skipped during import

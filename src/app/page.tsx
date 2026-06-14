@@ -402,6 +402,7 @@ export default function Home() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [seeded, setSeeded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const patientImportInputRef = useRef<HTMLInputElement>(null)
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
   const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
 
@@ -628,6 +629,12 @@ export default function Home() {
   const [improvementSliderValue, setImprovementSliderValue] = useState(5)
   const [improvementNote, setImprovementNote] = useState('')
   const [celebratingImprovement, setCelebratingImprovement] = useState(false)
+
+  // Patient Import
+  const [showPatientImport, setShowPatientImport] = useState(false)
+  const [patientImportData, setPatientImportData] = useState<any[]>([])
+  const [patientImportPreview, setPatientImportPreview] = useState(false)
+  const [patientImportFile, setPatientImportFile] = useState<File | null>(null)
 
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
@@ -4746,14 +4753,110 @@ export default function Home() {
                     <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30"><Timer className="text-blue-600" size={18} /></div><div><p className="font-medium text-sm">نسخ تلقائي</p><p className="text-xs text-muted-foreground">كل فترة محددة</p></div></div><Switch checked={autoBackup} onCheckedChange={setAutoBackup} /></div>
                     {autoBackup && <Select value={String(backupInterval)} onValueChange={v => setBackupInterval(Number(v))}><SelectTrigger className="w-40 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="15">15 دقيقة</SelectItem><SelectItem value="30">30 دقيقة</SelectItem><SelectItem value="60">ساعة</SelectItem><SelectItem value="360">6 ساعات</SelectItem><SelectItem value="1440">يومياً</SelectItem></SelectContent></Select>}
                     {lastBackup && <p className="text-xs text-muted-foreground">آخر نسخة: {formatDate(lastBackup)}</p>}
+                    {/* ─── Backup Actions Grid ─── */}
                     <div className="grid grid-cols-2 gap-3">
                       <motion.button whileTap={{ scale: 0.95 }} onClick={createBackup} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800"><HardDrive className="text-emerald-600" size={24} /><span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">إنشاء نسخة</span></motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('json')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800"><FileDown className="text-blue-600" size={24} /><span className="text-sm font-medium text-blue-700 dark:text-blue-400">تصدير JSON</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-medium text-amber-700 dark:text-amber-400">استيراد</span></motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-medium text-amber-700 dark:text-amber-400">استيراد نسخة</span></motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('csv')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-800"><Archive className="text-violet-600" size={24} /><span className="text-sm font-medium text-violet-700 dark:text-violet-400">تصدير CSV</span></motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
+                        // Export patients only (clean JSON for sharing/import)
+                        const cleanPatients = patients.map(stripVirtualFields).map(p => ({
+                          name: p.name, phone: p.phone || '', phone2: p.phone2 || '',
+                          age: p.age || null, gender: p.gender || '',
+                          bloodType: p.bloodType || '', address: p.address || '',
+                          notes: p.notes || '', allergies: p.allergies || '',
+                          medicalHistory: p.medicalHistory || '',
+                        }))
+                        const json = JSON.stringify({ exportedAt: new Date().toISOString(), type: 'patients-only', totalPatients: cleanPatients.length, patients: cleanPatients }, null, 2)
+                        const blob = new Blob([json], { type: 'application/json' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-patients-only-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+                        toast.success(`تم تصدير ${cleanPatients.length} مريض ✓`)
+                      }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-800"><Users size={24} className="text-rose-600" /><span className="text-sm font-medium text-rose-700 dark:text-rose-400">تصدير أسماء المرضى</span></motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { patientImportInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"><UserPlus size={24} className="text-cyan-600" /><span className="text-sm font-medium text-cyan-700 dark:text-cyan-400">استيراد أسماء المرضى</span></motion.button>
                     </div>
                     <input ref={fileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={handleFileImport} />
-                    {backups.length > 0 && <div className="space-y-2">{backups.map(b => <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm"><div className="flex items-center gap-2"><Database size={14} className="text-muted-foreground" /><span>{b.type === 'auto' ? 'تلقائي' : 'يدوي'}</span></div><Badge variant="outline" className={b.status === 'completed' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'}>{b.status === 'completed' ? 'مكتمل' : b.status}</Badge></div>)}</div>}
+                    <input ref={patientImportInputRef} type="file" accept=".json,.csv" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; if (!file) return
+                      try {
+                        const text = await file.text()
+                        if (file.name.endsWith('.json')) {
+                          const data = JSON.parse(text)
+                          // Support multiple formats
+                          const patientList = data?.patients || (Array.isArray(data) ? data : [])
+                          if (!patientList.length) { toast.error('الملف لا يحتوي على بيانات مرضى'); return }
+                          setPatientImportData(patientList)
+                          setPatientImportPreview(true)
+                        } else if (file.name.endsWith('.csv')) {
+                          // Parse CSV: first row is headers
+                          const lines = text.trim().split('\n')
+                          if (lines.length < 2) { toast.error('الملف فارغ'); return }
+                          const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim())
+                          const csvPatients = lines.slice(1).map(line => {
+                            const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []
+                            const cleanValues = values.map(v => v.replace(/^"|"$/g, '').trim())
+                            const obj: any = {}
+                            headers.forEach((h, i) => {
+                              if (h.includes('اسم') || h.toLowerCase() === 'name') obj.name = cleanValues[i] || ''
+                              else if (h.includes('موبايل') || h.includes('هاتف') || h.toLowerCase() === 'phone') obj.phone = cleanValues[i] || ''
+                              else if (h.includes('عنوان') || h.toLowerCase() === 'address') obj.address = cleanValues[i] || ''
+                              else if (h.includes('عمر') || h.toLowerCase() === 'age') obj.age = parseInt(cleanValues[i]) || null
+                              else if (h.includes('جنس') || h.toLowerCase() === 'gender') obj.gender = cleanValues[i] || ''
+                              else if (h.includes('ملاحظ') || h.toLowerCase() === 'notes') obj.notes = cleanValues[i] || ''
+                              else if (h.includes('حساس') || h.toLowerCase() === 'allergies') obj.allergies = cleanValues[i] || ''
+                              else if (h.includes('تاريخ') && h.includes('مرض') || h.toLowerCase() === 'medicalhistory') obj.medicalHistory = cleanValues[i] || ''
+                            })
+                            return obj
+                          }).filter(p => p.name)
+                          if (!csvPatients.length) { toast.error('لم يتم العثور على أسماء مرضى في الملف'); return }
+                          setPatientImportData(csvPatients)
+                          setPatientImportPreview(true)
+                        }
+                      } catch { toast.error('فشل قراءة الملف') }
+                      e.target.value = ''
+                    }} />
+                    {/* ─── Patient Import Preview Dialog ─── */}
+                    {patientImportPreview && <Card className="border-2 border-cyan-300 dark:border-cyan-700 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/20 dark:to-blue-950/20">
+                      <CardHeader><CardTitle className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400"><UserPlus size={18} /> استيراد أسماء المرضى</CardTitle></CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-cyan-100/60 dark:bg-cyan-900/30">
+                          <span className="text-sm font-bold">{patientImportData.length} مريض جاهز للاستيراد</span>
+                          <Badge className="bg-cyan-600 text-white text-[9px]">{patientImportData.filter(p => p.name).length} اسم صالح</Badge>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto space-y-1">
+                          {patientImportData.slice(0, 50).map((p, i) => (
+                            <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-white/60 dark:bg-black/20 text-xs">
+                              <span className="font-bold text-cyan-700 dark:text-cyan-400">{p.name || '—'}</span>
+                              {p.phone && <span className="text-muted-foreground">📞 {p.phone}</span>}
+                              {p.age && <span className="text-muted-foreground">{p.age} سنة</span>}
+                            </div>
+                          ))}
+                          {patientImportData.length > 50 && <p className="text-center text-xs text-muted-foreground">... و {patientImportData.length - 50} آخر</p>}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button className="flex-1 rounded-xl bg-gradient-to-l from-cyan-500 to-blue-600 text-white font-bold" onClick={async () => {
+                            let imported = 0; let skipped = 0
+                            for (const p of patientImportData) {
+                              if (!p.name) { skipped++; continue }
+                              // Check for duplicate by name+phone
+                              const exists = patients.some(ep => ep.name === p.name && (ep.phone === p.phone || (!ep.phone && !p.phone)))
+                              if (exists) { skipped++; continue }
+                              try {
+                                await apiFetch('/patients', { method: 'POST', body: JSON.stringify(p) })
+                                imported++
+                              } catch { skipped++ }
+                            }
+                            await loadAllData()
+                            setPatientImportPreview(false); setPatientImportData([])
+                            toast.success(`تم استيراد ${imported} مريض${skipped > 0 ? ` (تم تخطي ${skipped} مكرر/غير صالح)` : ''} ✓`)
+                          }}>تأكيد الاستيراد</Button>
+                          <Button variant="outline" className="rounded-xl" onClick={() => { setPatientImportPreview(false); setPatientImportData([]) }}>إلغاء</Button>
+                        </div>
+                      </CardContent>
+                    </Card>}
+                    {/* ─── Stored Backups List ─── */}
+                    {backups.length > 0 && <div className="space-y-2">{backups.map(b => <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm"><div className="flex items-center gap-2"><Database size={14} className="text-muted-foreground" /><span>{b.type === 'auto' ? 'تلقائي' : b.type === 'export' ? 'تصدير' : 'يدوي'}</span></div><div className="flex items-center gap-2"><Badge variant="outline" className={b.status === 'completed' ? 'border-emerald-500 text-emerald-600' : 'border-amber-500 text-amber-600'}>{b.status === 'completed' ? 'مكتمل' : b.status}</Badge></div></div>)}</div>}
                   </CardContent></Card>
                 </div>)}
 
