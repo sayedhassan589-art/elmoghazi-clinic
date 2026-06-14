@@ -19,3 +19,30 @@ Stage Summary:
 - Calendar component now starts week on Saturday for Egypt
 - Finance transactions date filter fixed (lt instead of lte)
 - Friday records confirmed working in all financial APIs
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix backup restore — patient names and data disappearing after restore
+
+Work Log:
+- Identified root cause: `_count` virtual fields in patient/laserRecord data cause Prisma to reject insert, silently skipping ALL patient records
+- Client-side `exportBackup` only exported 13 of 26+ data types, missing followUpRecords, followUpVisits, partnerDoctors, etc.
+- Import endpoint silently swallowed errors — no feedback when records failed
+- `/api/backups/[id]/route.ts` only had POST (restore), no GET (fetch) — couldn't download server-created backups
+
+Fixes Applied:
+1. Added `stripVirtualFields()` function in import/route.ts to remove _count, patient, doctor, etc. before Prisma insert
+2. Added same `stripVirtualFields()` in page.tsx for client-side export fallback
+3. Made JSON export use server-side backup API (comprehensive — all 26 data types) instead of client-side state
+4. Added GET endpoint to /api/backups/[id]/route.ts for fetching backup data
+5. Updated /api/backups/[id]/route.ts POST to also strip virtual fields
+6. Improved error reporting in import — now reports which records failed instead of silently swallowing
+7. Added followUpRecords to client-side fallback export
+
+Stage Summary:
+- Patient names and all data now properly restored from backups
+- Virtual fields (_count, relations) stripped before Prisma insert
+- Server-side export includes ALL data types (26 types)
+- Import endpoint reports errors instead of silently failing
+- Build successful

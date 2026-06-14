@@ -1503,14 +1503,53 @@ export default function Home() {
 
   // ─── Backup Functions ─────────────────────────────────────────────────
   const createBackup = async () => { try { await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'manual' }) }); setLastBackup(new Date().toISOString()); toast.success('تم إنشاء نسخة احتياطية'); loadAllData() } catch { toast.error('فشل إنشاء النسخة') } }
+  // Strip virtual/relation fields that aren't real DB columns (e.g. _count, patient, visits, etc.)
+  const stripVirtualFields = (record: any) => {
+    if (!record || typeof record !== 'object') return record
+    const virtualFields = ['_count', 'patient', 'doctor', 'user', 'service', 'laserRecord',
+      'laserPackage', 'inventoryItem', 'treatmentPlan', 'phase', 'followUpVisits',
+      'visits', 'sessions', 'alerts', 'patientNotes', 'laserRecords',
+      'appointments', 'photos', 'treatmentPlans', 'reminders',
+      'waitingQueue', 'prescriptions', 'followUpRecords', 'items', 'transactions', 'notes', 'medications']
+    const cleaned = { ...record }
+    for (const f of virtualFields) delete cleaned[f]
+    return cleaned
+  }
+
   const exportBackup = async (format: string) => {
     try {
-      const data = { patients, visits, sessions, services, transactions, appointments, laserRecords, laserPackages, inventoryItems, medications, reminders, notes, exportDate: new Date().toISOString() }
+      // Use server-side backup for comprehensive JSON export (includes ALL data types)
+      if (format === 'json') {
+        const backupRes: any = await apiFetch('/backups', { method: 'POST', body: JSON.stringify({ type: 'export' }) })
+        // Now fetch the backup data
+        const backupDetail: any = await apiFetch(`/backups/${backupRes.backup?.id || ''}`)
+        const backupData = backupDetail?.data
+        if (backupData) {
+          const parsed = typeof backupData === 'string' ? JSON.parse(backupData) : backupData
+          const content = JSON.stringify(parsed, null, 2)
+          const blob = new Blob([content], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url; a.download = `elmoghazi-full-${todayStr}.json`; a.click()
+          URL.revokeObjectURL(url)
+          toast.success('تم تصدير نسخة احتياطية كاملة')
+          return
+        }
+      }
+      // Fallback: client-side export (strips virtual fields for safe re-import)
+      const data = {
+        patients: patients.map(stripVirtualFields),
+        visits, sessions, services, transactions, appointments,
+        laserRecords: laserRecords.map(stripVirtualFields),
+        laserPackages, inventoryItems, medications, reminders, notes, alerts,
+        followUpRecords: followUpRecords.map(stripVirtualFields),
+        exportDate: new Date().toISOString()
+      }
       let content: string; let filename: string; let mimeType: string
       if (format === 'csv') { const headers = Object.keys(patients[0] || {}).join(','); const rows = patients.map(p => Object.values(p).join(',')).join('\n'); content = headers + '\n' + rows; filename = `elmoghazi-${todayStr}.csv`; mimeType = 'text/csv' }
       else { content = JSON.stringify(data, null, 2); filename = `elmoghazi-${todayStr}.json`; mimeType = 'application/json' }
       const blob = new Blob([content], { type: mimeType }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); toast.success(`تم تصدير النسخة ${format.toUpperCase()}`)
-    } catch { toast.error('فشل التصدير') }
+    } catch (e: any) { console.error('Export error:', e); toast.error('فشل التصدير: ' + (e.message || '')) }
   }
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
