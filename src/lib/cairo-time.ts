@@ -114,17 +114,33 @@ function getCairoOffsetMinutes(date: Date): number {
 
 /**
  * Parse a date string as Cairo time and return a UTC Date.
- * If the date string already has timezone info, it's returned as-is.
- * If no date is provided, returns current Cairo time as UTC Date.
+ * - If the date string has explicit timezone info (+, Z), parse directly.
+ * - If the date string has a time component but NO timezone (e.g. "2024-06-14T14:30"),
+ *   interpret the time as Cairo local time (not UTC) and convert to UTC.
+ * - If the date string is date-only (e.g. "2024-06-14"), interpret as Cairo midnight.
+ * - If no date is provided, returns current Cairo time as UTC Date.
  */
 export function toCairoDate(dateStr?: string): Date {
   if (!dateStr) {
-    // Return current time, but ensure it's interpreted as Cairo time
     return cairoNow()
   }
-  // If the date string already has timezone info, parse directly
-  if (dateStr.includes('+') || dateStr.includes('Z') || dateStr.includes('T')) {
+  // If the date string already has explicit timezone info, parse directly
+  if (dateStr.includes('+') || dateStr.includes('Z')) {
     return new Date(dateStr)
+  }
+  // If the date string has a time component but no timezone info
+  // (e.g. "2024-06-14T14:30" or "2024-06-14T14:30:00")
+  // Interpret as Cairo local time and convert to UTC
+  if (dateStr.includes('T')) {
+    // Extract the date part to determine Cairo's UTC offset on that day
+    const datePart = dateStr.slice(0, 10) // "2024-06-14"
+    const offsetMinutes = getCairoOffsetMinutes(new Date(datePart + 'T12:00:00'))
+    // Parse the datetime as if it were Cairo local time
+    // Create a Date from the string (browser/Vercel will treat as UTC)
+    const asUtc = new Date(dateStr)
+    // Subtract the offset to shift from Cairo local → UTC
+    // e.g. 14:30 Cairo = 14:30 - (+2:00) = 12:30 UTC
+    return new Date(asUtc.getTime() - offsetMinutes * 60 * 1000)
   }
   // Date-only string like "2024-06-14" - interpret as Cairo midnight
   return cairoDayRange(dateStr).gte

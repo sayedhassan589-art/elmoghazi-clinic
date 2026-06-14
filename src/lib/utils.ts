@@ -15,11 +15,11 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+  return new Date(date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })
 }
 
 export function formatTime(date: string | Date): string {
-  return new Date(date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Cairo' })
 }
 
 export function generateFileNumber(): string {
