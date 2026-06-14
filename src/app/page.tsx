@@ -2127,20 +2127,27 @@ export default function Home() {
             {/* ═══ PATIENT DETAIL - DEDICATED PROFILE ═══ */}
             {activeTab === 'patients' && selectedPatient && (
               <div className="space-y-4">
-                <motion.button initial={{ x: -10 }} animate={{ x: 0 }} onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 text-primary text-sm font-bold hover:underline"><ChevronDown size={16} className="rotate-90" /> العودة للقائمة</motion.button>
+                <motion.button initial={{ x: -10 }} animate={{ x: 0 }} whileTap={{ scale: 0.95 }} whileHover={{ x: -3 }} onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-bold hover:shadow-md transition-all"><ChevronDown size={16} className="rotate-90" /> العودة للقائمة</motion.button>
 
-                {/* ═══ PATIENT HEADER - Premium Design ═══ */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950/40 dark:via-blue-950/30 dark:to-indigo-950/40 border border-blue-200/60 dark:border-blue-800/60 shadow-lg">
-                  <div className="relative z-10 p-5">
+                {/* ═══ PATIENT HEADER — Luxury Premium Design ═══ */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl shadow-xl border-0">
+                  {/* Animated gradient background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-blue-600 to-violet-700" />
+                  <div className="absolute inset-0 opacity-20">
+                    <motion.div animate={{ x: [0, 120, 0], y: [0, -60, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-64 h-64 bg-white/15 rounded-full blur-3xl" />
+                    <motion.div animate={{ x: [0, -90, 0], y: [0, 70, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-300/15 rounded-full blur-3xl" />
+                    <motion.div animate={{ x: [0, 60, 0], y: [0, 40, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} className="absolute top-1/2 left-1/2 w-36 h-36 bg-amber-200/10 rounded-full blur-3xl" />
+                  </div>
+                  <div className="relative z-10 p-6">
                     <div className="flex items-start gap-4">
                       <div className="relative">
-                        <Avatar className="h-20 w-20 border-4 shadow-lg" style={{ borderColor: selectedPatient.colorTag || '#3b82f6' }}><AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-2xl font-bold">{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
-                        {selectedPatient.starred && <span className="absolute -top-1 -right-1 text-lg">⭐</span>}
+                        <Avatar className="h-22 w-22 border-4 shadow-2xl" style={{ borderColor: selectedPatient.colorTag || '#818cf8', width: 88, height: 88 }}><AvatarFallback className="bg-white/20 backdrop-blur-sm text-white text-3xl font-black" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
+                        {selectedPatient.starred && <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="absolute -top-1 -right-1 text-xl">⭐</motion.span>}
                         {selectedPatient.improved && <span className="absolute -bottom-1 -right-1 text-lg">💗</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
-                          <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">{safeName(selectedPatient.name)}</h2>
+                          <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{safeName(selectedPatient.name)}</h2>
                           {/* Improvement Ring */}
                           {(() => {
                             const score = selectedPatient.improvementScore || 0
@@ -2170,21 +2177,21 @@ export default function Home() {
                             )
                           })()}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
-                          <span className="flex items-center gap-1 bg-blue-100/80 dark:bg-blue-900/30 px-2 py-0.5 rounded-lg font-semibold text-blue-700 dark:text-blue-300 text-xs"><Hash size={10} />{selectedPatient.fileNumber}</span>
-                          {selectedPatient.phone && <span className="flex items-center gap-1 text-xs"><Phone size={10} />{selectedPatient.phone}</span>}
-                          {selectedPatient.age && <span className="flex items-center gap-1 bg-amber-100/80 dark:bg-amber-900/30 px-2 py-0.5 rounded-lg text-amber-700 dark:text-amber-300 text-xs">{selectedPatient.age} سنة</span>}
-                          {selectedPatient.gender && <Badge className="text-[9px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">🔬 {selectedPatient.gender}</Badge>}
+                        <div className="flex items-center gap-2 text-sm mt-2 flex-wrap">
+                          <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-lg font-bold text-white/90 text-xs border border-white/10"><Hash size={11} />{selectedPatient.fileNumber}</span>
+                          {selectedPatient.phone && <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-lg text-white/90 text-xs border border-white/10"><Phone size={11} />{selectedPatient.phone}</span>}
+                          {selectedPatient.age && <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-lg text-white/90 text-xs border border-white/10">🎂 {selectedPatient.age} سنة</span>}
+                          {selectedPatient.gender && <Badge className="text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/20">🔬 {selectedPatient.gender}</Badge>}
                         </div>
                       </div>
                     </div>
-                    {/* Quick Actions */}
-                    <div className="flex items-center gap-2 mt-3 flex-wrap">
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setEditingPatient(!editingPatient); if (!editingPatient) setEditPatientForm({ name: selectedPatient.name, phone: selectedPatient.phone || '', phone2: selectedPatient.phone2 || '', age: String(selectedPatient.age || ''), gender: selectedPatient.gender || '', address: selectedPatient.address || '', bloodType: selectedPatient.bloodType || '', medicalHistory: selectedPatient.medicalHistory || '', notes: selectedPatient.notes || '' }) }} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border', editingPatient ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300')}><Edit3 size={13} className="text-blue-500" /> تعديل</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"><Trash2 size={13} /> حذف</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border', selectedPatient.starred ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 text-amber-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600')}><Star size={13} className={selectedPatient.starred ? 'text-amber-500 fill-amber-500' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border', selectedPatient.improved ? 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 text-pink-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600')}><Heart size={13} className={selectedPatient.improved ? 'text-pink-500 fill-pink-500' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
-                      {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800 text-green-700 dark:text-green-400"><Send size={12} /> واتساب</motion.button>}
+                    {/* Quick Actions — Glass Style */}
+                    <div className="flex items-center gap-2 mt-4 flex-wrap">
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { setEditingPatient(!editingPatient); if (!editingPatient) setEditPatientForm({ name: selectedPatient.name, phone: selectedPatient.phone || '', phone2: selectedPatient.phone2 || '', age: String(selectedPatient.age || ''), gender: selectedPatient.gender || '', address: selectedPatient.address || '', bloodType: selectedPatient.bloodType || '', medicalHistory: selectedPatient.medicalHistory || '', notes: selectedPatient.notes || '' }) }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', editingPatient ? 'bg-white/30 border-white/40 text-white shadow-lg' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Edit3 size={13} /> تعديل</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-red-500/30 backdrop-blur-sm border border-red-400/30 text-red-100 hover:bg-red-500/40 transition-all"><Trash2 size={13} /> حذف</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.starred ? 'bg-amber-400/30 border-amber-400/40 text-amber-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Star size={13} className={selectedPatient.starred ? 'fill-amber-300' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.improved ? 'bg-pink-400/30 border-pink-400/40 text-pink-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Heart size={13} className={selectedPatient.improved ? 'fill-pink-300' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
+                      {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/30 backdrop-blur-sm border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/40 transition-all"><Send size={12} /> واتساب</motion.button>}
                     </div>
                     {/* Edit Patient Form */}
                     {editingPatient && (
@@ -2203,11 +2210,11 @@ export default function Home() {
                         <div className="flex gap-2"><Button className="rounded-xl bg-blue-600 text-white" onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ name: editPatientForm.name, phone: editPatientForm.phone || null, phone2: editPatientForm.phone2 || null, age: parseInt(editPatientForm.age) || null, gender: editPatientForm.gender || null, address: editPatientForm.address || null, bloodType: editPatientForm.bloodType || null, medicalHistory: editPatientForm.medicalHistory || null, notes: editPatientForm.notes || null }) }); const updated = { ...selectedPatient, name: editPatientForm.name, phone: editPatientForm.phone || undefined, phone2: editPatientForm.phone2 || undefined, age: parseInt(editPatientForm.age) || undefined, gender: editPatientForm.gender || undefined, address: editPatientForm.address || undefined, bloodType: editPatientForm.bloodType || undefined, medicalHistory: editPatientForm.medicalHistory || undefined, notes: editPatientForm.notes || undefined }; setSelectedPatient(updated); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? updated : p)); setEditingPatient(false); toast.success('تم تحديث البيانات') } catch { toast.error('خطأ في التحديث') } }}>حفظ</Button><Button variant="outline" onClick={() => setEditingPatient(false)}>إلغاء</Button></div>
                       </motion.div>
                     )}
-                    {/* Color Tag */}
+                    {/* Color Tag — Glass Style */}
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-muted-foreground font-bold">لون:</span>
+                      <span className="text-[10px] text-white/60 font-bold">لون:</span>
                       {['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#f97316', '#06b6d4', '#84cc16', '#6366f1'].map(c => (
-                        <button key={c} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ colorTag: c }) }); const u = { ...selectedPatient, colorTag: c }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success('تم تغيير اللون') } catch { toast.error('خطأ') } }} className={cn('w-6 h-6 rounded-full border-2 transition-all hover:scale-110', selectedPatient.colorTag === c ? 'border-foreground scale-110 shadow' : 'border-transparent')} style={{ backgroundColor: c }} />
+                        <button key={c} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ colorTag: c }) }); const u = { ...selectedPatient, colorTag: c }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success('تم تغيير اللون') } catch { toast.error('خطأ') } }} className={cn('w-6 h-6 rounded-full border-2 transition-all hover:scale-125', selectedPatient.colorTag === c ? 'border-white scale-125 shadow-lg shadow-white/20' : 'border-white/30 hover:border-white/60')} style={{ backgroundColor: c }} />
                       ))}
                     </div>
                     {/* Improvement History Timeline */}
@@ -2335,16 +2342,16 @@ export default function Home() {
                   <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف المريض</AlertDialogTitle><AlertDialogDescription>هل أنت متأكد من حذف {selectedPatient?.name}؟ سيتم حذف جميع البيانات المرتبطة بما فيها سجلات وجلسات الليزر.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-red-600" onClick={async () => { if (!selectedPatient) return; try { const pVisits = visits.filter(v => v.patientId === selectedPatient.id); const pSessions = sessions.filter(s => s.patientId === selectedPatient.id); for (const v of pVisits) { await apiFetch(`/visits/${v.id}`, { method: 'DELETE' }); } for (const s of pSessions) { await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); } const relatedTx = transactions.filter(t => t.description?.includes(selectedPatient.name)); for (const tx of relatedTx) { await apiFetch(`/finance/transactions/${tx.id}`, { method: 'DELETE' }); } const relatedNotes = notes.filter(n => n.patientId === selectedPatient.id); for (const n of relatedNotes) { await apiFetch(`/notes/${n.id}`, { method: 'DELETE' }); } await apiFetch(`/patients/${selectedPatient.id}`, { method: 'DELETE' }); setPatients(prev => prev.filter(p => p.id !== selectedPatient.id)); setVisits(prev => prev.filter(v => v.patientId !== selectedPatient.id)); setSessions(prev => prev.filter(s => s.patientId !== selectedPatient.id)); setTransactions(prev => prev.filter(t => !t.description?.includes(selectedPatient.name))); setNotes(prev => prev.filter(n => n.patientId !== selectedPatient.id)); setLaserRecords(prev => prev.filter(r => r.patientId !== selectedPatient.id)); setSelectedPatient(null); setDeletePatientConfirmOpen(false); toast.success('تم حذف المريض وكل البيانات المرتبطة ✅') } catch { toast.error('خطأ في الحذف') } }}>حذف نهائي</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                 </AlertDialog>
 
-                {/* ═══ PATIENT DETAIL TABS ═══ */}
+                {/* ═══ PATIENT DETAIL TABS — Elegant Navigation ═══ */}
                 <Tabs value={patientDetailTab} onValueChange={setPatientDetailTab}>
-                  <TabsList className="w-full flex flex-wrap gap-1">
-                    <TabsTrigger value="overview" className="flex-1 text-[10px] min-w-[50px]"><Activity size={11} className="inline ml-1" />نظرة</TabsTrigger>
-                    <TabsTrigger value="visits" className="flex-1 text-[10px] min-w-[50px]"><Stethoscope size={11} className="inline ml-1" />زيارات</TabsTrigger>
-                    <TabsTrigger value="sessions" className="flex-1 text-[10px] min-w-[50px]"><Zap size={11} className="inline ml-1" />جلسات</TabsTrigger>
-                    <TabsTrigger value="laser" className="flex-1 text-[10px] min-w-[50px]"><Zap size={11} className="inline ml-1 text-cyan-500" />ليزر</TabsTrigger>
-                    <TabsTrigger value="reminders" className="flex-1 text-[10px] min-w-[50px]"><Bell size={11} className="inline ml-1 text-rose-500" />تذكيرات</TabsTrigger>
-                    <TabsTrigger value="finance" className="flex-1 text-[10px] min-w-[50px]"><DollarSign size={11} className="inline ml-1 text-emerald-500" />مالية</TabsTrigger>
-                    <TabsTrigger value="notes" className="flex-1 text-[10px] min-w-[50px]"><FileText size={11} className="inline ml-1 text-amber-500" />ملاحظات</TabsTrigger>
+                  <TabsList className="w-full flex flex-wrap gap-1.5 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 rounded-2xl p-1.5 border border-slate-200 dark:border-slate-700">
+                    <TabsTrigger value="overview" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><Activity size={12} className="inline ml-1" />نظرة</TabsTrigger>
+                    <TabsTrigger value="visits" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><Stethoscope size={12} className="inline ml-1" />زيارات</TabsTrigger>
+                    <TabsTrigger value="sessions" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><Zap size={12} className="inline ml-1" />جلسات</TabsTrigger>
+                    <TabsTrigger value="laser" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><Zap size={12} className="inline ml-1 text-cyan-500" />ليزر</TabsTrigger>
+                    <TabsTrigger value="reminders" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><Bell size={12} className="inline ml-1 text-rose-500" />تذكيرات</TabsTrigger>
+                    <TabsTrigger value="finance" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><DollarSign size={12} className="inline ml-1 text-emerald-500" />مالية</TabsTrigger>
+                    <TabsTrigger value="notes" className="flex-1 text-[11px] min-w-[55px] font-bold rounded-xl py-2"><FileText size={12} className="inline ml-1 text-amber-500" />ملاحظات</TabsTrigger>
                   </TabsList>
 
                   {/* ═══ OVERVIEW ═══ */}
@@ -2504,15 +2511,116 @@ export default function Home() {
                     <div className="space-y-1.5">{transactions.filter(t => t.description?.includes(selectedPatient.name)).slice(0, 20).map(t => <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50"><div className="flex items-center gap-2"><div className={cn('p-1 rounded', t.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30')}><DollarSign className={t.type === 'income' ? 'text-emerald-600' : 'text-red-600'} size={10} /></div><div><p className="text-[10px] font-medium">{t.description || t.category}</p><div className="flex items-center gap-1.5"><Badge className={cn('text-[7px] px-1', t.category === 'ليزر' ? 'bg-cyan-100 text-cyan-700' : t.category === 'كشف' ? 'bg-violet-100 text-violet-700' : t.category === 'إعادة' ? 'bg-blue-100 text-blue-700' : t.category === 'جلسات' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700')}>{t.category}</Badge><span className="text-[8px] text-muted-foreground">{formatDate(t.date)}</span></div></div></div><div className="flex items-center gap-1"><span className={cn('text-xs font-bold', t.type === 'income' ? 'text-emerald-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span><Button variant="ghost" size="icon" className="h-5 w-5" onClick={async () => { try { await apiFetch(`/finance/transactions/${t.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(tx => tx.id !== t.id)); toast.success('تم حذف المعاملة المالية') } catch { toast.error('خطأ في الحذف') } }}><Trash2 size={9} className="text-red-400" /></Button></div></div>)}</div>
                   </TabsContent>
 
-                  {/* ═══ NOTES ═══ */}
-                  <TabsContent value="notes" className="space-y-3 mt-3">
-                    <h3 className="font-bold text-sm flex items-center gap-2"><FileText size={15} className="text-amber-500" /> ملاحظات</h3>
-                    <div className="flex gap-2">
-                      <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-9 text-xs" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim() && selectedPatient) { const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }} />
-                      <Button size="sm" className="rounded-xl bg-amber-500 text-white h-9" onClick={() => { if (quickNote.trim() && selectedPatient) { const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }}><Plus size={14} /></Button>
+                  {/* ═══ NOTES — Premium Professional Design ═══ */}
+                  <TabsContent value="notes" className="space-y-4 mt-4">
+                    {/* Section Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-200/50 dark:shadow-amber-900/30">
+                          <FileText size={20} className="text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-slate-800 dark:text-slate-100" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>الملاحظات</h3>
+                          <p className="text-[11px] text-muted-foreground font-medium">{notes.filter(n => n.patientId === selectedPatient.id).length} ملاحظة مسجلة</p>
+                        </div>
+                      </div>
                     </div>
-                    {notes.filter(n => n.patientId === selectedPatient.id).length === 0 && <p className="text-center text-muted-foreground text-xs py-4">لا توجد ملاحظات</p>}
-                    <div className="space-y-1.5">{notes.filter(n => n.patientId === selectedPatient.id).map(n => (<Card key={n.id} className="border border-slate-200 dark:border-slate-800 p-2.5"><div className="flex items-start gap-2"><div className="flex-1">{editingNoteId === n.id ? (<div className="flex gap-1.5"><Input value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="input-luxury rounded-lg h-7 text-xs" autoFocus /><Button size="sm" className="rounded-lg h-7 bg-amber-500 text-white text-[10px] px-2" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent } : nn)); setEditingNoteId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="h-7 px-1" onClick={() => setEditingNoteId(null)}>✕</Button></div>) : <><p className="text-xs">{n.content}</p><p className="text-[8px] text-muted-foreground mt-0.5">{formatDate(n.createdAt)}</p></>}</div>{editingNoteId !== n.id && <div className="flex gap-0.5"><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}><Edit3 size={9} className="text-blue-500" /></Button><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={9} className="text-red-500" /></Button></div>}</div></Card>))}</div>
+
+                    {/* Add Note Input — Premium Card */}
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/20 dark:via-orange-950/20 dark:to-yellow-950/20 border-2 border-amber-200/70 dark:border-amber-800/50 p-4 shadow-md">
+                      <div className="absolute top-0 left-0 w-24 h-24 bg-amber-200/20 dark:bg-amber-700/10 rounded-full -translate-x-8 -translate-y-8 blur-2xl" />
+                      <div className="relative z-10">
+                        <Label className="text-sm font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 mb-2">
+                          <Sparkles size={14} /> إضافة ملاحظة جديدة
+                        </Label>
+                        <div className="flex gap-2">
+                          <Textarea value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="اكتب ملاحظتك هنا... اضغط Enter للحفظ" className="flex-1 rounded-xl min-h-[52px] text-sm font-medium border-2 border-amber-200 dark:border-amber-800 focus:border-amber-400 focus:ring-amber-400/20 bg-white/80 dark:bg-slate-900/60 resize-none" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif", fontSize: '14px' }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && quickNote.trim() && selectedPatient) { e.preventDefault(); const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }} />
+                          <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-4 py-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold shadow-lg shadow-amber-300/30 dark:shadow-amber-900/30 flex items-center gap-1.5 text-sm self-end" onClick={() => { if (quickNote.trim() && selectedPatient) { const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }}>
+                            <Plus size={16} /> إضافة
+                          </motion.button>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Notes List */}
+                    {notes.filter(n => n.patientId === selectedPatient.id).length === 0 && (
+                      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-12 text-center">
+                        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-6xl mb-4">📝</motion.div>
+                        <p className="text-lg font-bold text-slate-600 dark:text-slate-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>لا توجد ملاحظات بعد</p>
+                        <p className="text-sm text-muted-foreground mt-1">ابدأ بإضافة ملاحظتك الأولى أعلاه</p>
+                      </motion.div>
+                    )}
+                    <div className="space-y-3">
+                      {notes.filter(n => n.patientId === selectedPatient.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((n, idx) => {
+                        const noteColors = [
+                          { border: 'border-indigo-200 dark:border-indigo-800/60', bg: 'from-indigo-50 via-white to-blue-50 dark:from-indigo-950/20 dark:via-slate-900/40 dark:to-blue-950/20', accent: 'bg-indigo-500', accentLight: 'bg-indigo-100 dark:bg-indigo-900/30', accentText: 'text-indigo-600 dark:text-indigo-400' },
+                          { border: 'border-violet-200 dark:border-violet-800/60', bg: 'from-violet-50 via-white to-purple-50 dark:from-violet-950/20 dark:via-slate-900/40 dark:to-purple-950/20', accent: 'bg-violet-500', accentLight: 'bg-violet-100 dark:bg-violet-900/30', accentText: 'text-violet-600 dark:text-violet-400' },
+                          { border: 'border-emerald-200 dark:border-emerald-800/60', bg: 'from-emerald-50 via-white to-teal-50 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-teal-950/20', accent: 'bg-emerald-500', accentLight: 'bg-emerald-100 dark:bg-emerald-900/30', accentText: 'text-emerald-600 dark:text-emerald-400' },
+                          { border: 'border-cyan-200 dark:border-cyan-800/60', bg: 'from-cyan-50 via-white to-sky-50 dark:from-cyan-950/20 dark:via-slate-900/40 dark:to-sky-950/20', accent: 'bg-cyan-500', accentLight: 'bg-cyan-100 dark:bg-cyan-900/30', accentText: 'text-cyan-600 dark:text-cyan-400' },
+                          { border: 'border-rose-200 dark:border-rose-800/60', bg: 'from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-slate-900/40 dark:to-pink-950/20', accent: 'bg-rose-500', accentLight: 'bg-rose-100 dark:bg-rose-900/30', accentText: 'text-rose-600 dark:text-rose-400' },
+                          { border: 'border-amber-200 dark:border-amber-800/60', bg: 'from-amber-50 via-white to-yellow-50 dark:from-amber-950/20 dark:via-slate-900/40 dark:to-yellow-950/20', accent: 'bg-amber-500', accentLight: 'bg-amber-100 dark:bg-amber-900/30', accentText: 'text-amber-600 dark:text-amber-400' },
+                        ]
+                        const color = noteColors[idx % noteColors.length]
+                        const isEditing = editingNoteId === n.id
+                        const timeAgo = (() => { const diff = Date.now() - new Date(n.createdAt).getTime(); const mins = Math.floor(diff / 60000); if (mins < 1) return 'الآن'; if (mins < 60) return `منذ ${mins} دقيقة`; const hrs = Math.floor(mins / 60); if (hrs < 24) return `منذ ${hrs} ساعة`; const days = Math.floor(hrs / 24); return `منذ ${days} يوم` })()
+
+                        return (
+                          <motion.div key={n.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
+                            className={cn('relative overflow-hidden rounded-2xl border-2 bg-gradient-to-l p-0 shadow-sm hover:shadow-md transition-all', color.border, color.bg)}>
+                            {/* Side accent bar */}
+                            <div className={cn('absolute top-0 right-0 w-1.5 h-full rounded-r-2xl', color.accent)} />
+                            <div className="p-4 pr-5">
+                              {isEditing ? (
+                                <div className="space-y-3">
+                                  <Textarea value={editingNoteContent} onChange={e => setEditingNoteContent(e.target.value)} className="rounded-xl min-h-[60px] text-sm font-medium border-2 border-amber-300 dark:border-amber-700 focus:border-amber-500 bg-white dark:bg-slate-900 resize-none" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif", fontSize: '14px' }} autoFocus onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent }) }).then(() => { setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent } : nn)); setEditingNoteId(null); toast.success('تم التعديل بنجاح ✓') }).catch(() => toast.error('خطأ في التعديل')) } }} />
+                                  <div className="flex gap-2">
+                                    <Button size="sm" className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md h-8 px-4" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ content: editingNoteContent }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, content: editingNoteContent } : nn)); setEditingNoteId(null); toast.success('تم التعديل بنجاح ✓') } catch { toast.error('خطأ في التعديل') } }}>
+                                      <CheckCircle size={14} className="ml-1" /> حفظ
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs" onClick={() => setEditingNoteId(null)}>إلغاء</Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-start gap-3">
+                                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm', color.accent)}>
+                                    {idx + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[15px] font-semibold leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif", lineHeight: '1.8' }}>{n.content}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-lg', color.accentLight, color.accentText)}>{timeAgo}</span>
+                                      <span className="text-[11px] text-muted-foreground">{formatDate(n.createdAt)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-1 flex-shrink-0">
+                                    <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.1 }} className="h-8 w-8 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}>
+                                      <Edit3 size={14} className="text-blue-600 dark:text-blue-400" />
+                                    </motion.button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.1 }} className="h-8 w-8 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all">
+                                          <Trash2 size={14} className="text-red-500 dark:text-red-400" />
+                                        </motion.button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle className="flex items-center gap-2"><Trash2 size={18} className="text-red-500" /> حذف الملاحظة</AlertDialogTitle>
+                                          <AlertDialogDescription>هل أنت متأكد من حذف هذه الملاحظة؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                          <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'DELETE' }); setNotes(prev => prev.filter(nn => nn.id !== n.id)); toast.success('تم حذف الملاحظة ✓') } catch { toast.error('خطأ في الحذف') } }}>حذف</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
