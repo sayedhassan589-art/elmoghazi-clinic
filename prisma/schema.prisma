@@ -1,0 +1,512 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         String   @default("secretary") // doctor, secretary, admin
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  visits       Visit[]
+  sessions     Session[]
+  notes        Note[]
+  auditLogs    AuditLog[]
+  prescriptions Prescription[]
+}
+
+model Patient {
+  id              String   @id @default(cuid())
+  fileNumber      String   @unique
+  name            String
+  phone           String?
+  phone2          String?
+  age             Int?
+  gender          String?  // male, female
+  bloodType       String?
+  address         String?
+  notes           String?
+  allergies       String?
+  medicalHistory  String?
+  starred         Boolean  @default(false)
+  improved        Boolean  @default(false)
+  colorTag        String?  // custom color tag for patient status
+  improvementScore Int?    // مؤشر التحسن من 1 إلى 10
+  improvementHistory String? // سجل تغييرات التحسن (JSON string)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  visits          Visit[]
+  sessions        Session[]
+  alerts          Alert[]
+  patientNotes    Note[]
+  laserRecords    LaserRecord[]
+  appointments    Appointment[]
+  photos          PatientPhoto[]
+  treatmentPlans  TreatmentPlan[]
+  reminders       Reminder[]
+  waitingQueue    WaitingQueue[]
+  prescriptions   Prescription[]
+  followUpRecords FollowUpRecord[]
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?  // consultation, laser, treatment, cosmetic
+  price       Float    @default(0)
+  duration    Int?     // minutes
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions    Session[]
+}
+
+model Visit {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorId    String?
+  type        String   @default("consultation") // consultation, followup, emergency
+  diagnosis   String?
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?    @relation(fields: [doctorId], references: [id])
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  patientId   String
+  serviceId   String?
+  doctorId    String?
+  status      String   @default("scheduled") // scheduled, completed, cancelled, no_show
+  notes       String?
+  date        DateTime @default(now())
+  price       Float    @default(0)
+  paid        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient       Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  service       Service?               @relation(fields: [serviceId], references: [id])
+  doctor        User?                  @relation(fields: [doctorId], references: [id])
+  treatmentPlan TreatmentPlanSession[]
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  patientId   String?
+  userId      String?
+  content     String
+  important   Boolean  @default(false)
+  section     String?  // dashboard, patients, visits, sessions, laser, finance, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  patientId   String
+  type        String   @default("warning") // warning, danger, info
+  message     String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Reminder {
+  id          String   @id @default(cuid())
+  patientId   String?
+  title       String
+  description String?
+  date        DateTime
+  type        String   @default("follow_up") // follow_up, appointment, medication, custom
+  status      String   @default("pending") // pending, sent, done, dismissed
+  sentVia     String?  // whatsapp, sms, in_app
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// ============ LASER MODELS ============
+
+model LaserRecord {
+  id              String   @id @default(cuid())
+  patientId       String
+  bodyArea        String
+  skinType        String?  // I, II, III, IV, V, VI
+  hairColor       String?
+  hairDensity     String?  // low, medium, high
+  totalSessions   Int      @default(0)
+  price           Float    @default(0) // سعر الجلسة
+  totalPrice      Float    @default(0) // إجمالي سعر الباقة
+  paid            Boolean  @default(false) // حالة الدفع
+  machineName     String?  // اسم الجهاز
+  energy          Float?   // الطاقة
+  pulse           String?  // النبض
+  status          String   @default("active") // active, completed, paused
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  laserSessions   LaserSession[]
+  laserNotes      LaserNote[]
+}
+
+model LaserSession {
+  id              String   @id @default(cuid())
+  laserRecordId   String
+  sessionNumber   Int
+  energy          Float?   // joules
+  pulse           String?
+  painLevel       Int?     // 1-10
+  reaction        String?
+  notes           String?
+  price           Float    @default(0) // سعر الجلسة
+  paid            Boolean  @default(false) // هل تم الدفع
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  laserRecord     LaserRecord @relation(fields: [laserRecordId], references: [id], onDelete: Cascade)
+}
+
+model LaserPackage {
+  id              String   @id @default(cuid())
+  name            String
+  sessionsCount   Int
+  price           Float
+  bodyArea        String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model LaserNote {
+  id              String   @id @default(cuid())
+  laserRecordId   String
+  content         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  laserRecord     LaserRecord @relation(fields: [laserRecordId], references: [id], onDelete: Cascade)
+}
+
+model LaserSetting {
+  id              String   @id @default(cuid())
+  machineName     String
+  bodyArea        String
+  skinType        String?
+  defaultEnergy   Float?
+  defaultPulse    String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ============ FINANCE & INVENTORY ============
+
+model Transaction {
+  id          String   @id @default(cuid())
+  type        String   @default("income") // income, expense
+  category    String   @default("clinic") // clinic, personal
+  amount      Float
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  patientId   String?
+  date        DateTime
+  duration    Int      @default(30) // minutes
+  type        String   @default("consultation")
+  status      String   @default("scheduled") // scheduled, confirmed, completed, cancelled, no_show
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model WaitingQueue {
+  id          String   @id @default(cuid())
+  patientId   String?
+  patientName String?
+  priority    Int      @default(0)
+  status      String   @default("waiting") // waiting, in_progress, done, left
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?
+  quantity    Int      @default(0)
+  minQuantity Int      @default(5)
+  unitPrice   Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+}
+
+model InventoryTransaction {
+  id              String   @id @default(cuid())
+  itemId          String
+  type            String   // in, out
+  quantity        Int
+  notes           String?
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  item            InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+// ============ TREATMENT PLANS ============
+
+model TreatmentPlan {
+  id          String   @id @default(cuid())
+  patientId   String
+  title       String
+  description String?
+  status      String   @default("active") // active, completed, paused, cancelled
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  phases      TreatmentPhase[]
+}
+
+model TreatmentPhase {
+  id          String   @id @default(cuid())
+  planId      String
+  name        String
+  description String?
+  order       Int      @default(0)
+  status      String   @default("pending") // pending, in_progress, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plan        TreatmentPlan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sessions    TreatmentPlanSession[]
+}
+
+model TreatmentPlanSession {
+  id          String   @id @default(cuid())
+  phaseId     String
+  sessionId   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  phase       TreatmentPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  session     Session?       @relation(fields: [sessionId], references: [id])
+}
+
+// ============ PHOTOS & BACKUP & AUDIT ============
+
+model PatientPhoto {
+  id          String   @id @default(cuid())
+  patientId   String
+  type        String   @default("general") // before, after, general
+  description String?
+  imageData   String   // base64
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Backup {
+  id          String   @id @default(cuid())
+  type        String   @default("manual") // manual, auto
+  size        Int?
+  status      String   @default("completed") // completed, failed
+  data        String   // JSON string of backup
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String?
+  entityId    String?
+  details     String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+// ============ MEDICATIONS & PRESCRIPTIONS (NEW) ============
+
+model Medication {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?  // cream, ointment, tablet, injection, lotion, gel
+  description String?
+  dosage      String?
+  instructions String?
+  sideEffects String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prescriptions PrescriptionItem[]
+}
+
+model Prescription {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorId    String?
+  diagnosis   String?
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?             @relation(fields: [doctorId], references: [id])
+  items       PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id              String   @id @default(cuid())
+  prescriptionId  String
+  medicationId    String
+  dosage          String?
+  frequency       String?  // once daily, twice daily, etc.
+  duration        String?  // 1 week, 2 weeks, etc.
+  instructions    String?
+  createdAt       DateTime @default(now())
+
+  prescription    Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication      Medication   @relation(fields: [medicationId], references: [id])
+}
+
+// ============ NOTIFICATIONS (NEW) ============
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String?
+  title       String
+  message     String
+  type        String   @default("info") // info, warning, success, error
+  read        Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+}
+
+// ============ PARTNER DOCTORS ============
+
+model PartnerDoctor {
+  id                  String   @id @default(cuid())
+  name                String
+  phone               String?
+  specialty           String?
+  checkupPercentage   Float    @default(0)   // نسبة الكشف %
+  revisitPercentage   Float    @default(0)   // نسبة الإعادة %
+  laserPercentage     Float    @default(0)   // نسبة الليزر %
+  sessionPercentage   Float    @default(0)   // نسبة الجلسات %
+  fixedAmount         Float    @default(0)   // مبلغ ثابت
+  active              Boolean  @default(true)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ============ FOLLOW-UP SYSTEM ============
+
+model FollowUpRecord {
+  id                String   @id @default(cuid())
+  patientId         String
+  condition         String                     // الحالة المزمنة / المرض
+  conditionCategory String?                     // جلدية، داخلية، أخرى
+  severity          String   @default("moderate") // mild, moderate, severe, critical
+  status            String   @default("active")   // active, paused, completed, discharged
+  // Follow-up schedule
+  frequency         String   @default("monthly")  // weekly, biweekly, monthly, quarterly, custom
+  customDays        Int?                        // أيام مخصصة لو frequency = custom
+  nextVisitDate     DateTime?                   // تاريخ الزيارة القادمة
+  lastVisitDate     DateTime?                   // تاريخ آخر زيارة
+  // Subscription / Package
+  hasSubscription   Boolean  @default(false)        // عنده باقة متابعة؟
+  subscriptionType  String?                     // monthly, quarterly, yearly, session_based
+  subscriptionPrice Float    @default(0)             // سعر الباقة
+  subscriptionStart DateTime?                     // بداية الباقة
+  subscriptionEnd   DateTime?                     // نهاية الباقة
+  sessionsIncluded  Int      @default(0)             // عدد الجلسات في الباقة
+  sessionsUsed      Int      @default(0)             // عدد الجلسات المستخدمة
+  // Medical info
+  diagnosis         String?                     // التشخيص
+  treatmentPlan     String?                     // خطة العلاج
+  medications       String?                     // الأدوية الحالية (JSON string)
+  notes             String?                     // ملاحظات
+  // Reminder
+  reminderEnabled   Boolean  @default(true)       // تذكير تلقائي
+  reminderDaysBefore Int     @default(1)           // كم يوم قبل الموعد
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  patient           Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  followUpVisits    FollowUpVisit[]
+}
+
+model FollowUpVisit {
+  id              String   @id @default(cuid())
+  followUpId      String
+  visitNumber     Int                        // رقم الزيارة
+  // Visit details
+  visitDate       DateTime @default(now())
+  type            String   @default("followup") // followup, checkup, emergency
+  // Clinical findings
+  findings        String?                    // النتائج السريرية
+  vitals          String?                    // العلامات الحيوية (JSON)
+  diagnosis       String?                    // التشخيص
+  treatmentNotes  String?                    // ملاحظات العلاج
+  medications     String?                    // الأدوية الموصوفة (JSON string)
+  instructions    String?                    // التعليمات للمريض
+  // Payment
+  paid            Boolean  @default(false)
+  price           Float    @default(0)
+  // Next visit
+  nextVisitDate   DateTime?                  // تاريخ الزيارة القادمة
+  // Status
+  status          String   @default("completed") // completed, no_show, cancelled
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  followUp        FollowUpRecord @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+}
