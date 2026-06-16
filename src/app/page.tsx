@@ -71,13 +71,31 @@ interface FollowUpVisit { id: string; followUpId: string; visitNumber: number; v
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const CHART_COLORS = ['#047857', '#D4A843', '#0EA5E9', '#8B5CF6', '#F59E0B', '#EC4899']
 
+// Helper: normalize any Arabic/Persian numerals and symbols to Latin
+const normalizePhone = (phone: string): string => {
+  return phone
+    // Convert Arabic-Indic numerals (٠-٩) used in Egypt/Arabic
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+    // Convert Persian/Urdu numerals (۰-۹) used in some keyboards
+    .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+    // Convert Arabic full-width plus sign to Latin +
+    .replace(/＋/g, '+')
+    // Convert Arabic comma/dash/space to Latin equivalents
+    .replace(/[،٬]/g, ',')
+    .replace(/ـ/g, '-')
+    // Remove common RTL/LTR marks and Arabic tatweel
+    .replace(/[\u200E\u200F\u200C\u200D\u0640]/g, '')
+}
+
 // Helper: format phone for WhatsApp (adds Egypt country code +20 if missing)
 const waPhone = (phone?: string) => {
   if (!phone) return ''
-  // Convert Arabic/Indic numerals (٠-٩) to Latin (0-9) first
-  const latinized = phone.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
-  const digits = latinized.replace(/[^0-9]/g, '')
+  // Step 1: Normalize ALL Arabic/Persian numerals to Latin
+  const normalized = normalizePhone(phone)
+  // Step 2: Extract only digits
+  const digits = normalized.replace(/[^0-9]/g, '')
   if (!digits || digits.length < 3) return '' // too short to be valid
+  // Step 3: Add Egypt country code if missing
   if (digits.startsWith('20')) return digits // already has country code
   if (digits.startsWith('0')) return '2' + digits // starts with 0 → add 2
   return '20' + digits // no prefix → add 20
@@ -2318,8 +2336,8 @@ export default function Home() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3 p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div><Label className="text-xs font-bold">الاسم</Label><Input value={editPatientForm.name} onChange={e => setEditPatientForm(prev => ({ ...prev, name: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
-                          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={editPatientForm.phone} onChange={e => setEditPatientForm(prev => ({ ...prev, phone: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
-                          <div><Label className="text-xs font-bold">هاتف آخر</Label><Input value={editPatientForm.phone2} onChange={e => setEditPatientForm(prev => ({ ...prev, phone2: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={editPatientForm.phone} onChange={e => setEditPatientForm(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">هاتف آخر</Label><Input value={editPatientForm.phone2} onChange={e => setEditPatientForm(prev => ({ ...prev, phone2: normalizePhone(e.target.value) }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">العمر</Label><Input type="number" value={editPatientForm.age} onChange={e => setEditPatientForm(prev => ({ ...prev, age: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">التشخيص</Label><Input value={editPatientForm.gender} onChange={e => setEditPatientForm(prev => ({ ...prev, gender: e.target.value }))} placeholder="أدخل التشخيص..." className="rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">فصيلة الدم</Label><Select value={editPatientForm.bloodType} onValueChange={v => setEditPatientForm(p => ({ ...p, bloodType: v }))}><SelectTrigger className="rounded-xl h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent>{['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
@@ -6310,7 +6328,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Phone size={14} /> الهاتف</Label>
-                <Input value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10" />
+                <Input value={newPatientPhone} onChange={e => setNewPatientPhone(normalizePhone(e.target.value))} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10" />
               </div>
               <div>
                 <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
@@ -6962,7 +6980,7 @@ export default function Home() {
             <div><Label className="text-xs font-bold">الاسم *</Label><Input value={doctorForm.name} onChange={e => setDoctorForm(prev => ({ ...prev, name: e.target.value }))} placeholder="اسم الطبيب" className="input-luxury rounded-xl h-10" /></div>
             <div><Label className="text-xs font-bold">التخصص</Label><Input value={doctorForm.specialty} onChange={e => setDoctorForm(prev => ({ ...prev, specialty: e.target.value }))} placeholder="التخصص" className="input-luxury rounded-xl h-10" /></div>
           </div>
-          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={doctorForm.phone} onChange={e => setDoctorForm(prev => ({ ...prev, phone: e.target.value }))} placeholder="رقم الهاتف" className="input-luxury rounded-xl h-10" /></div>
+          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={doctorForm.phone} onChange={e => setDoctorForm(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))} placeholder="رقم الهاتف" className="input-luxury rounded-xl h-10" /></div>
           <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20">
             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={14} className="text-emerald-500" /> النسب المئوية</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
