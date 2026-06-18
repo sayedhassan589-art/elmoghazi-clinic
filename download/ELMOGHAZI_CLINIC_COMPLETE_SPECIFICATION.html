@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Elmoghazi Clinic — Complete Application Specification</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 14mm 18mm 14mm;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #1f2937;
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Cover page */
+  .cover {
+    page-break-after: always;
+    text-align: center;
+    padding-top: 60mm;
+    background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%);
+    color: #ffffff;
+    height: 261mm;
+    margin: -18mm -14mm 0 -14mm;
+    padding-left: 14mm;
+    padding-right: 14mm;
+  }
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 800;
+    margin: 0 0 8mm 0;
+    line-height: 1.2;
+  }
+  .cover h2 {
+    font-size: 18pt;
+    font-weight: 500;
+    margin: 0 0 20mm 0;
+    color: #ddd6fe;
+  }
+  .cover .badge {
+    display: inline-block;
+    padding: 6pt 16pt;
+    background: rgba(255,255,255,0.15);
+    border: 1pt solid rgba(255,255,255,0.35);
+    border-radius: 20pt;
+    font-size: 11pt;
+    margin: 4pt;
+  }
+  .cover .meta {
+    margin-top: 40mm;
+    font-size: 11pt;
+    color: #ddd6fe;
+  }
+  .cover .meta div { margin: 4pt 0; }
+
+  /* Headings */
+  h1 {
+    font-size: 22pt;
+    color: #4c1d95;
+    border-bottom: 3px solid #7c3aed;
+    padding-bottom: 4pt;
+    margin-top: 24pt;
+    margin-bottom: 12pt;
+    font-weight: 700;
+  }
+  h2 {
+    font-size: 16pt;
+    color: #5b21b6;
+    margin-top: 20pt;
+    margin-bottom: 8pt;
+    font-weight: 700;
+    border-right: 4px solid #7c3aed;
+    padding-right: 8pt;
+  }
+  h3 {
+    font-size: 13pt;
+    color: #6d28d9;
+    margin-top: 16pt;
+    margin-bottom: 6pt;
+    font-weight: 600;
+  }
+  h4 {
+    font-size: 11.5pt;
+    color: #7c3aed;
+    margin-top: 12pt;
+    margin-bottom: 4pt;
+    font-weight: 600;
+  }
+  h5, h6 {
+    font-size: 10.5pt;
+    color: #6b7280;
+    margin-top: 10pt;
+    margin-bottom: 4pt;
+    font-weight: 600;
+  }
+
+  p { margin: 6pt 0; }
+
+  /* Arabic paragraphs — RTL */
+  p:lang(ar), li:lang(ar) { direction: rtl; text-align: right; }
+
+  /* Mixed content — keep LTR for English-dominant lines, RTL for Arabic-dominant */
+  p, li { unicode-bidi: plaintext; }
+
+  /* Code blocks */
+  pre {
+    background: #1e1b3a;
+    color: #e2e8f0;
+    padding: 10pt 12pt;
+    border-radius: 6pt;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    margin: 8pt 0;
+    direction: ltr;
+    text-align: left;
+    page-break-inside: avoid;
+    border-right: 3pt solid #7c3aed;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Inline code */
+  code {
+    background: #f3f4f6;
+    color: #be185d;
+    padding: 1pt 4pt;
+    border-radius: 3pt;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 9pt;
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10pt 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #e5e7eb;
+    padding: 5pt 8pt;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f5f3ff;
+    color: #4c1d95;
+    font-weight: 700;
+  }
+  tbody tr:nth-child(even) { background: #faf9ff; }
+
+  /* Lists */
+  ul, ol {
+    margin: 6pt 0;
+    padding-left: 20pt;
+  }
+  li { margin: 3pt 0; }
+
+  /* Blockquote */
+  blockquote {
+    border-right: 4pt solid #f59e0b;
+    background: #fef3c7;
+    padding: 8pt 12pt;
+    margin: 8pt 0;
+    color: #78350f;
+    direction: rtl;
+    text-align: right;
+    border-radius: 0 6pt 6pt 0;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 14pt 0;
+  }
+
+  /* Links */
+  a { color: #7c3aed; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Strong */
+  strong { color: #4c1d95; font-weight: 700; }
+
+  /* Page breaks */
+  h1 { page-break-after: avoid; }
+  h2, h3, h4 { page-break-after: avoid; }
+  pre, table { page-break-before: auto; }
+
+  /* Avoid orphans/widows */
+  p, li { orphans: 2; widows: 2; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Elmoghazi Clinic</h1>
+  <h2>Complete Application Specification<br/>المواصفات الكاملة للتطبيق</h2>
+  <div>
+    <span class="badge">Next.js 16</span>
+    <span class="badge">TypeScript</span>
+    <span class="badge">Prisma</span>
+    <span class="badge">PostgreSQL</span>
+    <span class="badge">Tailwind CSS 4</span>
+  </div>
+  <div class="meta">
+    <div>Disaster Recovery &amp; Rebuild Guide</div>
+    <div>عيادة المغازي للجلدية والتجميل</div>
+    <div>Generated: 2026-06-18</div>
+  </div>
+</div>
+
+<h1>🏥 ELMOGHAZI CLINIC — Complete Application Specification</h1>
+<h2>عيادة المغازي للجلدية والتجميل — المواصفات الكاملة للتطبيق</h2>
+<blockquote><strong>⚠️ مهم:</strong> هذا الملف هو البصمة الكاملة للتطبيق. لو ضاع التطبيق أو عايز تنسخه على منصة تانية، ابعت الملف ده وأى مطور يقدر يعيد بناء نفس التطبيق بالظبط بنفس كل المميزات.</blockquote>
+<hr/>
+<h2>📋 Table of Contents | فهرس المحتويات</h2>
+<ol>
+<li><a href="#1-overview--نظرة-عامة">Overview | نظرة عامة</a></li>
+<li><a href="#2-tech-stack--التقنيات-المستخدمة">Tech Stack | التقنيات المستخدمة</a></li>
+<li><a href="#3-all-features--كل-المميزات">All Features | كل المميزات</a></li>
+<li><a href="#4-database-schema--قاعدة-البيانات">Database Schema | قاعدة البيانات</a></li>
+<li><a href="#5-api-endpoints--واجهات-البرمجة">API Endpoints | واجهات البرمجة</a></li>
+<li><a href="#6-key-code-functions--الدوال-المهمة">Key Code Functions | الدوال المهمة</a></li>
+<li><a href="#7-file-structure--هيكل-الملفات">File Structure | هيكل الملفات</a></li>
+<li><a href="#8-environment-variables--المتغيرات-البيئية">Environment Variables | المتغيرات البيئية</a></li>
+<li><a href="#9-configuration-files--ملفات-الإعدادات">Configuration Files | ملفات الإعدادات</a></li>
+<li><a href="#10-uiux-design-notes--ملاحظات-التصميم">UI/UX Design Notes | ملاحظات التصميم</a></li>
+<li><a href="#11-bug-fixes-applied--الإصلاحات-المطبقة">Bug Fixes Applied | الإصلاحات المطبقة</a></li>
+<li><a href="#12-deployment-guide--دليل-النشر">Deployment Guide | دليل النشر</a></li>
+<li><a href="#13-recovery-guide--دليل-الاستعادة-من-الكوارث">Recovery Guide | دليل الاستعادة من الكوارث</a></li>
+<li><a href="#14-login--auth--تسجيل-الدخول-والصلاحيات">Login &amp; Auth | تسجيل الدخول والصلاحيات</a></li>
+<li><a href="#15-business-logic--المنطق-التشغيلى">Business Logic | المنطق التشغيلى</a></li>
+</ol>
+<hr/>
+<h2>1. Overview | نظرة عامة</h2>
+<p><strong>اسم التطبيق:</strong> Elmoghazi Clinic — عيادة المغازي للجلدية والتجميل</p>
+<p><strong>الوصف:</strong> نظام إدارة عيادة جلدية وتجميل متكامل، باللغة العربية مع دعم RTL كامل. مصمم لعيادة المغازي في مصر، مع دعم كامل لتوقيت القاهرة.</p>
+<p><strong>المنصات المستخدمة حالياً:</strong></p>
+<ul>
+<li><strong>Frontend &amp; Backend:</strong> Vercel (Next.js 16)</li>
+<li><strong>Database:</strong> Neon PostgreSQL (مجاني 500MB)</li>
+<li><strong>Git Repository:</strong> GitHub — <code>sayedhassan589-art/elmoghazi-clinic</code></li>
+</ul>
+<p><strong>المستخدمون:</strong> طبيب (دكتور المغازي) + سكرتيرة</p>
+<p><strong>التوقيت:</strong> Africa/Cairo (UTC+2 standard, UTC+3 DST)</p>
+<hr/>
+<h2>2. Tech Stack | التقنيات المستخدمة</h2>
+<h3>Core Technologies:</h3>
+<pre data-lang="json"><code>{
+  "framework": "Next.js 16.1.1",
+  "language": "TypeScript 5",
+  "runtime": "React 19",
+  "styling": "Tailwind CSS 4",
+  "ui_library": "shadcn/ui (Radix UI based)",
+  "database_orm": "Prisma 6.19.3",
+  "database": "PostgreSQL (Neon)",
+  "state_management": "Zustand 5 (with persist middleware)",
+  "animations": "Framer Motion 12",
+  "charts": "Recharts 2.15",
+  "icons": "Lucide React 0.525",
+  "toasts": "Sonner 2.0",
+  "fonts": "Cairo (Arabic) + Playfair Display (Latin)",
+  "forms": "React Hook Form 7 + Zod 4",
+  "auth": "Custom (no NextAuth — simple password-based)"
+}</code></pre>
+<h3>Full Dependencies (package.json):</h3>
+<pre data-lang="json"><code>{
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.1.1",
+    "@mdxeditor/editor": "^3.39.1",
+    "@prisma/client": "^6.19.3",
+    "@radix-ui/react-accordion": "^1.2.11",
+    "@radix-ui/react-alert-dialog": "^1.1.14",
+    "@radix-ui/react-aspect-ratio": "^1.1.7",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-checkbox": "^1.3.2",
+    "@radix-ui/react-collapsible": "^1.1.11",
+    "@radix-ui/react-context-menu": "^2.2.15",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-dropdown-menu": "^2.1.15",
+    "@radix-ui/react-hover-card": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-menubar": "^1.1.15",
+    "@radix-ui/react-navigation-menu": "^1.2.13",
+    "@radix-ui/react-popover": "^1.1.14",
+    "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-radio-group": "^1.3.7",
+    "@radix-ui/react-scroll-area": "^1.2.9",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slider": "^1.3.5",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.5",
+    "@radix-ui/react-tabs": "^1.1.12",
+    "@radix-ui/react-toast": "^1.2.14",
+    "@radix-ui/react-toggle": "^1.1.9",
+    "@radix-ui/react-toggle-group": "^1.1.10",
+    "@radix-ui/react-tooltip": "^1.2.7",
+    "@reactuses/core": "^6.0.5",
+    "@tanstack/react-query": "^5.82.0",
+    "@tanstack/react-table": "^8.21.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
+    "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.23.2",
+    "input-otp": "^1.4.2",
+    "lucide-react": "^0.525.0",
+    "next": "^16.1.1",
+    "next-auth": "^4.24.11",
+    "next-intl": "^4.3.4",
+    "next-themes": "^0.4.6",
+    "prisma": "^6.19.3",
+    "react": "^19.0.0",
+    "react-day-picker": "^9.8.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.60.0",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^3.0.3",
+    "react-syntax-highlighter": "^15.6.1",
+    "recharts": "^2.15.4",
+    "sharp": "^0.34.3",
+    "sonner": "^2.0.6",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
+    "vaul": "^1.1.2",
+    "xlsx": "^0.18.5",
+    "z-ai-web-dev-sdk": "^0.0.17",
+    "zod": "^4.0.2",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "bun-types": "^1.3.4",
+    "eslint": "^9",
+    "eslint-config-next": "^16.1.1",
+    "tailwindcss": "^4",
+    "tw-animate-css": "^1.3.5",
+    "typescript": "^5"
+  }
+}</code></pre>
+<h3>Scripts:</h3>
+<pre data-lang="json"><code>{
+  "dev": "next dev -p 3000",
+  "postinstall": "prisma generate",
+  "build": "prisma generate &amp;&amp; next build",
+  "start": "NODE_ENV=production bun .next/standalone/server.js",
+  "lint": "eslint .",
+  "db:push": "prisma db push",
+  "db:generate": "prisma generate",
+  "db:migrate": "prisma migrate dev",
+  "db:reset": "prisma migrate reset"
+}</code></pre>
+<hr/>
+<h2>3. All Features | كل المميزات</h2>
+<h3>🏠 3.1 Dashboard — لوحة الرئيسية</h3>
+<ul>
+<li><strong>Quick Stats Cards:</strong> إجمالي المرضى، زيارات اليوم، إيراد اليوم، مواعيد اليوم، جلسات اليوم، سجلات الليزر</li>
+<li><strong>End-of-Day Summary:</strong> ملخص نهاية اليوم مع:</li>
+<li>إيراد الكشف (todayCheckupRev)</li>
+<li>إيراد الإعادة (todayRevisitRev)</li>
+<li>إيراد الجلسات/الليزر/المتابعة (todaySessionRev)</li>
+<li>إجمالي الإيراد + المصروف + الصافي</li>
+<li>زرار طباعة الملخص (window.print())</li>
+<li><strong>Quick Actions:</strong> مريض جديد، سجل ليزر، معاملة، موعد، مساعد ذكي، بحث ذكي</li>
+<li><strong>AI Assistant Chat:</strong> دردشة مع AI مساعد باستخدام z-ai-web-dev-sdk</li>
+</ul>
+<h3>👥 3.2 Patients — إدارة المرضى</h3>
+<ul>
+<li><strong>Smart Patient Form:</strong> نموذج تسجيل مريض جديد ذكي:</li>
+<li>الاسم، الهاتف (مع normalize للأرقام العربية)، الهاتف 2، العنوان، العمر، التشخيص، ملاحظات</li>
+<li>اختيار نوع الزيارة: كشف / إعادة / جلسة / كشف+جلسة / إعادة+جلسة</li>
+<li>سعر الكشف/الإعادة (يدوي)</li>
+<li>سعر الخدمة للجلسات (يدوي)</li>
+<li>اختيار متعدد للخدمات مصنفة حسب الفئة</li>
+<li>تاريخ مخصص (اختياري — افتراضي اليوم بتوقيت القاهرة)</li>
+<li><strong>Smart Search:</strong> بحث ذكي عبر كل حقول المريض:</li>
+<li>الاسم، العنوان، التشخيص، الهاتف، الملاحظات</li>
+<li>يشمل تشخيصات وملاحظات الزيارات السابقة</li>
+<li>يشمل ملاحظات الجلسات</li>
+<li>بحث fuzzy matching مع تطبيع النصوص العربية</li>
+<li><strong>Filter Chips:</strong> فلترة حسب الحقل (الكل/الاسم/العنوان/التشخيص/الهاتف/الملاحظات)</li>
+<li><strong>Patient Cards:</strong> بطاقات مرضى عصرية تعرض:</li>
+<li>الاسم + رقم الملف</li>
+<li>الهاتف (مع زرار WhatsApp)</li>
+<li>العنوان + التشخيص</li>
+<li>شارات النجمة والتحسن واللون</li>
+<li><strong>Patient Profile:</strong> ملف مريض تفصيلي بتبويبات:</li>
+<li><strong>نظرة عامة (Overview):</strong> معلومات أساسية + آخر تشخيص + Timeline (زيارات/جلسات/ملاحظات)</li>
+<li><strong>الزيارات (Visits):</strong> إضافة/تعديل/حذف زيارات (كشف/إعادة/جلسة) مع سعر تلقائي (كشف=200، إعادة=80)</li>
+<li><strong>الجلسات (Sessions):</strong> إضافة/تعديل/حذف جلسات مع خدمة وسعر</li>
+<li><strong>الليزر (Laser):</strong> عرض سجلات الليزر المرتبطة</li>
+<li><strong>التذكيرات (Reminders):</strong> تذكيرات المريض</li>
+<li><strong>الملاحظات (Notes):</strong> ملاحظات سريعة مع قسم خاص بالمريض</li>
+<li><strong>الصور (Photos):</strong> صور before/after/general (base64)</li>
+<li><strong>المتابعة (Follow-up):</strong> سجلات المتابعة المرتبطة</li>
+<li><strong>Patient Actions:</strong> تعديل، حذف (مع حذف كل البيانات المرتبطة)، تمييز بنجمة، تحديث التحسن (1-10 slider with history)</li>
+<li><strong>Color Tags:</strong> وسم المرضى بألوان مخصصة</li>
+<li><strong>Export:</strong> تصدير المرضى إلى JSON/CSV</li>
+<li><strong>Import:</strong> استيراد مرضى من JSON</li>
+</ul>
+<h3>💎 3.3 Laser — إدارة الليزر</h3>
+<ul>
+<li><strong>Laser Records:</strong> سجلات الليزر لكل مريض تحتوي على:</li>
+<li>منطقة الجسم (40+ منطقة معربة)</li>
+<li>نوع البشرة (I-VI + أنواع أخرى)</li>
+<li>لون الشعر (16 لون)</li>
+<li>كثافة الشعر</li>
+<li>عدد الجلسات الكلية + السعر</li>
+<li>اسم الجهاز، الطاقة، النبض</li>
+<li>الحالة (نشط/مكتمل/متوقف)</li>
+<li><strong>Laser Sessions:</strong> جلسات الليزر الفرعية:</li>
+<li>رقم الجلسة، الطاقة، النبض، مستوى الألم</li>
+<li>التفاعل، الملاحظات، السعر، حالة الدفع</li>
+<li>دفع تلقائي للجلسة → ينشئ معاملة مالية بفئة "ليزر"</li>
+<li><strong>Laser Packages:</strong> باقات الليزر (اسم، عدد جلسات، سعر، منطقة)</li>
+<li><strong>Laser Settings:</strong> إعدادات افتراضية لكل جهاز ومنطقة</li>
+<li><strong>Laser Notes:</strong> ملاحظات على سجل الليزر</li>
+<li><strong>Body Areas (40+):</strong> قائمة شاملة لمناطق الجسم بالعربية مع ألوان مميزة:</li>
+<li>الوجه، الجبين، الخدود، الأنف، الأذنين، السوالف</li>
+<li>الرقبة (أمامية/خلفية/كاملة)، الكتفين</li>
+<li>الذراعين (علوية/سفلية/كاملة)، اليدين، الأصابع، الإبط</li>
+<li>الصدر، بين الثديين، البطن (علوية/سفلية/كاملة)، خط السرة</li>
+<li>الظهر (علوي/سفلي/كامل)</li>
+<li>البيكيني (عادي/كامل)، الأرداف</li>
+<li>الفخذين (أمامي/خلفي/كاملة)، الساقين، الساق الأمامية، الرجلين كاملة</li>
+<li>القدمين، أصابع القدم</li>
+<li>جسم كامل، نصف الجسم العلوي/السفلي</li>
+</ul>
+<h3>💰 3.4 Finance — الإدارة المالية</h3>
+<ul>
+<li><strong>Auto-Recording:</strong> تسجيل تلقائي للمعاملات المالية عند:</li>
+<li>إضافة زيارة كشف/إعادة من ملف المريض</li>
+<li>إضافة جلسة من ملف المريض</li>
+<li>دفع جلسة ليزر</li>
+<li>دفع زيارة متابعة</li>
+<li>تسجيل مريض جديد مع زيارة/جلسة</li>
+<li><strong>Categories:</strong> فئات المعاملات:</li>
+<li><strong>كشف</strong> (consultation)</li>
+<li><strong>إعادة</strong> (revisit)</li>
+<li><strong>جلسات</strong> (sessions)</li>
+<li><strong>ليزر</strong> (laser)</li>
+<li><strong>متابعة</strong> (follow-up)</li>
+<li><strong>personal</strong> (شخصي — مستثناة من إيراد العيادة)</li>
+<li><strong>clinic</strong> (default)</li>
+<li><strong>Transaction Types:</strong> income / expense</li>
+<li><strong>Daily Summary:</strong> ملخص يومي مع:</li>
+<li>إيراد الكشف + الإعادة + الجلسات</li>
+<li>مصروفات اليوم</li>
+<li>صافي اليوم</li>
+<li>عرض تفصيلي لكل يوم قابل للتوسيع</li>
+<li><strong>Manual Transactions:</strong> إضافة معاملة يدوية (نوع + فئة + مبلغ + وصف + تاريخ)</li>
+<li><strong>Reports:</strong> تقارير يومية/أسبوعية/شهرية</li>
+<li><strong>Charts:</strong> رسم بياني للإيراد والمصروف على مدار الأسبوع المصري (السبت-الجمعة)</li>
+</ul>
+<h3>📋 3.5 More Section — قسم المزيد (16 تبويب فرعي)</h3>
+<ol>
+<li><strong>المتابعات (Follow-up):</strong> نظام متابعة كامل:</li>
+</ol>
+<ul>
+<li>سجلات المتابعة (الحالة، التصنيف، الخطورة، التكرار)</li>
+<li>باقات المتابعة (اشتراك شهري/ربع سنوي/سنوي/بالجلسة)</li>
+<li>زيارات المتابعة (نتائج سريرية، علامات حيوية، تشخيص، أدوية)</li>
+<li>تذكير تلقائي قبل الموعد</li>
+</ul>
+<ol>
+<li><strong>الخدمات (Services):</strong> إدارة الخدمات (اسم، فئة، سعر، مدة)</li>
+<li><strong>الجلسات (Sessions):</strong> كل الجلسات مع فلترة وروابط لملفات المرضى</li>
+<li><strong>الزيارات (Visits):</strong> كل الزيارات مع روابط</li>
+<li><strong>الأطباء (Doctors):</strong> الأطباء الشركاء مع نسبهم (كشف/إعادة/ليزر/جلسات + مبلغ ثابت)</li>
+<li><strong>المخزون (Inventory):</strong> إدارة المخزون مع تنبيهات الكمية الدنيا + توريد/صرف</li>
+<li><strong>الحجز (Bookings):</strong> نظام المواعيد والحجوزات</li>
+<li><strong>الأدوية (Medications):</strong> قاعدة بيانات الأدوية (كريم/مرهم/أقراص/حقن)</li>
+<li><strong>التذكيرات (Reminders):</strong> تذكيرات عامة (عاجل/مهم/متابعة/عام)</li>
+<li><strong>القوالب (Templates):</strong> قوالب خطط العلاج (جلسات + سعر تقديري)</li>
+<li><strong>الانتظار (Waiting Queue):</strong> قائمة الانتظار مع الأولويات</li>
+<li><strong>التقارير (Reports):</strong> تقارير يومية/أسبوعية/شهرية</li>
+<li><strong>النسخ الاحتياطي (Backup):</strong></li>
+</ol>
+<ul>
+<li>نسخ احتياطي يدوي وتلقائي</li>
+<li>استعادة من ملف JSON</li>
+<li>تصدير كامل لكل البيانات</li>
+</ul>
+<ol>
+<li><strong>الملاحظات (Notes):</strong> ملاحظات سريعة لكل قسم</li>
+<li><strong>شخصي (Personal):</strong> معاملات وملاحظات وتذكيرات شخصية (مستثناة من مالية العيادة)</li>
+<li><strong>الإعدادات (Settings):</strong> تغيير ألوان التطبيق (10 ثيمات)</li>
+</ol>
+<h3>🔍 3.6 Smart Search — البحث الذكي</h3>
+<ul>
+<li>يبحث عبر: المرضى، الخدمات، الملاحظات، التذكيرات، الملاحظات الشخصية</li>
+<li>تطبيع النصوص العربية (أ→ا، ة→ه، ى→ي، إزالة التشكيل)</li>
+<li>Fuzzy matching: تطابق مرن للأحرف</li>
+<li>Debounced (250ms) للأداء</li>
+<li>نافذة منبثقة مع نتائج فورية</li>
+</ul>
+<h3>📱 3.7 WhatsApp Integration</h3>
+<ul>
+<li>روابط WhatsApp مباشرة من أرقام المرضى</li>
+<li><code>waPhone()</code> function: تحويل الرقم لصيغة دولية (+20 لمصر)</li>
+<li><code>normalizePhone()</code>: تحويل الأرقام العربية/الفارسية إلى لاتينية</li>
+<li>يعمل مع: ٠١٢٣٤٥٦٧٨٩ (عربي)، ۰۱۲۳۴۵۶۷۸۹ (فارسي)، ＋ (عربي)</li>
+</ul>
+<h3>🎨 3.8 UI/UX Features</h3>
+<ul>
+<li><strong>RTL Support:</strong> دعم كامل للعربية من اليمين لليسار</li>
+<li><strong>Dark Mode:</strong> وضع ليلي كامل</li>
+<li><strong>10 Themes:</strong> زمردى، أزرق ملكي، ذهبي وردي، بنفسجي، غروب، تركوازي، ياقوتي، غابات، ليلي، شمباني</li>
+<li><strong>Animations:</strong> Framer Motion في كل مكان (hover, tap, page transitions)</li>
+<li><strong>Responsive:</strong> يعمل على الموبايل والتابلت والكمبيوتر</li>
+<li><strong>Toasts:</strong> إشعارات Sonner (نجاح/خطأ/تحذير)</li>
+<li><strong>Luxury Design:</strong> تصميم فاخر مع gradients، shadows، blur effects</li>
+<li><strong>Fonts:</strong> Cairo (عربي) + Playfair Display (لاتيني) + Noto Sans SC fallback</li>
+</ul>
+<h3>🔐 3.9 Auth &amp; Roles</h3>
+<ul>
+<li><strong>Login:</strong> كلمة مرور واحدة (2137) لكلا الدورين</li>
+<li><strong>Roles:</strong></li>
+<li><strong>طبيب (doctor):</strong> دخول كامل لكل الأقسام</li>
+<li><strong>سكرتيرة (secretary):</strong> المرضى والليزر فقط</li>
+<li><strong>Persisted:</strong> Zustand persist middleware (localStorage)</li>
+<li><strong>Auto-redirect:</strong> السكرتيرة تدخل تلقائياً لقسم المرضى</li>
+</ul>
+<h3>💾 3.10 Backup &amp; Restore</h3>
+<ul>
+<li><strong>Full Export:</strong> تصدير كل البيانات إلى ملف JSON واحد</li>
+<li><strong>Full Import:</strong> استعادة من ملف JSON مع:</li>
+<li>حذف البيانات الموجودة بترتيب عكسي التبعيات</li>
+<li>إعادة الإنشاء بترتيب التبعيات</li>
+<li>تخطي السجلات المكررة</li>
+<li>إزالة الحقول الافتراضية (virtual fields)</li>
+<li><strong>Auto Backup:</strong> نسخ احتياطي تلقائي كل X دقيقة (قابل للتخصيص)</li>
+</ul>
+<h3>🤖 3.11 AI Assistant</h3>
+<ul>
+<li>دردشة مع AI باستخدام z-ai-web-dev-sdk</li>
+<li>إجراءات سريعة مقترحة (مواعيد، تقارير، مرضى، إلخ)</li>
+<li>يدعم السياق متعدد الأدوار</li>
+</ul>
+<hr/>
+<h2>4. Database Schema | قاعدة البيانات</h2>
+<blockquote><strong>Provider:</strong> PostgreSQL (Neon)</blockquote>
+<blockquote><strong>Schema file:</strong> <code>prisma/schema.prisma</code></blockquote>
+<h3>Generator &amp; Datasource:</h3>
+<pre data-lang="prisma"><code>generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}</code></pre>
+<h3>All Models (30 models):</h3>
+<h4>4.1 User</h4>
+<pre data-lang="prisma"><code>model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         String   @default("secretary") // doctor, secretary, admin
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  visits       Visit[]
+  sessions     Session[]
+  notes        Note[]
+  auditLogs    AuditLog[]
+  prescriptions Prescription[]
+}</code></pre>
+<h4>4.2 Patient</h4>
+<pre data-lang="prisma"><code>model Patient {
+  id              String   @id @default(cuid())
+  fileNumber      String   @unique
+  name            String
+  phone           String?
+  phone2          String?
+  age             Int?
+  gender          String?  // male, female
+  bloodType       String?
+  address         String?
+  notes           String?
+  allergies       String?
+  medicalHistory  String?
+  starred         Boolean  @default(false)
+  improved        Boolean  @default(false)
+  colorTag        String?  // custom color tag for patient status
+  improvementScore Int?    // مؤشر التحسن من 1 إلى 10
+  improvementHistory String? // سجل تغييرات التحسن (JSON string)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  visits          Visit[]
+  sessions        Session[]
+  alerts          Alert[]
+  patientNotes    Note[]
+  laserRecords    LaserRecord[]
+  appointments    Appointment[]
+  photos          PatientPhoto[]
+  treatmentPlans  TreatmentPlan[]
+  reminders       Reminder[]
+  waitingQueue    WaitingQueue[]
+  prescriptions   Prescription[]
+  followUpRecords FollowUpRecord[]
+}</code></pre>
+<h4>4.3 Service</h4>
+<pre data-lang="prisma"><code>model Service {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?  // consultation, laser, treatment, cosmetic
+  price       Float    @default(0)
+  duration    Int?     // minutes
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions    Session[]
+}</code></pre>
+<h4>4.4 Visit</h4>
+<pre data-lang="prisma"><code>model Visit {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorId    String?
+  type        String   @default("consultation") // consultation, followup, emergency
+  diagnosis   String?
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?    @relation(fields: [doctorId], references: [id])
+}</code></pre>
+<h4>4.5 Session</h4>
+<pre data-lang="prisma"><code>model Session {
+  id          String   @id @default(cuid())
+  patientId   String
+  serviceId   String?
+  doctorId    String?
+  status      String   @default("scheduled") // scheduled, completed, cancelled, no_show
+  notes       String?
+  date        DateTime @default(now())
+  price       Float    @default(0)
+  paid        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient       Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  service       Service?               @relation(fields: [serviceId], references: [id])
+  doctor        User?                  @relation(fields: [doctorId], references: [id])
+  treatmentPlan TreatmentPlanSession[]
+}</code></pre>
+<h4>4.6 Note</h4>
+<pre data-lang="prisma"><code>model Note {
+  id          String   @id @default(cuid())
+  patientId   String?
+  userId      String?
+  content     String
+  important   Boolean  @default(false)
+  section     String?  // dashboard, patients, visits, sessions, laser, finance, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+}</code></pre>
+<h4>4.7 Alert</h4>
+<pre data-lang="prisma"><code>model Alert {
+  id          String   @id @default(cuid())
+  patientId   String
+  type        String   @default("warning") // warning, danger, info
+  message     String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}</code></pre>
+<h4>4.8 Reminder</h4>
+<pre data-lang="prisma"><code>model Reminder {
+  id          String   @id @default(cuid())
+  patientId   String?
+  title       String
+  description String?
+  date        DateTime
+  type        String   @default("follow_up") // follow_up, appointment, medication, custom
+  status      String   @default("pending") // pending, sent, done, dismissed
+  sentVia     String?  // whatsapp, sms, in_app
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}</code></pre>
+<h4>4.9-4.13 Laser Models</h4>
+<pre data-lang="prisma"><code>model LaserRecord {
+  id              String   @id @default(cuid())
+  patientId       String
+  bodyArea        String
+  skinType        String?  // I, II, III, IV, V, VI
+  hairColor       String?
+  hairDensity     String?  // low, medium, high
+  totalSessions   Int      @default(0)
+  price           Float    @default(0) // سعر الجلسة
+  totalPrice      Float    @default(0) // إجمالي سعر الباقة
+  paid            Boolean  @default(false) // حالة الدفع
+  machineName     String?  // اسم الجهاز
+  energy          Float?   // الطاقة
+  pulse           String?  // النبض
+  status          String   @default("active") // active, completed, paused
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  laserSessions   LaserSession[]
+  laserNotes      LaserNote[]
+}
+
+model LaserSession {
+  id              String   @id @default(cuid())
+  laserRecordId   String
+  sessionNumber   Int
+  energy          Float?   // joules
+  pulse           String?
+  painLevel       Int?     // 1-10
+  reaction        String?
+  notes           String?
+  price           Float    @default(0) // سعر الجلسة
+  paid            Boolean  @default(false) // هل تم الدفع
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  laserRecord     LaserRecord @relation(fields: [laserRecordId], references: [id], onDelete: Cascade)
+}
+
+model LaserPackage {
+  id              String   @id @default(cuid())
+  name            String
+  sessionsCount   Int
+  price           Float
+  bodyArea        String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model LaserNote {
+  id              String   @id @default(cuid())
+  laserRecordId   String
+  content         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  laserRecord     LaserRecord @relation(fields: [laserRecordId], references: [id], onDelete: Cascade)
+}
+
+model LaserSetting {
+  id              String   @id @default(cuid())
+  machineName     String
+  bodyArea        String
+  skinType        String?
+  defaultEnergy   Float?
+  defaultPulse    String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}</code></pre>
+<h4>4.14 Transaction</h4>
+<pre data-lang="prisma"><code>model Transaction {
+  id          String   @id @default(cuid())
+  type        String   @default("income") // income, expense
+  category    String   @default("clinic") // clinic, personal, كشف, إعادة, جلسات, ليزر, متابعة
+  amount      Float
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}</code></pre>
+<h4>4.15-4.20 Other Models</h4>
+<pre data-lang="prisma"><code>model Appointment {
+  id          String   @id @default(cuid())
+  patientId   String?
+  date        DateTime
+  duration    Int      @default(30) // minutes
+  type        String   @default("consultation")
+  status      String   @default("scheduled") // scheduled, confirmed, completed, cancelled, no_show
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model WaitingQueue {
+  id          String   @id @default(cuid())
+  patientId   String?
+  patientName String?
+  priority    Int      @default(0)
+  status      String   @default("waiting") // waiting, in_progress, done, left
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?
+  quantity    Int      @default(0)
+  minQuantity Int      @default(5)
+  unitPrice   Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+}
+
+model InventoryTransaction {
+  id              String   @id @default(cuid())
+  itemId          String
+  type            String   // in, out
+  quantity        Int
+  notes           String?
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  item            InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model PatientPhoto {
+  id          String   @id @default(cuid())
+  patientId   String
+  type        String   @default("general") // before, after, general
+  description String?
+  imageData   String   // base64
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Backup {
+  id          String   @id @default(cuid())
+  type        String   @default("manual") // manual, auto
+  size        Int?
+  status      String   @default("completed") // completed, failed
+  data        String   // JSON string of backup
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String?
+  entityId    String?
+  details     String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+}</code></pre>
+<h4>4.21-4.23 Treatment Plans</h4>
+<pre data-lang="prisma"><code>model TreatmentPlan {
+  id          String   @id @default(cuid())
+  patientId   String
+  title       String
+  description String?
+  status      String   @default("active") // active, completed, paused, cancelled
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  phases      TreatmentPhase[]
+}
+
+model TreatmentPhase {
+  id          String   @id @default(cuid())
+  planId      String
+  name        String
+  description String?
+  order       Int      @default(0)
+  status      String   @default("pending") // pending, in_progress, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plan        TreatmentPlan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sessions    TreatmentPlanSession[]
+}
+
+model TreatmentPlanSession {
+  id          String   @id @default(cuid())
+  phaseId     String
+  sessionId   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  phase       TreatmentPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  session     Session?       @relation(fields: [sessionId], references: [id])
+}</code></pre>
+<h4>4.24-4.26 Medications &amp; Prescriptions</h4>
+<pre data-lang="prisma"><code>model Medication {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?  // cream, ointment, tablet, injection, lotion, gel
+  description String?
+  dosage      String?
+  instructions String?
+  sideEffects String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prescriptions PrescriptionItem[]
+}
+
+model Prescription {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorId    String?
+  diagnosis   String?
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?             @relation(fields: [doctorId], references: [id])
+  items       PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id              String   @id @default(cuid())
+  prescriptionId  String
+  medicationId    String
+  dosage          String?
+  frequency       String?  // once daily, twice daily, etc.
+  duration        String?  // 1 week, 2 weeks, etc.
+  instructions    String?
+  createdAt       DateTime @default(now())
+
+  prescription    Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication      Medication   @relation(fields: [medicationId], references: [id])
+}</code></pre>
+<h4>4.27 Notification</h4>
+<pre data-lang="prisma"><code>model Notification {
+  id          String   @id @default(cuid())
+  userId      String?
+  title       String
+  message     String
+  type        String   @default("info") // info, warning, success, error
+  read        Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+}</code></pre>
+<h4>4.28 PartnerDoctor</h4>
+<pre data-lang="prisma"><code>model PartnerDoctor {
+  id                  String   @id @default(cuid())
+  name                String
+  phone               String?
+  specialty           String?
+  checkupPercentage   Float    @default(0)   // نسبة الكشف %
+  revisitPercentage   Float    @default(0)   // نسبة الإعادة %
+  laserPercentage     Float    @default(0)   // نسبة الليزر %
+  sessionPercentage   Float    @default(0)   // نسبة الجلسات %
+  fixedAmount         Float    @default(0)   // مبلغ ثابت
+  active              Boolean  @default(true)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}</code></pre>
+<h4>4.29-4.30 Follow-up System</h4>
+<pre data-lang="prisma"><code>model FollowUpRecord {
+  id                String   @id @default(cuid())
+  patientId         String
+  condition         String                     // الحالة المزمنة / المرض
+  conditionCategory String?                     // جلدية، داخلية، أخرى
+  severity          String   @default("moderate") // mild, moderate, severe, critical
+  status            String   @default("active")   // active, paused, completed, discharged
+  // Follow-up schedule
+  frequency         String   @default("monthly")  // weekly, biweekly, monthly, quarterly, custom
+  customDays        Int?                        // أيام مخصصة لو frequency = custom
+  nextVisitDate     DateTime?                   // تاريخ الزيارة القادمة
+  lastVisitDate     DateTime?                   // تاريخ آخر زيارة
+  // Subscription / Package
+  hasSubscription   Boolean  @default(false)        // عنده باقة متابعة؟
+  subscriptionType  String?                     // monthly, quarterly, yearly, session_based
+  subscriptionPrice Float    @default(0)             // سعر الباقة
+  subscriptionStart DateTime?                     // بداية الباقة
+  subscriptionEnd   DateTime?                     // نهاية الباقة
+  sessionsIncluded  Int      @default(0)             // عدد الجلسات في الباقة
+  sessionsUsed      Int      @default(0)             // عدد الجلسات المستخدمة
+  // Medical info
+  diagnosis         String?                     // التشخيص
+  treatmentPlan     String?                     // خطة العلاج
+  medications       String?                     // الأدوية الحالية (JSON string)
+  notes             String?                     // ملاحظات
+  // Reminder
+  reminderEnabled   Boolean  @default(true)       // تذكير تلقائي
+  reminderDaysBefore Int     @default(1)           // كم يوم قبل الموعد
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  patient           Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  followUpVisits    FollowUpVisit[]
+}
+
+model FollowUpVisit {
+  id              String   @id @default(cuid())
+  followUpId      String
+  visitNumber     Int                        // رقم الزيارة
+  // Visit details
+  visitDate       DateTime @default(now())
+  type            String   @default("followup") // followup, checkup, emergency
+  // Clinical findings
+  findings        String?                    // النتائج السريرية
+  vitals          String?                    // العلامات الحيوية (JSON)
+  diagnosis       String?                    // التشخيص
+  treatmentNotes  String?                    // ملاحظات العلاج
+  medications     String?                    // الأدوية الموصوفة (JSON string)
+  instructions    String?                    // التعليمات للمريض
+  // Payment
+  paid            Boolean  @default(false)
+  price           Float    @default(0)
+  // Next visit
+  nextVisitDate   DateTime?                  // تاريخ الزيارة القادمة
+  // Status
+  status          String   @default("completed") // completed, no_show, cancelled
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  followUp        FollowUpRecord @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+}</code></pre>
+<hr/>
+<h2>5. API Endpoints | واجهات البرمجة</h2>
+<blockquote><strong>Base URL:</strong> <code>/api</code></blockquote>
+<blockquote><strong>All routes are in:</strong> <code>src/app/api/</code></blockquote>
+<h3>5.1 Authentication</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>POST</td><td><code>/api/auth/login</code></td><td>Login (password: 2137)</td></tr>
+<tr><td>GET</td><td><code>/api/auth/me</code></td><td>Get current user</td></tr>
+</tbody></table>
+<h3>5.2 Patients</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/patients</code></td><td>List all patients (supports <code>?limit=</code>)</td></tr>
+<tr><td>POST</td><td><code>/api/patients</code></td><td>Create patient</td></tr>
+<tr><td>GET</td><td><code>/api/patients/[id]</code></td><td>Get patient by ID</td></tr>
+<tr><td>PUT</td><td><code>/api/patients/[id]</code></td><td>Update patient</td></tr>
+<tr><td>DELETE</td><td><code>/api/patients/[id]</code></td><td>Delete patient</td></tr>
+<tr><td>POST</td><td><code>/api/patients/import</code></td><td>Import patients from JSON</td></tr>
+</tbody></table>
+<h3>5.3 Visits</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/visits</code></td><td>List visits (supports <code>?patientId=</code>, <code>?doctorId=</code>, <code>?type=</code>, <code>?limit=</code>)</td></tr>
+<tr><td>POST</td><td><code>/api/visits</code></td><td>Create visit</td></tr>
+<tr><td>GET</td><td><code>/api/visits/[id]</code></td><td>Get visit</td></tr>
+<tr><td>PUT</td><td><code>/api/visits/[id]</code></td><td>Update visit</td></tr>
+<tr><td>DELETE</td><td><code>/api/visits/[id]</code></td><td>Delete visit</td></tr>
+</tbody></table>
+<h3>5.4 Sessions</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/sessions</code></td><td>List sessions</td></tr>
+<tr><td>POST</td><td><code>/api/sessions</code></td><td>Create session</td></tr>
+<tr><td>GET</td><td><code>/api/sessions/[id]</code></td><td>Get session</td></tr>
+<tr><td>PUT</td><td><code>/api/sessions/[id]</code></td><td>Update session</td></tr>
+<tr><td>DELETE</td><td><code>/api/sessions/[id]</code></td><td>Delete session</td></tr>
+</tbody></table>
+<h3>5.5 Services</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/services</code></td><td>List services</td></tr>
+<tr><td>POST</td><td><code>/api/services</code></td><td>Create service</td></tr>
+<tr><td>GET</td><td><code>/api/services/[id]</code></td><td>Get service</td></tr>
+<tr><td>PUT</td><td><code>/api/services/[id]</code></td><td>Update service</td></tr>
+<tr><td>DELETE</td><td><code>/api/services/[id]</code></td><td>Delete service</td></tr>
+</tbody></table>
+<h3>5.6 Finance</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/finance/transactions</code></td><td>List transactions (supports <code>?type=</code>, <code>?category=</code>, <code>?startDate=</code>, <code>?endDate=</code>, <code>?limit=</code>)</td></tr>
+<tr><td>POST</td><td><code>/api/finance/transactions</code></td><td>Create transaction</td></tr>
+<tr><td>GET</td><td><code>/api/finance/transactions/[id]</code></td><td>Get transaction</td></tr>
+<tr><td>PUT</td><td><code>/api/finance/transactions/[id]</code></td><td>Update transaction</td></tr>
+<tr><td>DELETE</td><td><code>/api/finance/transactions/[id]</code></td><td>Delete transaction</td></tr>
+<tr><td>GET</td><td><code>/api/finance/summary</code></td><td>Financial summary</td></tr>
+</tbody></table>
+<h3>5.7 Laser</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/laser/records</code></td><td>List laser records</td></tr>
+<tr><td>POST</td><td><code>/api/laser/records</code></td><td>Create laser record</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/laser/records/[id]</code></td><td>CRUD on record</td></tr>
+<tr><td>GET/POST</td><td><code>/api/laser/sessions</code></td><td>List/Create laser sessions</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/laser/sessions/[id]</code></td><td>CRUD on session</td></tr>
+<tr><td>GET/POST</td><td><code>/api/laser/packages</code></td><td>List/Create packages</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/laser/packages/[id]</code></td><td>CRUD on package</td></tr>
+<tr><td>GET/POST</td><td><code>/api/laser/settings</code></td><td>List/Create settings</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/laser/settings/[id]</code></td><td>CRUD on setting</td></tr>
+<tr><td>GET/POST</td><td><code>/api/laser/notes</code></td><td>List/Create notes</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/laser/notes/[id]</code></td><td>CRUD on note</td></tr>
+</tbody></table>
+<h3>5.8 Follow-up</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET/POST</td><td><code>/api/follow-up/records</code></td><td>List/Create follow-up records</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/follow-up/records/[id]</code></td><td>CRUD on record</td></tr>
+<tr><td>GET/POST</td><td><code>/api/follow-up/visits</code></td><td>List/Create follow-up visits</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/follow-up/visits/[id]</code></td><td>CRUD on visit</td></tr>
+</tbody></table>
+<h3>5.9 Other Endpoints</h3>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/notes</code></td><td>Notes CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/alerts</code></td><td>Alerts CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/reminders</code></td><td>Reminders CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/appointments</code></td><td>Appointments CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/waiting</code></td><td>Waiting queue CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/doctors</code></td><td>Partner doctors CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/inventory/items</code></td><td>Inventory items CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/inventory/transactions</code></td><td>Inventory transactions CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/medications</code></td><td>Medications CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/prescriptions</code></td><td>Prescriptions CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/treatment-plans</code></td><td>Treatment plans CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/treatment-plans/[id]/phases</code></td><td>Plan phases CRUD</td></tr>
+<tr><td>GET/PUT/DELETE</td><td><code>/api/treatment-plans/phases/[phaseId]</code></td><td>Phase CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/notifications</code></td><td>Notifications CRUD</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td><code>/api/photos</code></td><td>Patient photos CRUD</td></tr>
+<tr><td>GET/POST</td><td><code>/api/backups</code></td><td>List/Create backups</td></tr>
+<tr><td>POST</td><td><code>/api/backups/import</code></td><td>Restore from JSON</td></tr>
+<tr><td>GET/DELETE</td><td><code>/api/backups/[id]</code></td><td>Get/Delete backup</td></tr>
+<tr><td>GET</td><td><code>/api/reports/daily</code></td><td>Daily report</td></tr>
+<tr><td>GET</td><td><code>/api/reports/weekly</code></td><td>Weekly report</td></tr>
+<tr><td>GET</td><td><code>/api/reports/monthly</code></td><td>Monthly report</td></tr>
+<tr><td>POST</td><td><code>/api/ai/chat</code></td><td>AI chat endpoint</td></tr>
+<tr><td>GET</td><td><code>/api/audit-logs</code></td><td>Audit logs</td></tr>
+<tr><td>POST</td><td><code>/api/seed</code></td><td>Seed initial data</td></tr>
+<tr><td>POST</td><td><code>/api/clear-data</code></td><td>Clear all data</td></tr>
+</tbody></table>
+<h3>API Conventions:</h3>
+<ul>
+<li><strong>Response format:</strong> <code>{ data: [...] }</code> or <code>{ patients/visits/sessions/etc: [...] }</code></li>
+<li><strong>Pagination:</strong> <code>{ pagination: { page, limit, total, pages } }</code></li>
+<li><strong>Date handling:</strong> All dates use <code>toCairoDate()</code> from <code>@/lib/cairo-time</code></li>
+<li><strong>Error format:</strong> <code>{ error: "message" }</code> with appropriate HTTP status</li>
+</ul>
+<hr/>
+<h2>6. Key Code Functions | الدوال المهمة</h2>
+<blockquote>All these functions are in <code>src/app/page.tsx</code> unless otherwise noted.</blockquote>
+<h3>6.1 <code>normalizePhone(phone: string): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~75 <strong>Purpose:</strong> Convert Arabic/Persian numerals and symbols to Latin equivalents <strong>Critical for:</strong> WhatsApp integration — Arabic digits cause "not a valid phone number" error</p>
+<pre data-lang="typescript"><code>const normalizePhone = (phone: string): string =&gt; {
+  return phone
+    // Convert Arabic-Indic numerals (٠-٩) used in Egypt/Arabic
+    .replace(/[٠-٩]/g, d =&gt; '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+    // Convert Persian/Urdu numerals (۰-۹) used in some keyboards
+    .replace(/[۰-۹]/g, d =&gt; '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+    // Convert Arabic full-width plus sign to Latin +
+    .replace(/＋/g, '+')
+    // Convert Arabic comma/dash/space to Latin equivalents
+    .replace(/[،٬]/g, ',')
+    .replace(/ـ/g, '-')
+    // Remove common RTL/LTR marks and Arabic tatweel
+    .replace(/[\u200E\u200F\u200C\u200D\u0640]/g, '')
+}</code></pre>
+<h3>6.2 <code>waPhone(phone?: string): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~91 <strong>Purpose:</strong> Format phone for WhatsApp (adds Egypt country code +20 if missing) <strong>Used in:</strong> All WhatsApp links <code>https://wa.me/${waPhone(patient.phone)}</code></p>
+<pre data-lang="typescript"><code>const waPhone = (phone?: string) =&gt; {
+  if (!phone) return ''
+  // Step 1: Normalize ALL Arabic/Persian numerals to Latin
+  const normalized = normalizePhone(phone)
+  // Step 2: Extract only digits
+  const digits = normalized.replace(/[^0-9]/g, '')
+  if (!digits || digits.length &lt; 3) return '' // too short to be valid
+  // Step 3: Add Egypt country code if missing
+  if (digits.startsWith('20')) return digits // already has country code
+  if (digits.startsWith('0')) return '2' + digits // starts with 0 → add 2
+  return '20' + digits // no prefix → add 20
+}</code></pre>
+<h3>6.3 <code>getVisitCategory(type: string): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~355 <strong>Purpose:</strong> Map visit type to financial category — SINGLE SOURCE OF TRUTH <strong>Critical for:</strong> Correct financial recording (كشف vs إعادة vs جلسات)</p>
+<pre data-lang="typescript"><code>const getVisitCategory = (type: string): string =&gt; {
+  switch (type) {
+    case 'checkup': return 'كشف'
+    case 'revisit': return 'إعادة'
+    case 'session': return 'جلسات'
+    case 'checkup_session': return 'كشف'
+    case 'revisit_session': return 'إعادة'
+    default: return 'كشف'
+  }
+}</code></pre>
+<h3>6.4 <code>cairoDateTime(dateStr?: string): string | undefined</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~173 <strong>Purpose:</strong> Combine a date (YYYY-MM-DD) with current Cairo time → "YYYY-MM-DDTHH:MM:00" <strong>Critical for:</strong> Fixes 4-hour timestamp offset — bare "YYYY-MM-DD" was interpreted as midnight</p>
+<pre data-lang="typescript"><code>const cairoDateTime = (dateStr?: string): string | undefined =&gt; {
+  if (!dateStr) return undefined
+  return `${dateStr}T${cairoTimeInput()}:00`
+}</code></pre>
+<h3>6.5 <code>cairoTodayInput(): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~160 <strong>Purpose:</strong> Get today's date in Cairo timezone as YYYY-MM-DD (for date input defaults)</p>
+<pre data-lang="typescript"><code>const cairoTodayInput = () =&gt; new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })</code></pre>
+<h3>6.6 <code>cairoTimeInput(): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~163 <strong>Purpose:</strong> Get current time in Cairo as HH:MM</p>
+<pre data-lang="typescript"><code>const cairoTimeInput = () =&gt; {
+  const now = new Date()
+  return now.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' })
+}</code></pre>
+<h3>6.7 <code>cairoISO(): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~150 <strong>Purpose:</strong> Get current Cairo time as ISO string (UTC)</p>
+<pre data-lang="typescript"><code>const cairoISO = () =&gt; {
+  const now = new Date()
+  return now.toISOString()
+}</code></pre>
+<h3>6.8 <code>getLocalDateStr(date?: Date | string): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~105 <strong>Purpose:</strong> Get local date string in Cairo timezone (fixes UTC offset issue)</p>
+<pre data-lang="typescript"><code>const getLocalDateStr = (date?: Date | string) =&gt; {
+  const d = date ? new Date(date) : new Date()
+  return d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
+}</code></pre>
+<h3>6.9 <code>normalizeArabic(text: string): string</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~308 <strong>Purpose:</strong> Arabic text normalization for search (remove diacritics, normalize alef/yaa/taa)</p>
+<pre data-lang="typescript"><code>const normalizeArabic = (text: string): string =&gt; {
+  return text
+    .replace(/[أإآا]/g, 'ا')  // normalize alef variants
+    .replace(/[ة]/g, 'ه')      // taa marbuta → haa
+    .replace(/[ى]/g, 'ي')      // alef maqsura → yaa
+    .replace(/[\u064B-\u065F\u0670]/g, '') // remove diacritics/tashkeel
+    .replace(/\s+/g, ' ')      // normalize whitespace
+    .trim()
+    .toLowerCase()
+}</code></pre>
+<h3>6.10 <code>fuzzyMatch(query: string, target: string): boolean</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~320 <strong>Purpose:</strong> Fuzzy match — checks if query characters appear in order in target</p>
+<pre data-lang="typescript"><code>const fuzzyMatch = (query: string, target: string): boolean =&gt; {
+  const nq = normalizeArabic(query)
+  const nt = normalizeArabic(target)
+  if (nt.includes(nq)) return true // direct substring match (normalized)
+  // Character-by-character fuzzy match
+  let qi = 0
+  for (let ti = 0; ti &lt; nt.length &amp;&amp; qi &lt; nq.length; ti++) {
+    if (nt[ti] === nq[qi]) qi++
+  }
+  return qi === nq.length
+}</code></pre>
+<h3>6.11 <code>smartSearch(query, fields): { match, score }</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~333 <strong>Purpose:</strong> Smart search — tries exact, then normalized, then fuzzy</p>
+<pre data-lang="typescript"><code>const smartSearch = (query: string, fields: (string | undefined)[]): { match: boolean; score: number } =&gt; {
+  if (!query.trim()) return { match: false, score: 0 }
+  const nq = normalizeArabic(query)
+  let bestScore = 0
+  for (const field of fields) {
+    if (!field) continue
+    const nf = normalizeArabic(field)
+    // Exact substring (highest score)
+    if (nf.includes(nq)) {
+      const score = nq.length / nf.length + 1
+      if (score &gt; bestScore) bestScore = score
+    }
+    // Fuzzy match (lower score)
+    else if (fuzzyMatch(query, field)) {
+      const score = 0.5
+      if (score &gt; bestScore) bestScore = score
+    }
+  }
+  return { match: bestScore &gt; 0, score: bestScore }
+}</code></pre>
+<h3>6.12 <code>apiFetch&lt;T&gt;(path, options?): Promise&lt;T&gt;</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~178 <strong>Purpose:</strong> Fetch wrapper for API calls with error handling</p>
+<pre data-lang="typescript"><code>async function apiFetch&lt;T&gt;(path: string, options?: RequestInit): Promise&lt;T&gt; {
+  const res = await fetch(`/api${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
+  if (!res.ok) {
+    const text = await res.text().catch(() =&gt; '')
+    try {
+      const errData = JSON.parse(text)
+      throw new Error(errData.error || errData.details || JSON.stringify(errData) || `Error ${res.status}`)
+    } catch (parseErr) {
+      if (parseErr instanceof Error &amp;&amp; parseErr.message &amp;&amp; !parseErr.message.includes('JSON')) throw parseErr
+      throw new Error(text || `Error ${res.status}`)
+    }
+  }
+  if (res.status === 204) return undefined as T
+  return res.json()
+}</code></pre>
+<h3>6.13 <code>addItem&lt;T&gt;(path, body, setter, silent?): Promise&lt;T&gt;</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~1118 <strong>Purpose:</strong> POST helper that adds item to state and shows toast <strong>Important:</strong> <code>silent</code> parameter added to prevent duplicate toasts</p>
+<pre data-lang="typescript"><code>const addItem = async &lt;T,&gt;(path: string, body: any, setter: React.Dispatch&lt;React.SetStateAction&lt;T[]&gt;&gt;, silent = false) =&gt; {
+  try {
+    const res = await apiFetch&lt;any&gt;(path, { method: 'POST', body: JSON.stringify(body) })
+    const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.package || res?.setting || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res
+    if (item?.id) setter(prev =&gt; [item, ...prev])
+    if (!silent) toast.success('تمت الإضافة بنجاح')
+    return item
+  } catch (e: any) {
+    if (!silent) toast.error(e.message || 'خطأ')
+    return null
+  }
+}</code></pre>
+<h3>6.14 <code>deleteItem&lt;T&gt;(path, id, setter): Promise&lt;void&gt;</code></h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~1121</p>
+<pre data-lang="typescript"><code>const deleteItem = async &lt;T,&gt;(path: string, id: string, setter: React.Dispatch&lt;React.SetStateAction&lt;T[]&gt;&gt;) =&gt; {
+  try {
+    await apiFetch(`${path}/${id}`, { method: 'DELETE' })
+    setter(prev =&gt; prev.filter((item: any) =&gt; item.id !== id))
+    toast.success('تم الحذف')
+  } catch (e: any) {
+    toast.error(e.message || 'خطأ')
+  }
+}</code></pre>
+<h3>6.15 Server-side: <code>toCairoDate(dateStr?): Date</code></h3>
+<p><strong>Location:</strong> <code>src/lib/cairo-time.ts</code> line ~141 <strong>Purpose:</strong> Parse a date string as Cairo time and return a UTC Date <strong>Critical:</strong> Handles DST, timezone offsets, and date-only vs datetime strings</p>
+<pre data-lang="typescript"><code>export function toCairoDate(dateStr?: string): Date {
+  if (!dateStr) {
+    return new Date() // current moment in UTC
+  }
+  if (dateStr.includes('+') || dateStr.includes('Z')) {
+    return new Date(dateStr) // already has timezone info
+  }
+  if (dateStr.includes('T')) {
+    // Has time but no timezone — interpret as Cairo local time
+    const datePart = dateStr.slice(0, 10)
+    const offsetMinutes = getCairoOffsetMinutes(new Date(datePart + 'T12:00:00'))
+    const asUtc = new Date(dateStr)
+    return new Date(asUtc.getTime() - offsetMinutes * 60 * 1000)
+  }
+  // Date-only string — interpret as Cairo midnight
+  return cairoDayRange(dateStr).gte
+}</code></pre>
+<h3>6.16 Server-side: <code>cairoDayRange(dateStr?): { gte: Date; lt: Date }</code></h3>
+<p><strong>Location:</strong> <code>src/lib/cairo-time.ts</code> line ~50 <strong>Purpose:</strong> Get Cairo start-of-day and end-of-day as UTC Date objects (for Prisma queries)</p>
+<pre data-lang="typescript"><code>export function cairoDayRange(dateStr?: string): { gte: Date; lt: Date } {
+  const today = dateStr || cairoTodayStr()
+  const offsetMinutes = getCairoOffsetMinutes(new Date(today + 'T12:00:00'))
+  const [y, m, d] = today.split('-').map(Number)
+  const utcMidnight = new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+  const utcStart = new Date(utcMidnight.getTime() - offsetMinutes * 60 * 1000)
+  const utcEnd = new Date(utcStart.getTime() + 24 * 60 * 60 * 1000)
+  return { gte: utcStart, lt: utcEnd }
+}</code></pre>
+<h3>6.17 VISIT_TYPES Constant</h3>
+<p><strong>Location:</strong> <code>src/app/page.tsx</code> line ~367</p>
+<pre data-lang="typescript"><code>const VISIT_TYPES = [
+  { id: 'checkup', label: 'كشف', emoji: '🩺', bg: 'bg-emerald-500', hoverBg: 'hover:bg-emerald-600', ring: 'ring-emerald-300' },
+  { id: 'revisit', label: 'إعادة', emoji: '🔄', bg: 'bg-blue-500', hoverBg: 'hover:bg-blue-600', ring: 'ring-blue-300' },
+  { id: 'session', label: 'جلسة', emoji: '⚡', bg: 'bg-violet-500', hoverBg: 'hover:bg-violet-600', ring: 'ring-violet-300' },
+  { id: 'checkup_session', label: 'كشف + جلسة', emoji: '🩺⚡', bg: 'bg-gradient-to-l from-emerald-500 to-violet-500', hoverBg: 'hover:from-emerald-600 hover:to-violet-600', ring: 'ring-emerald-300' },
+  { id: 'revisit_session', label: 'إعادة + جلسة', emoji: '🔄⚡', bg: 'bg-gradient-to-l from-blue-500 to-violet-500', hoverBg: 'hover:from-blue-600 hover:to-violet-600', ring: 'ring-blue-300' },
+]</code></pre>
+<h3>6.18 Default Prices (in patient profile visit form)</h3>
+<ul>
+<li><strong>كشف (checkup):</strong> 200 EGP</li>
+<li><strong>إعادة (revisit):</strong> 80 EGP</li>
+<li><strong>جلسة (session):</strong> manual entry (no default)</li>
+</ul>
+<h3>6.19 Financial Categories for Transactions</h3>
+<ul>
+<li><code>كشف</code> — consultation</li>
+<li><code>إعادة</code> — revisit</li>
+<li><code>جلسات</code> — sessions</li>
+<li><code>ليزر</code> — laser</li>
+<li><code>متابعة</code> — follow-up</li>
+<li><code>personal</code> — personal (excluded from clinic revenue)</li>
+<li><code>clinic</code> — default clinic category</li>
+</ul>
+<hr/>
+<h2>7. File Structure | هيكل الملفات</h2>
+<pre><code>my-project/
+├── prisma/
+│   └── schema.prisma              # Database schema (30 models)
+├── public/
+│   ├── favicon.ico
+│   ├── logo.svg
+│   └── robots.txt
+├── src/
+│   ├── app/
+│   │   ├── api/                   # All API routes (60+ files)
+│   │   │   ├── auth/login/
+│   │   │   ├── auth/me/
+│   │   │   ├── patients/
+│   │   │   ├── visits/
+│   │   │   ├── sessions/
+│   │   │   ├── services/
+│   │   │   ├── finance/transactions/
+│   │   │   ├── finance/summary/
+│   │   │   ├── laser/records/
+│   │   │   ├── laser/sessions/
+│   │   │   ├── laser/packages/
+│   │   │   ├── laser/settings/
+│   │   │   ├── laser/notes/
+│   │   │   ├── follow-up/records/
+│   │   │   ├── follow-up/visits/
+│   │   │   ├── notes/
+│   │   │   ├── alerts/
+│   │   │   ├── reminders/
+│   │   │   ├── appointments/
+│   │   │   ├── waiting/
+│   │   │   ├── doctors/
+│   │   │   ├── inventory/items/
+│   │   │   ├── inventory/transactions/
+│   │   │   ├── medications/
+│   │   │   ├── prescriptions/
+│   │   │   ├── treatment-plans/
+│   │   │   ├── notifications/
+│   │   │   ├── photos/
+│   │   │   ├── backups/
+│   │   │   ├── backups/import/
+│   │   │   ├── reports/daily/
+│   │   │   ├── reports/weekly/
+│   │   │   ├── reports/monthly/
+│   │   │   ├── ai/chat/
+│   │   │   ├── audit-logs/
+│   │   │   ├── seed/
+│   │   │   └── clear-data/
+│   │   ├── globals.css            # Global styles + luxury theme (1167+ lines)
+│   │   ├── layout.tsx             # Root layout (RTL, fonts, ThemeProvider)
+│   │   └── page.tsx               # MAIN APP — monolithic (~7300+ lines)
+│   ├── components/
+│   │   └── ui/                    # shadcn/ui components (48 files)
+│   │       ├── accordion.tsx
+│   │       ├── alert-dialog.tsx
+│   │       ├── alert.tsx
+│   │       ├── aspect-ratio.tsx
+│   │       ├── avatar.tsx
+│   │       ├── badge.tsx
+│   │       ├── breadcrumb.tsx
+│   │       ├── button.tsx
+│   │       ├── calendar.tsx
+│   │       ├── card.tsx
+│   │       ├── carousel.tsx
+│   │       ├── chart.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── collapsible.tsx
+│   │       ├── command.tsx
+│   │       ├── context-menu.tsx
+│   │       ├── dialog.tsx
+│   │       ├── drawer.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── form.tsx
+│   │       ├── hover-card.tsx
+│   │       ├── input-otp.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── menubar.tsx
+│   │       ├── navigation-menu.tsx
+│   │       ├── pagination.tsx
+│   │       ├── popover.tsx
+│   │       ├── progress.tsx
+│   │       ├── radio-group.tsx
+│   │       ├── resizable.tsx
+│   │       ├── scroll-area.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── sidebar.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── slider.tsx
+│   │       ├── sonner.tsx
+│   │       ├── switch.tsx
+│   │       ├── table.tsx
+│   │       ├── tabs.tsx
+│   │       ├── textarea.tsx
+│   │       ├── toast.tsx
+│   │       ├── toaster.tsx
+│   │       ├── toggle-group.tsx
+│   │       ├── toggle.tsx
+│   │       └── tooltip.tsx
+│   ├── hooks/
+│   │   ├── use-mobile.ts
+│   │   └── use-toast.ts
+│   └── lib/
+│       ├── api.ts                 # API utilities
+│       ├── cairo-time.ts          # Cairo timezone helpers (CRITICAL)
+│       ├── db.ts                  # Prisma client singleton
+│       ├── store.ts               # Zustand stores (auth + clinic settings)
+│       └── utils.ts               # cn(), formatCurrency(), formatDate(), formatTime()
+├── .env.example                   # Environment variable template
+├── .gitignore
+├── bun.lock
+├── Caddyfile
+├── components.json                # shadcn/ui config
+├── eslint.config.mjs
+├── next.config.ts
+├── next-env.d.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── tailwind.config.ts
+└── tsconfig.json</code></pre>
+<hr/>
+<h2>8. Environment Variables | المتغيرات البيئية</h2>
+<h3>Required:</h3>
+<pre data-lang="env"><code># Database URL — Neon PostgreSQL (production)
+DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require</code></pre>
+<h3>How to get DATABASE_URL:</h3>
+<ol>
+<li>Go to https://neon.tech</li>
+<li>Create account → Create new project</li>
+<li>Copy connection string from dashboard</li>
+<li>Format: <code>postgresql://USER:PASSWORD@ep-HOSTNAME.REGION.aws.neon.tech/DBNAME?sslmode=require</code></li>
+</ol>
+<h3>Vercel Environment Variables (set in Vercel dashboard):</h3>
+<ul>
+<li><code>DATABASE_URL</code> — Neon connection string</li>
+</ul>
+<h3>No other env vars needed! The app uses:</h3>
+<ul>
+<li>Simple password auth (hardcoded <code>2137</code> in <code>/api/auth/login/route.ts</code>)</li>
+<li>No external API keys (AI uses z-ai-web-dev-sdk which is pre-configured)</li>
+<li>No SMTP/email services</li>
+<li>No payment gateways</li>
+</ul>
+<hr/>
+<h2>9. Configuration Files | ملفات الإعدادات</h2>
+<h3>9.1 <code>next.config.ts</code></h3>
+<pre data-lang="typescript"><code>import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  reactStrictMode: false,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb', // For large backup imports
+    },
+  },
+};
+
+export default nextConfig;</code></pre>
+<h3>9.2 <code>tailwind.config.ts</code></h3>
+<pre data-lang="typescript"><code>import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
+
+const config: Config = {
+  darkMode: "class",
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
+        primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+        secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+        muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+        accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
+        destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))', '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))', '4': 'hsl(var(--chart-4))', '5': 'hsl(var(--chart-5))'
+        }
+      },
+      borderRadius: {
+        lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)'
+      }
+    }
+  },
+  plugins: [tailwindcssAnimate],
+};
+export default config;</code></pre>
+<h3>9.3 <code>src/app/layout.tsx</code></h3>
+<pre data-lang="typescript"><code>import type { Metadata } from "next";
+import { Cairo, Playfair_Display } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/sonner";
+import "./globals.css";
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Elmoghazi Clinic | عيادة المغازى",
+  description: "نظام إدارة العيادة الجلدية",
+  icons: { icon: "/favicon.ico" },
+};
+
+export default function RootLayout({ children }: Readonly&lt;{ children: React.ReactNode }&gt;) {
+  return (
+    &lt;html lang="ar" dir="rtl" suppressHydrationWarning&gt;
+      &lt;body className={`${cairo.variable} ${playfair.variable} font-cairo antialiased bg-background text-foreground`}&gt;
+        &lt;ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange&gt;
+          {children}
+          &lt;Toaster position="top-left" richColors /&gt;
+        &lt;/ThemeProvider&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+  );
+}</code></pre>
+<h3>9.4 <code>src/lib/db.ts</code></h3>
+<pre data-lang="typescript"><code>import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+
+export const db = globalForPrisma.prisma || new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db</code></pre>
+<h3>9.5 <code>src/lib/utils.ts</code></h3>
+<pre data-lang="typescript"><code>import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export function safeName(name: string | null | undefined): string {
+  if (!name) return 'بدون اسم'
+  return name.trim() || 'بدون اسم'
+}
+
+export function formatCurrency(amount: number): string {
+  return `${amount.toLocaleString('ar-EG')} ج.م`
+}
+
+export function formatDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })
+}
+
+export function formatTime(date: string | Date): string {
+  return new Date(date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Cairo' })
+}
+
+export function generateFileNumber(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const random = Array.from({ length: 6 }, () =&gt; chars[Math.floor(Math.random() * chars.length)]).join('')
+  return `F-${random}`
+}</code></pre>
+<h3>9.6 <code>src/lib/store.ts</code> (Zustand stores)</h3>
+<ul>
+<li><strong><code>useAuthStore</code></strong> — persisted as <code>elmoghazi-auth</code> in localStorage</li>
+<li><code>user</code>, <code>isAuthenticated</code>, <code>userRole</code> ('doctor' | 'secretary')</li>
+<li><code>login()</code>, <code>logout()</code>, <code>setUserRole()</code></li>
+<li><strong><code>useClinicStore</code></strong> — persisted as <code>elmoghazi-clinic-settings</code></li>
+<li><code>theme</code> (10 themes), <code>activeTab</code>, <code>statusColors</code>, <code>autoBackup</code>, <code>backupInterval</code>, <code>lastBackup</code>, <code>sectionPasswords</code></li>
+<li><strong><code>THEME_CONFIGS</code></strong> — 10 theme configurations:</li>
+<li>emerald, royal, rosegold, purple, sunset, teal, ruby, forest, midnight, champagne</li>
+</ul>
+<hr/>
+<h2>10. UI/UX Design Notes | ملاحظات التصميم</h2>
+<h3>Colors &amp; Themes:</h3>
+<ul>
+<li><strong>Default Theme:</strong> Emerald (زمردي) — <code>#047857</code> primary, <code>#D4A843</code> accent</li>
+<li><strong>10 Available Themes:</strong> emerald, royal, rosegold, purple, sunset, teal, ruby, forest, midnight, champagne</li>
+<li><strong>Dark Mode:</strong> Full support via <code>class="dark"</code> on <code>&lt;html&gt;</code></li>
+<li><strong>CSS Variables:</strong> HSL-based tokens in <code>globals.css</code></li>
+</ul>
+<h3>Typography:</h3>
+<ul>
+<li><strong>Arabic Font:</strong> Cairo (from Google Fonts)</li>
+<li><strong>Latin Font:</strong> Playfair Display (from Google Fonts)</li>
+<li><strong>Fallback:</strong> <code>'Noto Sans SC', 'Segoe UI', sans-serif</code></li>
+<li><strong>Direction:</strong> RTL (<code>dir="rtl"</code> on <code>&lt;html&gt;</code>)</li>
+</ul>
+<h3>Luxury Design Elements:</h3>
+<ul>
+<li>Gradient backgrounds (<code>bg-gradient-to-br</code>, <code>bg-gradient-to-l</code>)</li>
+<li>Glassmorphism (<code>backdrop-blur-sm</code>, <code>bg-white/20</code>)</li>
+<li>Soft shadows (<code>shadow-lg</code>, <code>shadow-xl</code>, <code>shadow-2xl</code>)</li>
+<li>Smooth animations (Framer Motion — hover, tap, page transitions)</li>
+<li>Glow effects (<code>blur-3xl</code> colored backgrounds)</li>
+<li>Rounded corners (<code>rounded-xl</code>, <code>rounded-2xl</code>, <code>rounded-3xl</code>)</li>
+<li>Animated emojis (rotating, scaling, bouncing)</li>
+</ul>
+<h3>Component Patterns:</h3>
+<ul>
+<li><code>card-luxury</code> class for premium cards</li>
+<li><code>input-luxury</code> class for premium inputs</li>
+<li><code>btn-luxury</code> class for premium buttons</li>
+<li><code>section-header-animated</code> for section headers</li>
+<li>Gradient buttons with hover effects</li>
+<li>Motion buttons with <code>whileTap={{ scale: 0.9 }}</code> and <code>whileHover={{ scale: 1.05 }}</code></li>
+</ul>
+<h3>Responsive Breakpoints:</h3>
+<ul>
+<li>Mobile-first design</li>
+<li>Grid: <code>grid-cols-2 sm:grid-cols-4 md:grid-cols-6</code></li>
+<li>Navigation: bottom nav on mobile, full nav on desktop</li>
+</ul>
+<h3>Icons (Lucide React):</h3>
+<p>Used extensively: LayoutDashboard, Users, Stethoscope, Zap, Search, Bell, Moon, Sun, Plus, Edit3, Trash2, Star, Phone, Calendar, Clock, DollarSign, Package, FileText, Activity, AlertTriangle, CheckCircle, ChevronDown, Settings, Shield, BarChart3, TrendingUp, Eye, Camera, Pill, Heart, Send, Bot, RefreshCw, Download, Upload, Filter, UserPlus, Sparkles, Hash, MapPin, Palette, X, Database, HardDrive, Archive, FileDown, FileUp, Timer, Tag, Scissors, Syringe, Layers, Wand2, ThermometerSun, Lock, CircleDot, Armchair, ScanFace, Hand, Circle, MousePointerClick, Target, ZapOff, BarChart2, Receipt, CalendarCheck, UsersRound, ClipboardCheck, AlertCircle, Wallet, TrendingDown, StickyNote, Coffee, Home, GraduationCap, Shirt, Flame, Gift, Award, Building2, Car, Utensils, Gamepad2, HeartPulse, PiggyBank, CheckCircle2, Lightbulb, Sparkle, Copy</p>
+<hr/>
+<h2>11. Bug Fixes Applied | الإصلاحات المطبقة</h2>
+<blockquote>These are critical fixes that must be preserved in any rebuild.</blockquote>
+<h3>Fix 1: WhatsApp Arabic Digits (commit <code>09a884c</code>)</h3>
+<p><strong>Problem:</strong> Phone numbers entered with Arabic digits (٠١٢٣) caused "Is not a valid phone number" error in WhatsApp. <strong>Solution:</strong> Added <code>normalizePhone()</code> function that converts:</p>
+<ul>
+<li>Arabic-Indic numerals (٠-٩) → Latin (0-9)</li>
+<li>Persian numerals (۰-۹) → Latin (0-9)</li>
+<li>Arabic plus (＋) → Latin (+)</li>
+<li>RTL/LTR marks → removed</li>
+<li>Applied to: <code>waPhone()</code> function AND all phone input fields (<code>onChange</code> uses <code>normalizePhone</code>)</li>
+</ul>
+<h3>Fix 2: Visit Type → Financial Category (commit <code>f21325c</code>)</h3>
+<p><strong>Problem:</strong> When selecting "إعادة" (80 EGP) from patient file, it recorded as "كشف" (200 EGP) in financial ledger. <strong>Solution:</strong> Created <code>getVisitCategory()</code> as SINGLE SOURCE OF TRUTH: <pre data-lang="typescript"><code>const getVisitCategory = (type: string): string =&gt; {
+  switch (type) {
+    case 'checkup': return 'كشف'
+    case 'revisit': return 'إعادة'
+    case 'session': return 'جلسات'
+    case 'checkup_session': return 'كشف'
+    case 'revisit_session': return 'إعادة'
+    default: return 'كشف'
+  }
+}</code></pre> Replaced all inline ternary logic with this function.</p>
+<h3>Fix 3: Robust Visit Type/Price Handling (commit <code>2968963</code>)</h3>
+<p><strong>Problem:</strong> Stale closure issues and duplicate toasts when saving visits from patient profile. <strong>Solution:</strong></p>
+<ol>
+<li>Capture state values into local variables BEFORE any <code>await</code> calls</li>
+<li>Added <code>silent</code> parameter to <code>addItem()</code> to prevent duplicate toasts</li>
+<li>Auto-set price when visit type is selected (كشف=200, إعادة=80)</li>
+<li>Single toast at end with category and price info: <code>تم إضافة الزيارة - إعادة 80 ج.م</code></li>
+</ol>
+<h3>Fix 4: Timestamp Offset — 4 Hour Difference (commit <code>6176dec</code>)</h3>
+<p><strong>Problem:</strong> Visits/sessions recorded with ~4 hour offset from actual entry time. <strong>Root Cause:</strong> Date input returns "YYYY-MM-DD" (date-only). API's <code>toCairoDate()</code> interprets this as <strong>Cairo midnight (00:00)</strong>, causing a multi-hour offset vs. the actual entry time (e.g., 4 PM). <strong>Solution:</strong> Created <code>cairoDateTime()</code> helper: <pre data-lang="typescript"><code>const cairoDateTime = (dateStr?: string): string | undefined =&gt; {
+  if (!dateStr) return undefined
+  return `${dateStr}T${cairoTimeInput()}:00` // "2026-06-16T16:07:00"
+}</code></pre> Applied to ALL places that send dates to the API:</p>
+<ul>
+<li>Patient file visit save handler</li>
+<li>Patient file session save handler</li>
+<li>New patient form (visit + session creation)</li>
+<li>Manual transaction form</li>
+</ul>
+<h3>Fix 5: Cairo Timezone Throughout</h3>
+<p><strong>Problem:</strong> Vercel servers run in UTC, causing date/time mismatches with Cairo (UTC+2/+3 DST). <strong>Solution:</strong> Comprehensive <code>src/lib/cairo-time.ts</code> with:</p>
+<ul>
+<li><code>cairoNow()</code> — current UTC moment</li>
+<li><code>cairoTodayStr()</code> — today's date in Cairo</li>
+<li><code>cairoDayRange(dateStr)</code> — start/end of Cairo day as UTC (for Prisma queries)</li>
+<li><code>cairoWeekRange()</code> — Saturday to Friday week range (Egyptian week)</li>
+<li><code>cairoMonthRange()</code> — month range</li>
+<li><code>toCairoDate(dateStr)</code> — parse date string as Cairo time → UTC Date</li>
+<li><code>getCairoOffsetMinutes(date)</code> — handles DST automatically</li>
+</ul>
+<h3>Fix 6: Backup/Restore Virtual Fields</h3>
+<p><strong>Problem:</strong> Restore from backup failed due to virtual/relation fields in JSON. <strong>Solution:</strong> <code>src/app/api/backups/import/route.ts</code> strips virtual fields before Prisma createMany: <pre data-lang="typescript"><code>const VIRTUAL_FIELDS = [
+  '_count', 'patient', 'doctor', 'user', 'service', 'laserRecord',
+  'laserPackage', 'inventoryItem', 'treatmentPlan', 'phase',
+  'visits', 'sessions', 'alerts', 'patientNotes', 'laserRecords',
+  'appointments', 'photos', 'treatmentPlans', 'reminders',
+  'waitingQueue', 'prescriptions', 'followUpRecords', 'followUpVisits',
+  'items', 'transactions', 'notes', 'medications',
+]</code></pre></p>
+<h3>Fix 7: Git History Secret Cleanup</h3>
+<p><strong>Problem:</strong> Vercel PAT token was in git history via <code>.env.production</code>. <strong>Solution:</strong> Created orphan branch with clean history and force pushed. <code>.env.production</code> added to <code>.gitignore</code>.</p>
+<hr/>
+<h2>12. Deployment Guide | دليل النشر</h2>
+<h3>Option A: Deploy on Vercel (recommended)</h3>
+<h4>Step 1: Prerequisites</h4>
+<ul>
+<li>GitHub account</li>
+<li>Vercel account (https://vercel.com)</li>
+<li>Neon account (https://neon.tech) — for PostgreSQL</li>
+</ul>
+<h4>Step 2: Database Setup (Neon)</h4>
+<ol>
+<li>Sign up at https://neon.tech</li>
+<li>Create new project → name it "elmoghazi-clinic"</li>
+<li>Select region: AWS ap-southeast-1 (Singapore) or closest to your users</li>
+<li>Copy the connection string:</li>
+</ol>
+<pre><code>   postgresql://USER:PASSWORD@ep-HOSTNAME.REGION.aws.neon.tech/DBNAME?sslmode=require
+   </code></pre>
+<ol>
+<li>Save this — you'll need it for Vercel</li>
+</ol>
+<h4>Step 3: Deploy on Vercel</h4>
+<ol>
+<li>Go to https://vercel.com/new</li>
+<li>Import your GitHub repository: <code>sayedhassan589-art/elmoghazi-clinic</code></li>
+<li>Configure project:</li>
+</ol>
+<ul>
+<li>Framework Preset: Next.js</li>
+<li>Build Command: <code>npm run build</code> (default)</li>
+<li>Install Command: <code>npm install</code> (default)</li>
+</ul>
+<ol>
+<li><strong>Environment Variables:</strong></li>
+</ol>
+<ul>
+<li>Add <code>DATABASE_URL</code> = your Neon connection string</li>
+</ul>
+<ol>
+<li>Click "Deploy"</li>
+<li>Wait for build to complete (~2-3 minutes)</li>
+</ol>
+<h4>Step 4: Initialize Database</h4>
+<ol>
+<li>After deployment, visit: <code>https://YOUR-APP.vercel.app/api/seed</code></li>
+<li>This creates initial users (doctor@elmoghazi.com, secretary@elmoghazi.com)</li>
+<li>The app is now ready! Login with password: <code>2137</code></li>
+</ol>
+<h4>Step 5: Custom Domain (optional)</h4>
+<ol>
+<li>In Vercel dashboard → Settings → Domains</li>
+<li>Add your custom domain</li>
+<li>Configure DNS as instructed</li>
+</ol>
+<h3>Option B: Deploy on Other Platforms</h3>
+<h4>Netlify:</h4>
+<ol>
+<li>Connect GitHub repo</li>
+<li>Build command: <code>npm run build</code></li>
+<li>Publish directory: <code>.next</code></li>
+<li>Add <code>DATABASE_URL</code> env var</li>
+<li>Note: Netlify has some Next.js compatibility issues — Vercel is recommended</li>
+</ol>
+<h4>Railway:</h4>
+<ol>
+<li>Connect GitHub repo</li>
+<li>Add <code>DATABASE_URL</code> env var</li>
+<li>Railway auto-detects Next.js</li>
+<li>Deploy</li>
+</ol>
+<h4>Render:</h4>
+<ol>
+<li>Create new Web Service from GitHub</li>
+<li>Build command: <code>npm install &amp;&amp; npm run build</code></li>
+<li>Start command: <code>npm start</code></li>
+<li>Add <code>DATABASE_URL</code> env var</li>
+</ol>
+<h4>Self-hosted (VPS):</h4>
+<ol>
+<li>Clone repo: <code>git clone https://github.com/sayedhassan589-art/elmoghazi-clinic.git</code></li>
+<li>Install dependencies: <code>npm install</code></li>
+<li>Create <code>.env</code> file with <code>DATABASE_URL</code></li>
+<li>Build: <code>npm run build</code></li>
+<li>Start: <code>npm start</code></li>
+<li>Use PM2 for process management: <code>pm2 start npm --name "clinic" -- start</code></li>
+<li>Use Nginx as reverse proxy</li>
+</ol>
+<h3>Database Migration:</h3>
+<p>When deploying to a new database, run: <pre data-lang="bash"><code>npx prisma db push</code></pre> This creates all tables based on <code>schema.prisma</code>.</p>
+<hr/>
+<h2>13. Recovery Guide | دليل الاستعادة من الكوارث</h2>
+<h3>If the app is lost, here's how to rebuild:</h3>
+<h4>Scenario 1: Code is on GitHub, database is lost</h4>
+<ol>
+<li>Deploy code from GitHub to Vercel (see Deployment Guide)</li>
+<li>Create new Neon database</li>
+<li>Update <code>DATABASE_URL</code> in Vercel</li>
+<li>Run <code>npx prisma db push</code> (or visit <code>/api/seed</code>)</li>
+<li>If you have a backup JSON file:</li>
+</ol>
+<ul>
+<li>Login to the app</li>
+<li>Go to: المزيد → النسخ الاحتياطي → استعادة</li>
+<li>Upload the JSON file</li>
+<li>All data will be restored</li>
+</ul>
+<h4>Scenario 2: Everything is lost (no code, no database)</h4>
+<ol>
+<li>Give this specification file to a developer</li>
+<li>Developer follows these steps:</li>
+</ol>
+<p>a. Create new Next.js 16 project with TypeScript b. Install all dependencies (see Section 2) c. Set up Prisma with the schema (see Section 4) d. Create all API routes (see Section 5) e. Create the main <code>page.tsx</code> with all features (see Section 3 &amp; 6) f. Set up Cairo timezone helpers (see Section 6.15-6.16) g. Apply all bug fixes (see Section 11) h. Deploy (see Section 12)</p>
+<h4>Scenario 3: Moving to a new platform</h4>
+<ol>
+<li>Export full backup from current app:</li>
+</ol>
+<ul>
+<li>Go to: المزيد → النسخ الاحتياطي → تصدير</li>
+<li>Download the JSON file</li>
+</ul>
+<ol>
+<li>Deploy code on new platform (see Section 12)</li>
+<li>Update <code>DATABASE_URL</code> to new database</li>
+<li>Run <code>npx prisma db push</code></li>
+<li>Import the backup JSON:</li>
+</ol>
+<ul>
+<li>Login to new app</li>
+<li>Go to: المزيد → النسخ الاحتياطي → استعادة</li>
+<li>Upload the JSON file</li>
+</ul>
+<h3>Backup File Format:</h3>
+<pre data-lang="json"><code>{
+  "exportedAt": "2026-06-16T13:00:00.000Z",
+  "version": "1.0",
+  "data": {
+    "users": [...],
+    "patients": [...],
+    "services": [...],
+    "visits": [...],
+    "sessions": [...],
+    "notes": [...],
+    "alerts": [...],
+    "reminders": [...],
+    "laserRecords": [...],
+    "laserSessions": [...],
+    "laserPackages": [...],
+    "laserSettings": [...],
+    "laserNotes": [...],
+    "transactions": [...],
+    "appointments": [...],
+    "waitingQueue": [...],
+    "inventoryItems": [...],
+    "inventoryTransactions": [...],
+    "treatmentPlans": [...],
+    "treatmentPhases": [...],
+    "treatmentPlanSessions": [...],
+    "patientPhotos": [...],
+    "medications": [...],
+    "prescriptions": [...],
+    "prescriptionItems": [...],
+    "notifications": [...],
+    "auditLogs": [...],
+    "partnerDoctors": [...],
+    "followUpRecords": [...],
+    "followUpVisits": [...]
+  }
+}</code></pre>
+<h3>Backup Best Practices:</h3>
+<ol>
+<li><strong>Weekly full backup:</strong> Download JSON file every week</li>
+<li><strong>Before updates:</strong> Always backup before deploying new code</li>
+<li><strong>Store in 2 places:</strong> Local computer + cloud (Google Drive, Dropbox)</li>
+<li><strong>Test restore:</strong> Periodically test restoring to verify backup integrity</li>
+<li><strong>Neon branching:</strong> Use Neon's branching feature for testing</li>
+</ol>
+<hr/>
+<h2>14. Login &amp; Auth | تسجيل الدخول والصلاحيات</h2>
+<h3>Login Flow:</h3>
+<ol>
+<li>User opens app → sees login screen</li>
+<li>Selects role: طبيب (doctor) or سكرتيرة (secretary)</li>
+<li>Enters password: <strong><code>2137</code></strong></li>
+<li>POST <code>/api/auth/login</code> with <code>{ role, password }</code></li>
+<li>Server verifies password (hardcoded <code>2137</code> in <code>/api/auth/login/route.ts</code>)</li>
+<li>Auto-creates user if doesn't exist:</li>
+</ol>
+<ul>
+<li>doctor@elmoghazi.com (for doctor role)</li>
+<li>secretary@elmoghazi.com (for secretary role)</li>
+</ul>
+<ol>
+<li>Returns user object (without password)</li>
+<li>Frontend stores in Zustand <code>useAuthStore</code> (persisted to localStorage as <code>elmoghazi-auth</code>)</li>
+</ol>
+<h3>Password Change:</h3>
+<p>To change the password, edit <code>/api/auth/login/route.ts</code>: <pre data-lang="typescript"><code>const VALID_PASSWORD = '2137' // ← Change this</code></pre></p>
+<h3>Role Permissions:</h3>
+<table>
+<thead>
+<tr><th>Feature</th><th>Doctor</th><th>Secretary</th></tr>
+</thead>
+<tbody>
+<tr><td>Dashboard</td><td>✅</td><td>❌ (auto-redirect to patients)</td></tr>
+<tr><td>Patients</td><td>✅</td><td>✅</td></tr>
+<tr><td>Laser</td><td>✅</td><td>✅</td></tr>
+<tr><td>Finance</td><td>✅</td><td>❌</td></tr>
+<tr><td>More section</td><td>✅</td><td>❌</td></tr>
+<tr><td>Settings</td><td>✅</td><td>❌</td></tr>
+</tbody></table>
+<h3>Auth Code (<code>src/app/api/auth/login/route.ts</code>):</h3>
+<pre data-lang="typescript"><code>import { db } from '@/lib/db'
+import { NextResponse } from 'next/server'
+
+const VALID_PASSWORD = '2137'
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const { email, password, role } = body
+
+    if (!password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 })
+    }
+
+    if (password !== VALID_PASSWORD) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
+    }
+
+    if (email) {
+      const user = await db.user.findUnique({ where: { email } })
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      if (!user.active) return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 })
+      if (user.password !== password) return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
+      const { password: _, ...userWithoutPassword } = user
+      return NextResponse.json({ user: userWithoutPassword })
+    }
+
+    if (role) {
+      const roleEmail = role === 'doctor' ? 'doctor@elmoghazi.com' : 'secretary@elmoghazi.com'
+      let user = await db.user.findUnique({ where: { email: roleEmail } })
+
+      if (!user) {
+        user = await db.user.create({
+          data: {
+            name: role === 'doctor' ? 'دكتور المغازى' : 'السكرتيرة',
+            email: roleEmail,
+            password: VALID_PASSWORD,
+            role: role,
+            active: true,
+          },
+        })
+      }
+
+      if (!user.active) return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 })
+      const { password: _, ...userWithoutPassword } = user
+      return NextResponse.json({ user: userWithoutPassword })
+    }
+
+    return NextResponse.json({ error: 'Email or role is required' }, { status: 400 })
+  } catch (error) {
+    console.error('Login error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}</code></pre>
+<hr/>
+<h2>15. Business Logic | المنطق التشغيلى</h2>
+<h3>15.1 Financial Auto-Recording</h3>
+<p>When a visit/session is created, a financial transaction is automatically created:</p>
+<table>
+<thead>
+<tr><th>Action</th><th>Visit Type</th><th>Financial Category</th><th>Default Price</th></tr>
+</thead>
+<tbody>
+<tr><td>Add visit from patient profile</td><td>checkup</td><td>كشف</td><td>200 EGP</td></tr>
+<tr><td>Add visit from patient profile</td><td>revisit</td><td>إعادة</td><td>80 EGP</td></tr>
+<tr><td>Add visit from patient profile</td><td>session</td><td>جلسات</td><td>manual</td></tr>
+<tr><td>Add session from patient profile</td><td>—</td><td>جلسات</td><td>manual</td></tr>
+<tr><td>Pay laser session</td><td>—</td><td>ليزر</td><td>from session</td></tr>
+<tr><td>Pay follow-up visit</td><td>—</td><td>متابعة</td><td>from visit</td></tr>
+<tr><td>New patient + visit</td><td>checkup</td><td>كشف</td><td>manual</td></tr>
+<tr><td>New patient + visit</td><td>revisit</td><td>إعادة</td><td>manual</td></tr>
+<tr><td>New patient + session</td><td>—</td><td>جلسات</td><td>manual</td></tr>
+</tbody></table>
+<h3>15.2 Financial Category Exclusions</h3>
+<ul>
+<li><code>personal</code> category transactions are EXCLUDED from clinic revenue calculations</li>
+<li>Used for personal expenses/income tracking</li>
+</ul>
+<h3>15.3 Timezone Handling</h3>
+<ul>
+<li><strong>Server (Vercel):</strong> Runs in UTC</li>
+<li><strong>Display:</strong> All dates/times shown in Cairo timezone (Africa/Cairo)</li>
+<li><strong>Storage:</strong> Prisma stores DateTime as UTC</li>
+<li><strong>DST:</strong> Automatically handled by <code>Intl.DateTimeFormat</code> with <code>timeZone: 'Africa/Cairo'</code></li>
+</ul>
+<h3>15.4 Search Logic</h3>
+<ol>
+<li><strong>Normalize Arabic:</strong> Remove diacritics, normalize alef/yaa/taa</li>
+<li><strong>Try exact match:</strong> Substring after normalization (highest score)</li>
+<li><strong>Try fuzzy match:</strong> Character-by-character order match (lower score)</li>
+<li><strong>Score &amp; rank:</strong> Higher score = better match</li>
+</ol>
+<h3>15.5 Data Loading</h3>
+<p>On app load (<code>useEffect</code>), all data is fetched in parallel: <pre><code>Promise.allSettled([
+  /patients, /visits, /sessions, /services, /notes, /alerts,
+  /reminders, /laser/records, /laser/packages, /laser/settings,
+  /finance/transactions, /appointments, /waiting, /inventory/items,
+  /medications, /prescriptions, /backups, /notifications, /doctors,
+  /follow-up/records
+])</code></pre> Each response is normalized: <code>res?.data || res?.patients || res?.visits || ...</code></p>
+<h3>15.6 State Management</h3>
+<ul>
+<li><strong>Zustand stores:</strong> Auth + Clinic settings (persisted to localStorage)</li>
+<li><strong>React state:</strong> All data (patients, visits, etc.) — NOT persisted, fetched from API on load</li>
+<li><strong>Optimistic updates:</strong> UI updates immediately, then API call confirms</li>
+</ul>
+<h3>15.7 Combo Visit Types</h3>
+<ul>
+<li><code>checkup_session</code>: Creates 1 visit (type=checkup) + 1 session + 2 transactions (كشف + جلسات)</li>
+<li><code>revisit_session</code>: Creates 1 visit (type=revisit) + 1 session + 2 transactions (إعادة + جلسات)</li>
+</ul>
+<h3>15.8 Patient File Sections (Tabs)</h3>
+<ol>
+<li><strong>نظرة عامة (Overview):</strong> Quick info + timeline</li>
+<li><strong>الزيارات (Visits):</strong> Add/edit/delete visits</li>
+<li><strong>الجلسات (Sessions):</strong> Add/edit/delete sessions</li>
+<li><strong>الليزر (Laser):</strong> View laser records</li>
+<li><strong>التذكيرات (Reminders):</strong> Patient reminders</li>
+<li><strong>الملاحظات (Notes):</strong> Patient-specific notes</li>
+<li><strong>الصور (Photos):</strong> before/after/general photos</li>
+<li><strong>المتابعة (Follow-up):</strong> Follow-up records</li>
+</ol>
+<h3>15.9 Main Navigation Tabs</h3>
+<ol>
+<li><strong>الرئيسية (Dashboard):</strong> Home with stats and quick actions</li>
+<li><strong>المرضى (Patients):</strong> Patient list and profiles</li>
+<li><strong>الليزر (Laser):</strong> Laser records management</li>
+<li><strong>المالية (Finance):</strong> Financial transactions and reports</li>
+<li><strong>المزيد (More):</strong> 16 sub-sections (see Section 3.5)</li>
+</ol>
+<h3>15.10 Backup/Restore Order</h3>
+<p>When restoring, data is processed in dependency order:</p>
+<ol>
+<li><strong>Delete (reverse order):</strong> Children first, parents last</li>
+<li><strong>Create (forward order):</strong> Parents first, children last</li>
+<li><strong>Skip duplicates:</strong> <code>skipDuplicates: true</code> in Prisma createMany</li>
+<li><strong>Strip virtual fields:</strong> Remove <code>_count</code>, <code>patient</code>, <code>doctor</code>, etc. before insert</li>
+</ol>
+<hr/>
+<h2>📞 Contact &amp; Support</h2>
+<ul>
+<li><strong>GitHub Repo:</strong> <code>sayedhassan589-art/elmoghazi-clinic</code></li>
+<li><strong>Login Password:</strong> <code>2137</code></li>
+<li><strong>Database:</strong> Neon PostgreSQL</li>
+<li><strong>Hosting:</strong> Vercel</li>
+</ul>
+<hr/>
+<h2>⚠️ Critical Reminders for Rebuild</h2>
+<ol>
+<li><strong>Always use <code>cairoDateTime()</code> when sending dates to API</strong> — never send bare "YYYY-MM-DD"</li>
+<li><strong>Always use <code>getVisitCategory()</code> for visit type → financial category mapping</strong> — never inline ternary</li>
+<li><strong>Always use <code>normalizePhone()</code> on phone input fields</strong> — for WhatsApp compatibility</li>
+<li><strong>Always use <code>waPhone()</code> for WhatsApp links</strong> — never raw phone numbers</li>
+<li><strong>All dates displayed with <code>timeZone: 'Africa/Cairo'</code></strong> — never UTC</li>
+<li><strong><code>addItem()</code> has <code>silent</code> parameter</strong> — use <code>true</code> when showing custom toast</li>
+<li><strong>Personal transactions excluded from clinic revenue</strong> — <code>t.category !== 'personal'</code></li>
+<li><strong>Login password is <code>2137</code></strong> — hardcoded in <code>/api/auth/login/route.ts</code></li>
+<li><strong>RTL is mandatory</strong> — <code>dir="rtl"</code> on <code>&lt;html&gt;</code> in layout</li>
+<li><strong>Fonts: Cairo + Playfair Display</strong> — from Google Fonts in layout.tsx</li>
+</ol>
+<hr/>
+<p><strong>Document Version:</strong> 1.0 <strong>Last Updated:</strong> 2026-06-16 <strong>Application Version:</strong> Latest commit on <code>main</code> branch</p>
+
+</body>
+</html>
