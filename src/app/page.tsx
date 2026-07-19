@@ -372,6 +372,15 @@ const VISIT_TYPES = [
   { id: 'revisit_session', label: 'إعادة + جلسة', emoji: '🔄⚡', bg: 'bg-gradient-to-l from-blue-500 to-violet-500', hoverBg: 'hover:from-blue-600 hover:to-violet-600', ring: 'ring-blue-300' },
 ]
 
+// ─── Isolated Cairo Clock (re-renders only itself every second, NOT the whole app) ──
+function CairoClock({ className, dateClassName }: { className?: string; dateClassName?: string }) {
+  const [, setTick] = useState(0)
+  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 1000); return () => clearInterval(t) }, [])
+  const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Cairo', hour12: true })
+  const date = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })
+  return <>{className && <span className={className} dir="ltr">{time}</span>}{dateClassName !== undefined && <span className={dateClassName || undefined}>{date}</span>}</>
+}
+
 // ─── Main App ───────────────────────────────────────────────────────────────
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
@@ -733,14 +742,14 @@ export default function Home() {
     setLoading(true)
     try {
       const results = await Promise.allSettled([
-        apiFetch('/patients?limit=50000'), apiFetch('/visits?limit=100000'), apiFetch('/sessions?limit=100000'),
-        apiFetch('/services?limit=1000'), apiFetch('/notes?limit=50000'), apiFetch('/alerts?limit=5000'),
-        apiFetch('/reminders?limit=5000'), apiFetch('/laser/records?limit=50000'), apiFetch('/laser/packages?limit=500'),
-        apiFetch('/laser/settings?limit=500'), apiFetch('/finance/transactions?limit=100000'), apiFetch('/appointments?limit=10000'),
-        apiFetch('/waiting?limit=1000'), apiFetch('/inventory/items?limit=5000'), apiFetch('/medications?limit=5000'),
-        apiFetch('/prescriptions?limit=10000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=5000'),
-        apiFetch('/doctors?limit=500'),
-        apiFetch('/follow-up/records?limit=50000'),
+        apiFetch('/patients?limit=5000'), apiFetch('/visits?limit=10000'), apiFetch('/sessions?limit=10000'),
+        apiFetch('/services?limit=500'), apiFetch('/notes?limit=5000'), apiFetch('/alerts?limit=1000'),
+        apiFetch('/reminders?limit=1000'), apiFetch('/laser/records?limit=5000'), apiFetch('/laser/packages?limit=500'),
+        apiFetch('/laser/settings?limit=500'), apiFetch('/finance/transactions?limit=10000'), apiFetch('/appointments?limit=5000'),
+        apiFetch('/waiting?limit=500'), apiFetch('/inventory/items?limit=1000'), apiFetch('/medications?limit=1000'),
+        apiFetch('/prescriptions?limit=5000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=1000'),
+        apiFetch('/doctors?limit=100'),
+        apiFetch('/follow-up/records?limit=5000'),
       ])
       const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
       setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
@@ -1277,16 +1286,11 @@ export default function Home() {
   }
 
   // ─── Computed ─────────────────────────────────────────────────────────
-  // Live Cairo time state - single source of truth for ALL date/time in the app
-  // Updates every second; drives the clock display AND all date computations
-  const [cairoTimeTick, setCairoTimeTick] = useState(0)
-  useEffect(() => { const timer = setInterval(() => setCairoTimeTick(t => t + 1), 1000); return () => clearInterval(timer) }, [])
-  // Derived display values from the tick
-  const cairoClock = useMemo(() => new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Cairo', hour12: true }), [cairoTimeTick])
-  const cairoDateDisplay = useMemo(() => new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' }), [cairoTimeTick])
-  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [cairoTimeTick, transactions.length, visits.length, sessions.length]) // Cairo timezone - re-computed every second + when data changes
-  // Memoized Cairo date parts for "now" — derived from the live tick
-  const cairoNow = useMemo(() => getCairoDateParts(), [cairoTimeTick, todayStr, patients.length, visits.length, sessions.length]) // recomputes every second
+  // Live Cairo time — computed ONCE on mount, NOT re-rendering the whole app every second
+  // The actual clock display is in a separate <CairoClock /> component that isolates re-renders
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length]) // Cairo timezone - re-computed only when data changes
+  // Memoized Cairo date parts for "now" — derived from todayStr
+  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length])
   const todayStats = useMemo(() => {
     let todayIncome = 0, todayExpense = 0
     for (const t of transactions) {
@@ -1369,16 +1373,24 @@ export default function Home() {
   }, [transactions])
   const genderData = [{ name: 'ذكور', value: maleCount || 1 }, { name: 'إناث', value: femaleCount || 1 }]
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 250)
+
+  // ─── Lookup maps for O(1) access instead of O(N) .filter() per patient ──
+  const visitsByPatient = useMemo(() => {
+    const m = new Map<string, Visit[]>(); for (const v of visits) { const a = m.get(v.patientId) || []; a.push(v); m.set(v.patientId, a) }; return m
+  }, [visits])
+  const sessionsByPatient = useMemo(() => {
+    const m = new Map<string, Session[]>(); for (const s of sessions) { const a = m.get(s.patientId) || []; a.push(s); m.set(s.patientId, a) }; return m
+  }, [sessions])
+
   const filteredPatients = useMemo(() => {
     let list = patients
     if (debouncedSearchQuery) {
       const results = patients.map(p => {
-        // Get all related visit diagnoses and notes
-        const patientVisits = visits.filter(v => v.patientId === p.id)
+        // O(1) lookup instead of O(N) .filter()
+        const patientVisits = visitsByPatient.get(p.id) || []
         const visitDiagnoses = patientVisits.map(v => v.diagnosis).filter(Boolean).join(' ')
         const visitNotes = patientVisits.map(v => v.notes).filter(Boolean).join(' ')
-        // Get all related session notes
-        const patientSessions = sessions.filter(s => s.patientId === p.id)
+        const patientSessions = sessionsByPatient.get(p.id) || []
         const sessionNotes = patientSessions.map(s => s.notes).filter(Boolean).join(' ')
 
         // Determine which fields to search based on searchField filter
@@ -1401,7 +1413,7 @@ export default function Home() {
     if (patientFilter === 'improved') list = list.filter(p => p.improved)
     if (patientFilter === 'publishable') list = list.filter(p => p.publishable)
     return list
-  }, [patients, visits, sessions, debouncedSearchQuery, patientFilter, searchField])
+  }, [patients, visitsByPatient, sessionsByPatient, debouncedSearchQuery, patientFilter, searchField])
   useEffect(() => { setPatientDisplayCount(50) }, [debouncedSearchQuery])
 
   // ─── Financial Computed Values ──────────────────────────────
@@ -2029,7 +2041,7 @@ export default function Home() {
         <div className="flex items-center gap-1 mr-auto">
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20">
             <Clock size={14} className="text-amber-600 dark:text-amber-400" />
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" dir="ltr">{cairoClock}</span>
+            <CairoClock className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" />
           </div>
           <Button variant="ghost" size="icon" className="h-9 w-9 relative" onClick={() => setAiChatOpen(true)}><Bot size={16} /></Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button>
@@ -2052,9 +2064,9 @@ export default function Home() {
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-l from-amber-500/90 to-orange-600/90 dark:from-amber-600/90 dark:to-orange-700/90 shadow-lg shadow-amber-500/20">
                         <Clock size={20} className="text-white animate-pulse" />
-                        <span className="text-white font-black text-xl tracking-wide font-mono" dir="ltr">{cairoClock}</span>
+                        <span className="text-white font-black text-xl tracking-wide font-mono"><CairoClock className="text-white font-black text-xl tracking-wide font-mono" /></span>
                       </div>
-                      <Badge className="badge-gold text-xs">{cairoDateDisplay}</Badge>
+                      <Badge className="badge-gold text-xs"><CairoClock dateClassName="" /></Badge>
                     </div>
                   </div>
                 </div>
@@ -3567,9 +3579,9 @@ export default function Home() {
                     <div className="flex items-center gap-2">
                       <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20">
                         <Clock size={14} className="text-amber-600 dark:text-amber-400" />
-                        <span className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" dir="ltr">{cairoClock}</span>
+                        <CairoClock className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" />
                         <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">|</span>
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{cairoDateDisplay}</span>
+                        <CairoClock dateClassName="text-[10px] font-bold text-amber-600 dark:text-amber-400" />
                       </div>
                       <Button className="btn-luxury bg-gradient-to-l from-green-500 to-green-600 text-white shadow-lg" onClick={shareDailySummary}><Send size={14} className="ml-1" /> مشاركة واتساب</Button>
                       <Button className="btn-luxury bg-gradient-to-l from-amber-500 to-amber-600 text-white shadow-lg" onClick={() => { setTxnFormDate(cairoTodayInput()); setShowAddTransaction(true) }}><Plus size={14} className="ml-1" /> معاملة</Button>
@@ -3580,9 +3592,9 @@ export default function Home() {
                 {/* Cairo Time Indicator - always visible, links time to financial system */}
                 <div className="sm:hidden flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20">
                   <Clock size={14} className="text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" dir="ltr">{cairoClock}</span>
+                  <CairoClock className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" />
                   <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">|</span>
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{cairoDateDisplay}</span>
+                  <CairoClock dateClassName="text-[10px] font-bold text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <Card className="section-card p-4 border-2 border-emerald-200 dark:border-emerald-800"><div className="flex items-center gap-2"><div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/30"><TrendingUp className="text-emerald-600" size={18} /></div><div><p className="text-[10px] text-muted-foreground">إيراد اليوم</p><p className="text-lg font-bold text-emerald-600">{formatCurrency(todayIncome)}</p></div></div></Card>
