@@ -11,7 +11,7 @@ import {
   Trash2, Star, StarOff, Phone, Calendar, Clock, DollarSign,
   Package, FileText, Activity, AlertTriangle, CheckCircle,
   ChevronDown, Settings, Shield, BarChart3, TrendingUp, Eye,
-  Camera, Pill, Heart, Send, Bot, RefreshCw, Download, Upload,
+  Camera, Pill, Heart, Send, RefreshCw, Download, Upload,
   Filter, UserPlus, Sparkles, Hash, MapPin, Palette, X,
   Database, HardDrive, Archive, FileDown, FileUp, Timer, Tag,
   Scissors, Syringe, Layers, Wand2, ThermometerSun, Lock,
@@ -63,7 +63,6 @@ interface Prescription { id: string; patientId: string; doctorId?: string; diagn
 interface Notification { id: string; userId?: string; title: string; message: string; type: string; read: boolean; createdAt: string; }
 interface Backup { id: string; type: string; size?: number; status: string; createdAt: string; }
 interface PatientPhoto { id: string; patientId: string; type: string; description?: string; imageData: string; createdAt: string; }
-interface ChatMessage { role: 'user' | 'assistant'; content: string; }
 interface PartnerDoctor { id: string; name: string; phone?: string; specialty?: string; checkupPercentage: number; revisitPercentage: number; laserPercentage: number; sessionPercentage: number; fixedAmount: number; active: boolean; notes?: string; createdAt: string; }
 interface FollowUpRecord { id: string; patientId: string; condition: string; conditionCategory?: string; severity: string; status: string; frequency: string; customDays?: number; nextVisitDate?: string; lastVisitDate?: string; hasSubscription: boolean; subscriptionType?: string; subscriptionPrice: number; subscriptionStart?: string; subscriptionEnd?: string; sessionsIncluded: number; sessionsUsed: number; diagnosis?: string; treatmentPlan?: string; medications?: string; notes?: string; reminderEnabled: boolean; reminderDaysBefore: number; createdAt: string; patient?: Patient; followUpVisits?: FollowUpVisit[]; }
 interface FollowUpVisit { id: string; followUpId: string; visitNumber: number; visitDate: string; type: string; findings?: string; vitals?: string; diagnosis?: string; treatmentNotes?: string; medications?: string; instructions?: string; paid: boolean; price: number; nextVisitDate?: string; status: string; notes?: string; createdAt: string; followUp?: FollowUpRecord & { patient?: Patient }; }
@@ -466,11 +465,6 @@ export default function Home() {
   const [laserFormPulse, setLaserFormPulse] = useState('')
   const [laserFormDoctorId, setLaserFormDoctorId] = useState('')
 
-  // AI Chat
-  const [aiChatOpen, setAiChatOpen] = useState(false)
-  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([])
-  const [aiInput, setAiInput] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
 
   // Login
   const [loginRole, setLoginRole] = useState<'doctor' | 'secretary' | null>(null)
@@ -1576,51 +1570,7 @@ export default function Home() {
   }, [smartSearchQuery, patients, services, visits])
   useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setSmartSearchOpen(true) } if (e.key === 'Escape') setSmartSearchOpen(false) }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [])
 
-  // ─── AI Chat ──────────────────────────────────────────────────────────
-  const sendAiMessage = async () => {
-    if (!aiInput.trim()) return; const msg = aiInput; setAiInput(''); setAiMessages(prev => [...prev, { role: 'user', content: msg }]); setAiLoading(true)
-    // Check for navigation commands
-    const navCommands: Record<string, { tab: string; subTab?: string; action?: string }> = {
-      'عرض المرضى': { tab: 'patients' }, 'المرضى': { tab: 'patients' },
-      'إضافة مريض': { tab: 'patients', action: 'addPatient' }, 'مريض جديد': { tab: 'patients', action: 'addPatient' },
-      'الرئيسية': { tab: 'dashboard' }, 'لوحة التحكم': { tab: 'dashboard' },
-      'الليزر': { tab: 'laser' }, 'سجل ليزر': { tab: 'laser' },
-      'المالية': { tab: 'finance' }, 'التقارير': { tab: 'more', subTab: 'reports' },
-      'المزيد': { tab: 'more' }, 'الخدمات': { tab: 'more', subTab: 'services' },
-      'الإعدادات': { tab: 'more', subTab: 'settings' }, 'النسخ': { tab: 'more', subTab: 'backup' },
-      'التذكيرات': { tab: 'more', subTab: 'reminders' }, 'المخزون': { tab: 'more', subTab: 'inventory' },
-      'الأدوية': { tab: 'more', subTab: 'medications' }, 'الزيارات': { tab: 'more', subTab: 'visits' },
-      'الحجز': { tab: 'more', subTab: 'bookings' }, 'المواعيد': { tab: 'more', subTab: 'bookings' },
-      'قوالب العلاج': { tab: 'more', subTab: 'templates' }, 'قائمة الانتظار': { tab: 'more', subTab: 'waiting' },
-    }
-    const lowerMsg = msg.trim()
-    const navTarget = navCommands[lowerMsg]
-    // Check for data questions
-    const dataQuestions: Record<string, string> = {
-      'كم عدد المرضى اليوم': `عدد زيارات اليوم: ${todayVisits.length} زيارة`,
-      'كم عدد المرضى': `إجمالي المرضى: ${patients.length} مريض`,
-      'كم الإيرادات اليوم': `إيراد اليوم: ${formatCurrency(todayIncome)}`,
-      'كم عدد الجلسات': `إجمالي الجلسات: ${sessions.length} جلسة`,
-      'كم غير المدفوع': `إجمالي غير المدفوع: ${formatCurrency(unpaidTotal)}`,
-      'كم عدد الموظفين': `عدد الأطباء المشاركين: ${doctors.length}`,
-    }
-    if (navTarget) {
-      setActiveTab(navTarget.tab)
-      if (navTarget.subTab) setMoreSubTab(navTarget.subTab)
-      if (navTarget.action === 'addPatient') setShowAddPatient(true)
-      setAiChatOpen(false)
-      setAiMessages(prev => [...prev, { role: 'assistant', content: `✅ تم الانتقال إلى ${lowerMsg}` }])
-      setAiLoading(false)
-      return
-    }
-    if (dataQuestions[lowerMsg]) {
-      setAiMessages(prev => [...prev, { role: 'assistant', content: dataQuestions[lowerMsg] }])
-      setAiLoading(false)
-      return
-    }
-    try { const res = await apiFetch<{message: string}>('/ai/chat', { method: 'POST', body: JSON.stringify({ messages: [...aiMessages, { role: 'user', content: msg }] }) }); setAiMessages(prev => [...prev, { role: 'assistant', content: res.message || 'عذراً، لم أتمكن من الرد.' }]) } catch { setAiMessages(prev => [...prev, { role: 'assistant', content: 'عذراً، حدث خطأ.' }]) }
-    setAiLoading(false)
-  }
+
 
   // ─── Patient Import Parser (supports JSON, CSV, TSV, XLSX) ───
   const parsePatientFile = async (file: File): Promise<any[]> => {
@@ -2045,7 +1995,7 @@ export default function Home() {
             <Clock size={14} className="text-amber-600 dark:text-amber-400" />
             <CairoClock className="text-xs font-bold text-amber-700 dark:text-amber-300 font-mono" />
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative" onClick={() => setAiChatOpen(true)}><Bot size={16} /></Button>
+
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={loadAllData}><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /></Button>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-9 w-9"><Avatar className="h-8 w-8 border-2 border-primary/30"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{user?.name?.charAt(0) || 'د'}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => handleTabSwitch('settings')}><Settings size={14} className="ml-2" /> الإعدادات</DropdownMenuItem><DropdownMenuItem onClick={() => { logout(); toast.success('تم تسجيل الخروج') }} className="text-red-500"><LogOut size={14} className="ml-2" /> خروج</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
@@ -2079,7 +2029,6 @@ export default function Home() {
                     { label: 'سجل ليزر', icon: <Zap size={22} />, color: 'bg-gradient-to-br from-cyan-500 to-cyan-700', action: () => setShowAddLaserRecord(true) },
                     { label: 'معاملة', icon: <DollarSign size={22} />, color: 'bg-gradient-to-br from-amber-500 to-amber-700', action: () => { setTxnFormDate(cairoTodayInput()); setShowAddTransaction(true) } },
                     { label: 'موعد', icon: <Calendar size={22} />, color: 'bg-gradient-to-br from-purple-500 to-purple-700', action: () => setShowAddAppointment(true) },
-                    { label: 'مساعد ذكي', icon: <Bot size={22} />, color: 'bg-gradient-to-br from-emerald-500 to-emerald-700', action: () => setAiChatOpen(true) },
                     { label: 'بحث ذكي', icon: <Search size={22} />, color: 'bg-gradient-to-br from-indigo-500 to-indigo-700', action: () => setSmartSearchOpen(true) },
                   ].map((a, i) => (
                     <motion.button key={i} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08, y: -2 }} onClick={a.action} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-muted/50 transition-all group"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4, delay: i * 0.2 }} className={cn('p-3.5 rounded-2xl text-white shadow-xl group-hover:shadow-2xl transition-shadow', a.color)}>{a.icon}</motion.div><span className="text-[11px] font-bold">{a.label}</span></motion.button>
@@ -2290,6 +2239,23 @@ export default function Home() {
                           </div>
                           {p.gender && <Badge className={cn('text-[10px] font-bold', p.gender === 'female' ? 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 dark:from-pink-900/30 dark:to-rose-900/30 dark:text-pink-400' : 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400')}>{p.gender === 'female' ? '♀' : '♂'} {p.gender}</Badge>}
                         </div>
+                        {/* Waiting status badge + quick send to waiting */}
+                        {(() => {
+                          const inQueue = waitingQueue.find(w => w.patientId === p.id && (w.status === 'waiting' || w.status === 'in-progress'))
+                          return (
+                            <div className="flex items-center gap-1.5 mt-2">
+                              {inQueue ? (
+                                <Badge className={cn('text-[9px] font-bold animate-pulse', inQueue.status === 'in-progress' ? 'bg-blue-500 text-white' : 'bg-orange-500 text-white')}>
+                                  {inQueue.status === 'in-progress' ? '🩺 جاري الكشف' : '⏳ في الانتظار'}
+                                </Badge>
+                              ) : (
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={async (e) => { e.stopPropagation(); await addItem('/waiting', { patientId: p.id, patientName: p.name, priority: 1, status: 'waiting', notes: undefined }, setWaitingQueue); toast.success('تم إضافة ⏳ لقائمة الانتظار') }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/40 transition-all border border-orange-200 dark:border-orange-800">
+                                  <Timer size={10} /> إرسال للانتظار
+                                </motion.button>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </motion.div>
                     )
                   })}
@@ -6251,7 +6217,7 @@ export default function Home() {
                                   <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold text-sm shadow-md">🩺</div>
                                   <div>
                                     <div className="flex items-center gap-2">
-                                      <p className="font-bold text-sm cursor-pointer hover:text-blue-600 hover:underline" onClick={() => { if (w.patientId) { const p = patients.find(pp => pp.id === w.patientId); if (p) { setSelectedPatient(p); setActiveTab('patients') } } }}>{w.patientName || 'مريض'}</p>
+                                      <p className="font-bold text-sm">{w.patientName || 'مريض'}</p>
                                       <Badge className="bg-blue-500 text-white text-[8px] animate-pulse">جاري الكشف</Badge>
                                       {isUrgent && <Badge className="bg-red-500 text-white text-[8px]">عاجل</Badge>}
                                     </div>
@@ -6264,6 +6230,7 @@ export default function Home() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                  {linkedPatient && <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSelectedPatient(linkedPatient); setActiveTab('patients') }} className="px-2 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 transition-colors shadow-md flex items-center gap-1" title="فتح ملف المريض">👤</motion.button>}
                                   <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } }} className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-md flex items-center gap-1">✅ تم</motion.button>
                                   <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-3 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors shadow-md flex items-center gap-1">🚪 غادر</motion.button>
                                 </div>
@@ -6308,7 +6275,7 @@ export default function Home() {
                                 <div className={cn('flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm text-white shadow-md', isUrgent ? 'bg-red-500' : 'bg-amber-500')}>{i + 1}</div>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <p className="font-bold text-sm cursor-pointer hover:text-blue-600 hover:underline" onClick={() => { if (w.patientId) { const p = patients.find(pp => pp.id === w.patientId); if (p) { setSelectedPatient(p); setActiveTab('patients') } } }}>{w.patientName || 'مريض'}</p>
+                                    <p className="font-bold text-sm">{w.patientName || 'مريض'}</p>
                                     {isUrgent && <Badge className="bg-red-500 text-white text-[8px] animate-pulse">🚨 عاجل</Badge>}
                                     {isLongWait && !isUrgent && <Badge className="bg-amber-500 text-white text-[8px]">⏰ انتظار طويل</Badge>}
                                     {linkedPatient && <Badge variant="outline" className="text-[8px] border-blue-300 text-blue-600">#{linkedPatient.fileNumber || w.patientId?.slice(-4)}</Badge>}
@@ -6322,6 +6289,7 @@ export default function Home() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-1.5">
+                                {linkedPatient && <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSelectedPatient(linkedPatient); setActiveTab('patients') }} className="px-2 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 transition-colors shadow-md flex items-center gap-1" title="فتح ملف المريض">👤</motion.button>}
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'in-progress' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } }} className="px-3 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition-colors shadow-md flex items-center gap-1">🩺 دخول</motion.button>
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-2 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors">🚪</motion.button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/waiting', w.id, setWaitingQueue)}><Trash2 size={11} className="text-red-500" /></Button>
@@ -6512,32 +6480,7 @@ export default function Home() {
         </ScrollArea>
       </Card></div></motion.div>)}</AnimatePresence>
 
-      {/* ─── AI Chat - Smart Assistant ──────────────────────────────────────── */}
-      <Dialog open={aiChatOpen} onOpenChange={setAiChatOpen}><DialogContent className="max-w-md h-[85vh] flex flex-col"><DialogHeader><DialogTitle className="flex items-center gap-2"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}><Bot size={22} className="text-primary" /></motion.div> المساعد الذكي</DialogTitle><DialogDescription>مساعدك الشامل لإدارة العيادة</DialogDescription></DialogHeader>
-        {/* Quick Actions in AI Chat - ENHANCED */}
-        <div className="grid grid-cols-3 gap-1.5 pb-2 border-b border-border">
-          {[
-            { label: 'مريض جديد', emoji: '👤', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800', action: () => { setAiChatOpen(false); setShowAddPatient(true) } },
-            { label: 'سجل ليزر', emoji: '💎', color: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800', action: () => { setAiChatOpen(false); setShowAddLaserRecord(true) } },
-            { label: 'معاملة', emoji: '💰', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800', action: () => { setAiChatOpen(false); setTxnFormDate(cairoTodayInput()); setShowAddTransaction(true) } },
-            { label: 'بحث', emoji: '🔍', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800', action: () => { setAiChatOpen(false); setSmartSearchOpen(true) } },
-            { label: 'المواعيد', emoji: '📅', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('bookings') } },
-            { label: 'التقارير', emoji: '📊', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('reports') } },
-            { label: 'المرضى', emoji: '👥', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800', action: () => { setAiChatOpen(false); setActiveTab('patients') } },
-            { label: 'الرئيسية', emoji: '🏠', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', action: () => { setAiChatOpen(false); setActiveTab('dashboard') } },
-            { label: 'الانتظار', emoji: '⏳', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('waiting') } },
-            { label: 'قوالب', emoji: '📋', color: 'bg-lime-100 dark:bg-lime-900/30 text-lime-700 dark:text-lime-300 border-lime-200 dark:border-lime-800', action: () => { setAiChatOpen(false); setActiveTab('more'); setMoreSubTab('templates') } },
-            { label: 'المالية', emoji: '💵', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800', action: () => { setAiChatOpen(false); setActiveTab('finance') } },
-            { label: 'الليزر', emoji: '⚡', color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800', action: () => { setAiChatOpen(false); setActiveTab('laser') } },
-          ].map((btn, i) => (
-            <motion.button key={i} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={btn.action} className={cn('flex flex-col items-center gap-0.5 p-1.5 rounded-xl border-2 transition-all text-[9px] font-bold', btn.color)}>
-              <span className="text-sm">{btn.emoji}</span>{btn.label}
-            </motion.button>
-          ))}
-        </div>
-        <ScrollArea className="flex-1 p-2"><div className="space-y-3">{aiMessages.length === 0 && <div className="text-center text-muted-foreground text-sm py-6"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">🤖</motion.div><p className="font-bold text-lg mb-1">مرحباً! أنا مساعدك الذكي</p><p className="text-xs">اسألني أي سؤال عن العيادة أو استخدم الأزرار السريعة أعلاه</p></div>}{aiMessages.map((m, i) => <div key={i} className={cn('p-3 rounded-xl text-sm max-w-[85%]', m.role === 'user' ? 'bg-primary text-primary-foreground mr-auto' : 'bg-muted ml-auto')}><p className="whitespace-pre-wrap">{m.content}</p></div>)}{aiLoading && <div className="bg-muted p-3 rounded-xl ml-auto max-w-[85%]"><RefreshCw className="animate-spin text-muted-foreground" size={16} /></div>}</div></ScrollArea>
-        <div className="flex items-center gap-2 pt-2 border-t border-border"><Input value={aiInput} onChange={e => setAiInput(e.target.value)} placeholder="اكتب سؤالك..." className="flex-1 input-luxury rounded-xl" onKeyDown={e => e.key === 'Enter' && sendAiMessage()} /><Button onClick={sendAiMessage} size="icon" className="rounded-xl"><Send size={16} /></Button></div>
-      </DialogContent></Dialog>
+
 
       {/* ═══ SMART PATIENT REGISTRATION DIALOG - REDESIGNED ═══ */}
       <Dialog open={showAddPatient} onOpenChange={setShowAddPatient}>
