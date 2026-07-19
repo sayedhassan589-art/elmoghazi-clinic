@@ -384,7 +384,7 @@ function CairoClock({ className, dateClassName }: { className?: string; dateClas
 // ─── Main App ───────────────────────────────────────────────────────────────
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
-  const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords } = useClinicStore()
+  const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords, defaultCheckupPrice, defaultRevisitPrice, setDefaultCheckupPrice, setDefaultRevisitPrice } = useClinicStore()
   const [darkMode, setDarkMode] = useState(false)
   const [smartSearchOpen, setSmartSearchOpen] = useState(false)
   const [smartSearchQuery, setSmartSearchQuery] = useState('')
@@ -1130,7 +1130,7 @@ export default function Home() {
       const res = await apiFetch<{user: any}>('/auth/login', { method: 'POST', body: JSON.stringify({ role: loginRole, password: loginPassword }) })
       login(res.user, loginRole)
       toast.success(loginRole === 'doctor' ? 'مرحباً دكتور 🩺' : 'مرحباً 👩‍💼')
-      if (loginRole === 'secretary') setActiveTab('patients')
+      if (loginRole === 'secretary') setActiveTab('waiting')
     } catch (e: any) { toast.error(e.message === 'Invalid password' ? 'كلمة السر غير صحيحة' : e.message || 'خطأ في تسجيل الدخول') }
     setLoginLoading(false)
   }
@@ -1851,7 +1851,8 @@ export default function Home() {
     // the actual moment of entry. A bare "YYYY-MM-DD" would be saved as Cairo midnight,
     // producing a multi-hour offset vs. the real entry time.
     const customDate = cairoDateTime(newPatientDate)
-    const vPrice = parseFloat(visitPrice) || 0
+    const effectiveVisitPrice = visitPrice || (selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? String(defaultCheckupPrice) : selectedVisitType === 'revisit' || selectedVisitType === 'revisit_session' ? String(defaultRevisitPrice) : '')
+    const vPrice = parseFloat(effectiveVisitPrice) || 0
     const sPrice = parseFloat(customServicePrice) || 0
 
     // Determine visit and session needs based on selected type (including combos)
@@ -1935,7 +1936,7 @@ export default function Home() {
 
   // ─── Role-based access control ────────────────────────────────────────
   const isDoctor = userRole === 'doctor'
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser', 'waiting']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
@@ -1983,7 +1984,7 @@ export default function Home() {
     { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
     { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
   ]
-  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'laser'].includes(i.id))
+  const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'laser'].includes(i.id)).concat([{ id: 'waiting', label: 'الانتظار', emoji: '⏳', icon: <Timer size={20} />, activeColor: 'from-orange-400 to-red-500', activeShadow: 'shadow-orange-500/40', labelColor: 'text-orange-600 dark:text-orange-400' }])
 
   // ─── LOGIN ────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
@@ -2007,7 +2008,7 @@ export default function Home() {
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg"><Users size={28} className="text-white" /></div>
-                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والليزر فقط</p></div>
+                    <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والليزر والانتظار</p></div>
                   </motion.button>
                 </div>
               ) : (
@@ -2016,7 +2017,7 @@ export default function Home() {
                     <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', loginRole === 'doctor' ? 'bg-gradient-to-br from-amber-500 to-amber-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-700')}>
                       {loginRole === 'doctor' ? <Stethoscope className="text-white" size={18} /> : <Users size={18} className="text-white" />}
                     </div>
-                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والليزر فقط'}</p></div>
+                    <div><p className="text-white font-bold text-sm">{loginRole === 'doctor' ? 'طبيب' : 'سكرتيرة'}</p><p className="text-emerald-200/60 text-[10px]">{loginRole === 'doctor' ? 'دخول كامل' : 'المرضى والليزر والانتظار'}</p></div>
                     <button onClick={() => { setLoginRole(null); setLoginPassword('') }} className="mr-auto text-emerald-200/60 hover:text-white text-xs">تغيير</button>
                   </div>
                   <div><Label className="text-emerald-200">كلمة المرور</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="أدخل كلمة السر..." className="bg-emerald-900/50 border-emerald-600/30 text-white input-luxury rounded-xl h-12 text-center text-lg" onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus /></div>
@@ -2693,11 +2694,11 @@ export default function Home() {
 
                   {/* ═══ VISITS ═══ */}
                   <TabsContent value="visits" className="space-y-3 mt-3">
-                    <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-2"><Stethoscope size={15} className="text-violet-500" /> الزيارات</h3><Button size="sm" className="rounded-xl bg-violet-600 text-white h-8 text-xs" onClick={() => { setProfileVisitType('checkup'); setProfileVisitPrice('200'); setProfileVisitNotes(''); setProfileVisitDate(''); setShowAddVisitProfile(true) }}><Plus size={12} className="ml-1" /> زيارة</Button></div>
+                    <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-2"><Stethoscope size={15} className="text-violet-500" /> الزيارات</h3><Button size="sm" className="rounded-xl bg-violet-600 text-white h-8 text-xs" onClick={() => { setProfileVisitType('checkup'); setProfileVisitPrice(String(defaultCheckupPrice)); setProfileVisitNotes(''); setProfileVisitDate(''); setShowAddVisitProfile(true) }}><Plus size={12} className="ml-1" /> زيارة</Button></div>
                     {showAddVisitProfile && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 space-y-2">
-                        <div className="grid grid-cols-3 gap-2">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => { setProfileVisitType(vt.id); if (vt.id === 'checkup') setProfileVisitPrice('200'); else if (vt.id === 'revisit') setProfileVisitPrice('80'); else setProfileVisitPrice(''); }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700 shadow-md' : 'border-transparent bg-muted/50 text-muted-foreground hover:bg-muted')}><span className="text-base">{vt.emoji}</span>{vt.label}{vt.id === 'checkup' && <span className="text-[8px] text-muted-foreground">200 ج.م</span>}{vt.id === 'revisit' && <span className="text-[8px] text-muted-foreground">80 ج.م</span>}</motion.button>))}</div>
-                        <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileVisitPrice} onChange={e => setProfileVisitPrice(e.target.value)} placeholder={profileVisitType === 'checkup' ? '200' : profileVisitType === 'revisit' ? '80' : '0'} className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileVisitNotes} onChange={e => setProfileVisitNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
+                        <div className="grid grid-cols-3 gap-2">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => { setProfileVisitType(vt.id); if (vt.id === 'checkup') setProfileVisitPrice(String(defaultCheckupPrice)); else if (vt.id === 'revisit') setProfileVisitPrice(String(defaultRevisitPrice)); else setProfileVisitPrice(''); }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700 shadow-md' : 'border-transparent bg-muted/50 text-muted-foreground hover:bg-muted')}><span className="text-base">{vt.emoji}</span>{vt.label}{vt.id === 'checkup' && <span className="text-[8px] text-muted-foreground">{defaultCheckupPrice} ج.م</span>}{vt.id === 'revisit' && <span className="text-[8px] text-muted-foreground">{defaultRevisitPrice} ج.م</span>}</motion.button>))}</div>
+                        <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileVisitPrice} onChange={e => setProfileVisitPrice(e.target.value)} placeholder={profileVisitType === 'checkup' ? String(defaultCheckupPrice) : profileVisitType === 'revisit' ? String(defaultRevisitPrice) : '0'} className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileVisitNotes} onChange={e => setProfileVisitNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
                         <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الزيارة (اختياري)</Label><Input type="date" value={profileVisitDate || cairoTodayInput()} onChange={e => setProfileVisitDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
                         <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const currentType = profileVisitType; const currentPrice = profileVisitPrice; const currentNotes = profileVisitNotes; const vDate = cairoDateTime(profileVisitDate); const patientName = selectedPatient.name; const patientId = selectedPatient.id; if (!currentType) { toast.error('اختر نوع الزيارة'); return; } const vPrice = parseFloat(String(currentPrice)) || 0; const cat = getVisitCategory(currentType); try { await addItem('/visits', { patientId, type: currentType, notes: currentNotes || undefined, date: vDate }, setVisits, true); if (vPrice > 0) { await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${patientName}`, date: vDate }, setTransactions, true); } } catch (e) { console.error('Visit save error:', e); } setShowAddVisitProfile(false); setProfileVisitType('checkup'); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success(`تم إضافة الزيارة - ${cat}${vPrice > 0 ? ` ${vPrice} ج.م` : ''}`) }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
                       </motion.div>
@@ -4044,6 +4045,35 @@ export default function Home() {
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="text-4xl">⚙️</motion.div><div><h2 className="text-2xl font-black text-white">الخدمات</h2><p className="text-white/80 text-sm">{services.length} خدمة مسجلة</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button>
+                    </div>
+                  </motion.div>
+
+                  {/* ─── Default Visit Prices Card ─── */}
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-cyan-950/30 p-4 shadow-lg">
+                    <div className="absolute top-0 left-0 w-24 h-24 bg-blue-400/10 rounded-full blur-2xl" />
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-xl">💰</motion.div>
+                        <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">قيم الكشف والإعادة الافتراضية</h3>
+                        <span className="text-[9px] text-muted-foreground bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">تُطبق تلقائياً عند إنشاء زيارة</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="relative">
+                          <Label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1">🩺 قيمة الكشف</Label>
+                          <div className="relative">
+                            <Input type="number" value={defaultCheckupPrice} onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 0) setDefaultCheckupPrice(v) }} className="pr-10 rounded-xl h-11 text-lg font-bold border-2 border-emerald-200 dark:border-emerald-800 bg-white dark:bg-black/20 text-emerald-700 dark:text-emerald-300 focus:border-emerald-500" />
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">ج.م</span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <Label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-1">🔄 قيمة الإعادة</Label>
+                          <div className="relative">
+                            <Input type="number" value={defaultRevisitPrice} onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 0) setDefaultRevisitPrice(v) }} className="pr-10 rounded-xl h-11 text-lg font-bold border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-black/20 text-blue-700 dark:text-blue-300 focus:border-blue-500" />
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">ج.م</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-muted-foreground mt-2 flex items-center gap-1"><Sparkles size={9} className="text-blue-400" /> يتم حفظ القيم تلقائياً وتطبيقها عند إنشاء زيارات جديدة</p>
                     </div>
                   </motion.div>
                   {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
@@ -5589,7 +5619,7 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('secretary'); toast.success('تم تفعيل صلاحيات السكرتارية') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'secretary' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
                         <motion.div animate={userRole === 'secretary' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👩‍💼</motion.div>
                         <p className="font-bold text-sm">سكرتارية</p>
-                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والليزر فقط</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">المرضى والليزر والانتظار</p>
                         {userRole === 'secretary' && <Badge className="mt-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">فعّال ✓</Badge>}
                       </motion.button>
                     </div>
@@ -6140,6 +6170,209 @@ export default function Home() {
             {/* ═══ SETTINGS direct ═══ */}
             {activeTab === 'settings' && (<div className="space-y-4"><div className="section-header-animated rounded-2xl bg-indigo-50 dark:bg-indigo-950/30"><div className="relative z-10 flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 6, repeat: Infinity, ease: 'linear' }} className="text-4xl">🎨</motion.div><div><h1 className="text-2xl font-bold">الإعدادات</h1></div></div></div><Card className="card-luxury"><CardHeader><CardTitle>ألوان التطبيق</CardTitle></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <motion.button key={tc.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</motion.button>)}</div></CardContent></Card></div>)}
 
+            {/* ═══ WAITING TAB - Professional Secretary Queue Management ═══ */}
+            {activeTab === 'waiting' && (() => {
+              const waitingItems = waitingQueue.filter(w => w.status === 'waiting').sort((a, b) => {
+                if (a.priority !== b.priority) return b.priority - a.priority
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              })
+              const inProgressItems = waitingQueue.filter(w => w.status === 'in-progress').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+              const doneItems = waitingQueue.filter(w => w.status === 'done' || w.status === 'left')
+              const totalWaiting = waitingItems.length
+              const totalInProgress = inProgressItems.length
+              const totalDone = doneItems.length
+
+              return (
+                <div className="space-y-4">
+                  {/* ─── Animated Header ─── */}
+                  <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 p-5 shadow-xl">
+                    <div className="absolute inset-0 opacity-20">
+                      <motion.div animate={{ x: [0, 60, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" />
+                      <motion.div animate={{ x: [0, -40, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute bottom-0 left-0 w-24 h-24 bg-yellow-300/20 rounded-full blur-3xl" />
+                    </div>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-5xl">⏳</motion.div>
+                        <div>
+                          <h1 className="text-2xl font-black text-white">إدارة الانتظار</h1>
+                          <p className="text-white/80 text-sm">تنظيم دخول المرضى ومتابعة الحالات</p>
+                        </div>
+                      </div>
+                      <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.05 }}>
+                        <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg h-11 px-4" onClick={() => setShowAddWaiting(true)}><Plus size={16} className="ml-2" /> إضافة مريض</Button>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+
+                  {/* ─── Smart Stats Row ─── */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-3 text-white shadow-lg">
+                      <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">⏳</motion.div>
+                      <p className="text-2xl font-black relative z-10">{totalWaiting}</p>
+                      <p className="text-[10px] text-white/80 font-bold relative z-10">في الانتظار</p>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 p-3 text-white shadow-lg">
+                      <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">🩺</motion.div>
+                      <p className="text-2xl font-black relative z-10">{totalInProgress}</p>
+                      <p className="text-[10px] text-white/80 font-bold relative z-10">جاري الكشف</p>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 p-3 text-white shadow-lg">
+                      <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">✅</motion.div>
+                      <p className="text-2xl font-black relative z-10">{totalDone}</p>
+                      <p className="text-[10px] text-white/80 font-bold relative z-10">تم / غادر</p>
+                    </motion.div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 p-3 text-white shadow-lg">
+                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">🚨</motion.div>
+                      <p className="text-2xl font-black relative z-10">{waitingItems.filter(w => w.priority >= 2).length}</p>
+                      <p className="text-[10px] text-white/80 font-bold relative z-10">عاجل</p>
+                    </motion.div>
+                  </div>
+
+                  {/* ─── IN PROGRESS SECTION ─── */}
+                  {inProgressItems.length > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-lg">🩺</motion.div>
+                        <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">جاري الكشف الآن</h3>
+                        <Badge className="bg-blue-500 text-white text-[8px]">{inProgressItems.length}</Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {inProgressItems.map((w, i) => {
+                          const waitMinutes = Math.round((Date.now() - new Date(w.createdAt).getTime()) / 60000)
+                          const isUrgent = w.priority >= 2
+                          return (
+                            <motion.div key={w.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="relative overflow-hidden rounded-xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-l from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/10 p-3 shadow-md">
+                              <div className="absolute top-0 left-0 w-2 h-full bg-blue-500 rounded-r-xl" />
+                              <div className="flex items-center justify-between relative z-10">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold text-sm shadow-md">🩺</div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-bold text-sm">{w.patientName || 'مريض'}</p>
+                                      <Badge className="bg-blue-500 text-white text-[8px] animate-pulse">جاري الكشف</Badge>
+                                      {isUrgent && <Badge className="bg-red-500 text-white text-[8px]">عاجل</Badge>}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
+                                      <span>⏱ {waitMinutes > 60 ? `${Math.floor(waitMinutes / 60)} س ${waitMinutes % 60} د` : `${waitMinutes} دقيقة`}</span>
+                                      {w.notes && <span className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">📝 {w.notes}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } }} className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-md flex items-center gap-1">✅ تم</motion.button>
+                                  <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-3 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors shadow-md flex items-center gap-1">🚪 غادر</motion.button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ─── WAITING LIST SECTION ─── */}
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-lg">⏳</motion.div>
+                      <h3 className="font-bold text-sm text-amber-700 dark:text-amber-400">قائمة الانتظار</h3>
+                      <Badge className="bg-amber-500 text-white text-[8px]">{totalWaiting}</Badge>
+                    </div>
+                    {waitingItems.length === 0 && totalInProgress === 0 && totalDone === 0 && (
+                      <Card className="card-luxury p-8 text-center">
+                        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">⏳</motion.div>
+                        <p className="text-muted-foreground font-bold">قائمة الانتظار فارغة</p>
+                        <p className="text-muted-foreground text-xs mt-1">اضغط "إضافة مريض" لبدء تنظيم الدخول</p>
+                      </Card>
+                    )}
+                    {waitingItems.length === 0 && totalInProgress > 0 && (
+                      <Card className="card-luxury p-4 text-center border-2 border-dashed border-amber-300 dark:border-amber-700">
+                        <p className="text-amber-600 text-sm font-bold">✨ لا يوجد مرضى في الانتظار — جميعهم مع الدكتور الآن</p>
+                      </Card>
+                    )}
+                    <div className="space-y-2">
+                      {waitingItems.map((w, i) => {
+                        const waitMinutes = Math.round((Date.now() - new Date(w.createdAt).getTime()) / 60000)
+                        const isUrgent = w.priority >= 2
+                        const isLongWait = waitMinutes > 30
+                        return (
+                          <motion.div key={w.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} whileHover={{ scale: 1.01, x: 4 }} className={cn('relative overflow-hidden rounded-xl border-2 p-3 transition-all', isUrgent ? 'border-red-300 dark:border-red-700 bg-gradient-to-l from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/10 shadow-md' : isLongWait ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-l from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/10' : 'border-amber-200 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-900/10')}>
+                            <div className={cn('absolute top-0 left-0 w-1.5 h-full rounded-r-xl', isUrgent ? 'bg-red-500' : isLongWait ? 'bg-amber-500' : 'bg-amber-400')} />
+                            <div className="flex items-center justify-between relative z-10">
+                              <div className="flex items-center gap-3">
+                                <div className={cn('flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm text-white shadow-md', isUrgent ? 'bg-red-500' : 'bg-amber-500')}>{i + 1}</div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-sm">{w.patientName || 'مريض'}</p>
+                                    {isUrgent && <Badge className="bg-red-500 text-white text-[8px] animate-pulse">🚨 عاجل</Badge>}
+                                    {isLongWait && !isUrgent && <Badge className="bg-amber-500 text-white text-[8px]">⏰ انتظار طويل</Badge>}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
+                                    <span className={cn('font-bold', isLongWait && 'text-red-500')}>⏱ {waitMinutes > 60 ? `${Math.floor(waitMinutes / 60)} س ${waitMinutes % 60} د` : `${waitMinutes} دقيقة`}</span>
+                                    {w.notes && <span className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">📝 {w.notes}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'in-progress' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } }} className="px-3 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition-colors shadow-md flex items-center gap-1">🩺 دخول</motion.button>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-2 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors">🚪</motion.button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/waiting', w.id, setWaitingQueue)}><Trash2 size={11} className="text-red-500" /></Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </motion.div>
+
+                  {/* ─── DONE/LEFT SECTION ─── */}
+                  {doneItems.length > 0 && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm">📋</span>
+                        <h4 className="text-xs text-muted-foreground font-bold">مكتمل / غادر ({doneItems.length})</h4>
+                      </div>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {doneItems.map(w => (
+                          <div key={w.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs">
+                            <span className="text-muted-foreground line-through">{w.patientName || 'مريض'}</span>
+                            <Badge variant="outline" className={w.status === 'done' ? 'border-emerald-500 text-emerald-600 text-[8px]' : 'border-gray-400 text-gray-500 text-[8px]'}>{w.status === 'done' ? '✅ تم' : '🚪 غادر'}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ─── Quick Actions Card for Secretary ─── */}
+                  {!isDoctor && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                      <Card className="border-2 border-dashed border-cyan-300 dark:border-cyan-700 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/10 dark:to-blue-950/10">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Sparkles size={14} className="text-cyan-500" />
+                            <h4 className="text-xs font-bold text-cyan-700 dark:text-cyan-400">إجراءات سريعة</h4>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setShowAddWaiting(true) }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-amber-100 dark:bg-amber-900/20 hover:bg-amber-200 dark:hover:bg-amber-900/40 transition-all border border-amber-200 dark:border-amber-800">
+                              <span className="text-lg">➕</span>
+                              <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400">مريض جديد</span>
+                            </motion.button>
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setActiveTab('patients'); setSelectedPatient(null) }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-all border border-blue-200 dark:border-blue-800">
+                              <span className="text-lg">👥</span>
+                              <span className="text-[9px] font-bold text-blue-700 dark:text-blue-400">المرضى</span>
+                            </motion.button>
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setActiveTab('laser') }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-cyan-100 dark:bg-cyan-900/20 hover:bg-cyan-200 dark:hover:bg-cyan-900/40 transition-all border border-cyan-200 dark:border-cyan-800">
+                              <span className="text-lg">💎</span>
+                              <span className="text-[9px] font-bold text-cyan-700 dark:text-cyan-400">الليزر</span>
+                            </motion.button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
+                </div>
+              )
+            })()}
+
           </motion.div>
         </AnimatePresence>
       </main>
@@ -6391,8 +6624,8 @@ export default function Home() {
                   <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>🩺</motion.span>
                   قيمة {selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? 'الكشف' : 'الإعادة'} (ج.م)
                 </Label>
-                <Input type="number" value={visitPrice} onChange={e => setVisitPrice(e.target.value)} placeholder="اكتب قيمة الكشف أو الإعادة بالجنيه المصري..." className="rounded-xl h-12 text-lg font-bold border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-black/20 focus:border-blue-500 text-blue-700 dark:text-blue-300" />
-                <p className="text-[10px] text-muted-foreground mt-1.5">سيتم تسجيل هذا المبلغ في المالية تلقائياً</p>
+                <Input type="number" value={visitPrice || (selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? String(defaultCheckupPrice) : String(defaultRevisitPrice))} onChange={e => setVisitPrice(e.target.value)} placeholder={selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? String(defaultCheckupPrice) : String(defaultRevisitPrice)} className="rounded-xl h-12 text-lg font-bold border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-black/20 focus:border-blue-500 text-blue-700 dark:text-blue-300" />
+                <p className="text-[10px] text-muted-foreground mt-1.5">سيتم تسجيل هذا المبلغ في المالية تلقائياً — القيمة الافتراضية من إعدادات الخدمات</p>
               </motion.div>
             )}
 

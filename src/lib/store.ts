@@ -63,6 +63,8 @@ interface ClinicSettingsState {
   backupInterval: number // in minutes
   lastBackup: string | null
   sectionPasswords: Record<string, string>
+  defaultCheckupPrice: number  // قيمة الكشف الافتراضية
+  defaultRevisitPrice: number  // قيمة الإعادة الافتراضية
   setTheme: (theme: ClinicTheme) => void
   setActiveTab: (tab: string) => void
   setStatusColors: (colors: StatusColorConfig) => void
@@ -70,6 +72,8 @@ interface ClinicSettingsState {
   setBackupInterval: (minutes: number) => void
   setLastBackup: (date: string) => void
   setSectionPasswords: (passwords: Record<string, string>) => void
+  setDefaultCheckupPrice: (price: number) => void
+  setDefaultRevisitPrice: (price: number) => void
 }
 
 // ─── Auth Store ──────────────────────────────────────────────────────────────
@@ -111,6 +115,8 @@ export const useClinicStore = create<ClinicSettingsState>()(
       backupInterval: 60,
       lastBackup: null,
       sectionPasswords: {},
+      defaultCheckupPrice: 200,
+      defaultRevisitPrice: 80,
       setTheme: (theme: ClinicTheme) => set({ theme }),
       setActiveTab: (tab: string) => set({ activeTab: tab }),
       setStatusColors: (colors: StatusColorConfig) => set({ statusColors: colors }),
@@ -118,6 +124,8 @@ export const useClinicStore = create<ClinicSettingsState>()(
       setBackupInterval: (minutes: number) => set({ backupInterval: minutes }),
       setLastBackup: (date: string) => set({ lastBackup: date }),
       setSectionPasswords: (passwords: Record<string, string>) => set({ sectionPasswords: passwords }),
+      setDefaultCheckupPrice: (price: number) => set({ defaultCheckupPrice: price }),
+      setDefaultRevisitPrice: (price: number) => set({ defaultRevisitPrice: price }),
     }),
     {
       name: 'elmoghazi-clinic-settings',
