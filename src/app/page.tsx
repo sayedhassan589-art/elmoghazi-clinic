@@ -21,7 +21,7 @@ import {
   Wallet, TrendingDown, StickyNote, Coffee, Home as HomeIcon,
   GraduationCap, Shirt, Flame, Gift, Award, Building2, Car,
   Utensils, Gamepad2, HeartPulse, PiggyBank, CheckCircle2,
-  Lightbulb, Sparkle, Copy
+  Lightbulb, Sparkle, Copy, ThumbsUp
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -43,7 +43,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface ImprovementEntry { score: number; date: string; note?: string }
-interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; colorTag?: string; bloodType?: string; improvementScore?: number; improvementHistory?: string; createdAt: string; }
+interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; publishable?: boolean; colorTag?: string; bloodType?: string; improvementScore?: number; improvementHistory?: string; createdAt: string; }
 interface Visit { id: string; patientId: string; doctorId?: string; type: string; diagnosis?: string; notes?: string; date: string; }
 interface Session { id: string; patientId: string; serviceId?: string; doctorId?: string; status: string; notes?: string; date: string; price: number; paid: boolean; }
 interface Service { id: string; name: string; category?: string; price: number; duration?: number; active: boolean; }
@@ -499,7 +499,7 @@ export default function Home() {
   const [quickNote, setQuickNote] = useState('')
 
   // Patient filters & detail
-  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved'>('all')
+  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved' | 'publishable'>('all')
   const [patientDetailTab, setPatientDetailTab] = useState('overview')
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteContent, setEditingNoteContent] = useState('')
@@ -1399,6 +1399,7 @@ export default function Home() {
     }
     if (patientFilter === 'starred') list = list.filter(p => p.starred)
     if (patientFilter === 'improved') list = list.filter(p => p.improved)
+    if (patientFilter === 'publishable') list = list.filter(p => p.publishable)
     return list
   }, [patients, visits, sessions, debouncedSearchQuery, patientFilter, searchField])
   useEffect(() => { setPatientDisplayCount(50) }, [debouncedSearchQuery])
@@ -2241,11 +2242,12 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</motion.button>
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'publishable' ? 'all' : 'publishable')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'publishable' ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-green-50 dark:hover:bg-green-950/20')}><ThumbsUp size={16} className={patientFilter === 'publishable' ? 'text-green-500 fill-green-500' : ''} /> 👍 للنشر</motion.button>
                     {patientFilter !== 'all' && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPatientFilter('all')}>إلغاء الفلتر</Button>}
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : 'لا توجد نتائج'}</p></Card>}
+                  {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : patientFilter === 'publishable' ? 'لا توجد حالات للنشر بعد' : 'لا توجد نتائج'}</p></Card>}
                   {filteredPatients.slice(0, patientDisplayCount).map(p => {
                     const stripeGradient = p.gender === 'female' ? 'bg-gradient-to-b from-pink-400 to-rose-500' : p.gender === 'male' ? 'bg-gradient-to-b from-blue-400 to-indigo-500' : 'bg-gradient-to-b from-gray-400 to-gray-500'
                     // Get latest diagnosis from visits
@@ -2262,6 +2264,7 @@ export default function Home() {
                               <p className="font-black text-base truncate" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{safeName(p.name)}</p>
                               {p.starred && <span className="badge-glow text-amber-500 text-sm">⭐</span>}
                               {p.improved && <span className="badge-glow text-pink-500 text-sm" style={{animationDelay: '0.5s'}}>💗</span>}
+                              {p.publishable && <span className="badge-glow text-green-500 text-sm" style={{animationDelay: '1s'}}>👍</span>}
                             </div>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full"><Hash size={9} />{p.fileNumber}</span>
@@ -2306,6 +2309,7 @@ export default function Home() {
                         <Avatar className="h-22 w-22 border-4 shadow-2xl" style={{ borderColor: selectedPatient.colorTag || '#818cf8', width: 88, height: 88 }}><AvatarFallback className="bg-white/20 backdrop-blur-sm text-white text-3xl font-black" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
                         {selectedPatient.starred && <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="absolute -top-1 -right-1 text-xl">⭐</motion.span>}
                         {selectedPatient.improved && <span className="absolute -bottom-1 -right-1 text-lg">💗</span>}
+                        {selectedPatient.publishable && <span className="absolute top-1/2 -left-2 text-lg">👍</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
@@ -2353,6 +2357,7 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-red-500/30 backdrop-blur-sm border border-red-400/30 text-red-100 hover:bg-red-500/40 transition-all"><Trash2 size={13} /> حذف</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.starred ? 'bg-amber-400/30 border-amber-400/40 text-amber-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Star size={13} className={selectedPatient.starred ? 'fill-amber-300' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.improved ? 'bg-pink-400/30 border-pink-400/40 text-pink-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Heart size={13} className={selectedPatient.improved ? 'fill-pink-300' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ publishable: !selectedPatient.publishable }) }); const u = { ...selectedPatient, publishable: !selectedPatient.publishable }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.publishable ? 'تم إزالة علامة النشر' : 'تم وضع علامة النشر 👍') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.publishable ? 'bg-green-400/30 border-green-400/40 text-green-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><ThumbsUp size={13} className={selectedPatient.publishable ? 'fill-green-300' : ''} /> {selectedPatient.publishable ? 'للنشر' : 'نشر'}</motion.button>
                       {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/30 backdrop-blur-sm border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/40 transition-all"><Send size={12} /> واتساب</motion.button>}
                     </div>
                     {/* Edit Patient Form */}
@@ -4903,6 +4908,7 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20"><p className="text-xs text-muted-foreground">جدد هذا الشهر</p><p className="text-lg font-bold text-emerald-600">{patients.filter(p => { const pd = getCairoDateParts(p.createdAt); return pd.year === cairoNow.year && pd.month === cairoNow.month }).length}</p></div>
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
                       <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
+                      <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20"><p className="text-xs text-muted-foreground">👍 حالات للنشر</p><p className="text-lg font-bold text-green-600">{patients.filter(p => p.publishable).length}</p></div>
                     </div>
                   </CardContent></Card>
 
