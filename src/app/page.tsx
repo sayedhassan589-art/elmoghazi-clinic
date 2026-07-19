@@ -56,7 +56,7 @@ interface LaserPackage { id: string; name: string; sessionsCount: number; price:
 interface LaserSetting { id: string; machineName: string; bodyArea: string; defaultEnergy?: number; defaultPulse?: string; }
 interface Transaction { id: string; type: string; category: string; amount: number; description?: string; date: string; }
 interface Appointment { id: string; patientId?: string; date: string; duration: number; type: string; status: string; notes?: string; }
-interface WaitingItem { id: string; patientId?: string; patientName?: string; priority: number; status: string; notes?: string; createdAt: string; }
+interface WaitingItem { id: string; patientId?: string; patientName?: string; priority: number; status: string; notes?: string; createdAt: string; patient?: { id: string; name: string; fileNumber?: string; phone?: string; } }
 interface InventoryItem { id: string; name: string; category?: string; quantity: number; minQuantity: number; unitPrice: number; notes?: string; }
 interface Medication { id: string; name: string; category?: string; description?: string; dosage?: string; instructions?: string; active: boolean; }
 interface Prescription { id: string; patientId: string; doctorId?: string; diagnosis?: string; notes?: string; date: string; }
@@ -584,6 +584,7 @@ export default function Home() {
   const [showAddWaiting, setShowAddWaiting] = useState(false)
   const [waitingFormName, setWaitingFormName] = useState('')
   const [waitingFormPriority, setWaitingFormPriority] = useState<'normal' | 'urgent'>('normal')
+  const [waitingFormPatientId, setWaitingFormPatientId] = useState<string | undefined>(undefined)
   const [waitingFormNotes, setWaitingFormNotes] = useState('')
 
   // Enhanced Reminder form
@@ -2371,6 +2372,7 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.starred ? 'bg-amber-400/30 border-amber-400/40 text-amber-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Star size={13} className={selectedPatient.starred ? 'fill-amber-300' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.improved ? 'bg-pink-400/30 border-pink-400/40 text-pink-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Heart size={13} className={selectedPatient.improved ? 'fill-pink-300' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ publishable: !selectedPatient.publishable }) }); const u = { ...selectedPatient, publishable: !selectedPatient.publishable }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.publishable ? 'تم إزالة علامة النشر' : 'تم وضع علامة النشر 👍') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.publishable ? 'bg-green-400/30 border-green-400/40 text-green-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><ThumbsUp size={13} className={selectedPatient.publishable ? 'fill-green-300' : ''} /> {selectedPatient.publishable ? 'للنشر' : 'نشر'}</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { const alreadyInQueue = waitingQueue.find(w => w.patientId === selectedPatient.id && (w.status === 'waiting' || w.status === 'in-progress')); if (alreadyInQueue) { toast.info('المريض موجود بالفعل في قائمة الانتظار ⏳'); return } await addItem('/waiting', { patientId: selectedPatient.id, patientName: selectedPatient.name, priority: 1, status: 'waiting', notes: undefined }, setWaitingQueue); toast.success('تم الإضافة لقائمة الانتظار ⏳') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-orange-400/30 backdrop-blur-sm border border-orange-400/30 text-orange-100 hover:bg-orange-400/40 transition-all"><Timer size={13} /> انتظار</motion.button>
                       {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/30 backdrop-blur-sm border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/40 transition-all"><Send size={12} /> واتساب</motion.button>}
                     </div>
                     {/* Edit Patient Form */}
@@ -2378,8 +2380,8 @@ export default function Home() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3 p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div><Label className="text-xs font-bold">الاسم</Label><Input value={editPatientForm.name} onChange={e => setEditPatientForm(prev => ({ ...prev, name: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
-                          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={editPatientForm.phone} onChange={e => setEditPatientForm(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
-                          <div><Label className="text-xs font-bold">هاتف آخر</Label><Input value={editPatientForm.phone2} onChange={e => setEditPatientForm(prev => ({ ...prev, phone2: normalizePhone(e.target.value) }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
+                          <div><Label className="text-xs font-bold">الهاتف</Label><Input dir="ltr" value={editPatientForm.phone} onChange={e => setEditPatientForm(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))} className="input-luxury rounded-xl h-9 mt-1 text-left" /></div>
+                          <div><Label className="text-xs font-bold">هاتف آخر</Label><Input dir="ltr" value={editPatientForm.phone2} onChange={e => setEditPatientForm(prev => ({ ...prev, phone2: normalizePhone(e.target.value) }))} className="input-luxury rounded-xl h-9 mt-1 text-left" /></div>
                           <div><Label className="text-xs font-bold">العمر</Label><Input type="number" value={editPatientForm.age} onChange={e => setEditPatientForm(prev => ({ ...prev, age: e.target.value }))} className="input-luxury rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">التشخيص</Label><Input value={editPatientForm.gender} onChange={e => setEditPatientForm(prev => ({ ...prev, gender: e.target.value }))} placeholder="أدخل التشخيص..." className="rounded-xl h-9 mt-1" /></div>
                           <div><Label className="text-xs font-bold">فصيلة الدم</Label><Select value={editPatientForm.bloodType} onValueChange={v => setEditPatientForm(p => ({ ...p, bloodType: v }))}><SelectTrigger className="rounded-xl h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent>{['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
@@ -6240,6 +6242,7 @@ export default function Home() {
                         {inProgressItems.map((w, i) => {
                           const waitMinutes = Math.round((Date.now() - new Date(w.createdAt).getTime()) / 60000)
                           const isUrgent = w.priority >= 2
+                          const linkedPatient = w.patientId ? patients.find(p => p.id === w.patientId) : null
                           return (
                             <motion.div key={w.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="relative overflow-hidden rounded-xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-l from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/10 p-3 shadow-md">
                               <div className="absolute top-0 left-0 w-2 h-full bg-blue-500 rounded-r-xl" />
@@ -6248,12 +6251,14 @@ export default function Home() {
                                   <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-bold text-sm shadow-md">🩺</div>
                                   <div>
                                     <div className="flex items-center gap-2">
-                                      <p className="font-bold text-sm">{w.patientName || 'مريض'}</p>
+                                      <p className="font-bold text-sm cursor-pointer hover:text-blue-600 hover:underline" onClick={() => { if (w.patientId) { const p = patients.find(pp => pp.id === w.patientId); if (p) { setSelectedPatient(p); setActiveTab('patients') } } }}>{w.patientName || 'مريض'}</p>
                                       <Badge className="bg-blue-500 text-white text-[8px] animate-pulse">جاري الكشف</Badge>
                                       {isUrgent && <Badge className="bg-red-500 text-white text-[8px]">عاجل</Badge>}
                                     </div>
                                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
                                       <span>⏱ {waitMinutes > 60 ? `${Math.floor(waitMinutes / 60)} س ${waitMinutes % 60} د` : `${waitMinutes} دقيقة`}</span>
+                                      {linkedPatient?.phone && <span dir="ltr" className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">📞 {linkedPatient.phone}</span>}
+                                      {linkedPatient?.gender && <span className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">🔬 {linkedPatient.gender}</span>}
                                       {w.notes && <span className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">📝 {w.notes}</span>}
                                     </div>
                                   </div>
@@ -6294,6 +6299,7 @@ export default function Home() {
                         const waitMinutes = Math.round((Date.now() - new Date(w.createdAt).getTime()) / 60000)
                         const isUrgent = w.priority >= 2
                         const isLongWait = waitMinutes > 30
+                        const linkedPatient = w.patientId ? patients.find(p => p.id === w.patientId) : null
                         return (
                           <motion.div key={w.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} whileHover={{ scale: 1.01, x: 4 }} className={cn('relative overflow-hidden rounded-xl border-2 p-3 transition-all', isUrgent ? 'border-red-300 dark:border-red-700 bg-gradient-to-l from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/10 shadow-md' : isLongWait ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-l from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/10' : 'border-amber-200 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-900/10')}>
                             <div className={cn('absolute top-0 left-0 w-1.5 h-full rounded-r-xl', isUrgent ? 'bg-red-500' : isLongWait ? 'bg-amber-500' : 'bg-amber-400')} />
@@ -6302,12 +6308,15 @@ export default function Home() {
                                 <div className={cn('flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm text-white shadow-md', isUrgent ? 'bg-red-500' : 'bg-amber-500')}>{i + 1}</div>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <p className="font-bold text-sm">{w.patientName || 'مريض'}</p>
+                                    <p className="font-bold text-sm cursor-pointer hover:text-blue-600 hover:underline" onClick={() => { if (w.patientId) { const p = patients.find(pp => pp.id === w.patientId); if (p) { setSelectedPatient(p); setActiveTab('patients') } } }}>{w.patientName || 'مريض'}</p>
                                     {isUrgent && <Badge className="bg-red-500 text-white text-[8px] animate-pulse">🚨 عاجل</Badge>}
                                     {isLongWait && !isUrgent && <Badge className="bg-amber-500 text-white text-[8px]">⏰ انتظار طويل</Badge>}
+                                    {linkedPatient && <Badge variant="outline" className="text-[8px] border-blue-300 text-blue-600">#{linkedPatient.fileNumber || w.patientId?.slice(-4)}</Badge>}
                                   </div>
                                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
                                     <span className={cn('font-bold', isLongWait && 'text-red-500')}>⏱ {waitMinutes > 60 ? `${Math.floor(waitMinutes / 60)} س ${waitMinutes % 60} د` : `${waitMinutes} دقيقة`}</span>
+                                    {linkedPatient?.phone && <span dir="ltr" className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">📞 {linkedPatient.phone}</span>}
+                                    {linkedPatient?.gender && <span className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">🔬 {linkedPatient.gender}</span>}
                                     {w.notes && <span className="bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded text-[9px]">📝 {w.notes}</span>}
                                   </div>
                                 </div>
@@ -6603,7 +6612,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Phone size={14} /> الهاتف</Label>
-                <Input value={newPatientPhone} onChange={e => setNewPatientPhone(normalizePhone(e.target.value))} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10" />
+                <Input dir="ltr" value={newPatientPhone} onChange={e => setNewPatientPhone(normalizePhone(e.target.value))} placeholder="01xxxxxxxxx" className="input-luxury rounded-xl h-11 mt-1 border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10 text-left" />
               </div>
               <div>
                 <Label className="text-sm font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1"><MapPin size={14} /> العنوان</Label>
@@ -7255,7 +7264,7 @@ export default function Home() {
             <div><Label className="text-xs font-bold">الاسم *</Label><Input value={doctorForm.name} onChange={e => setDoctorForm(prev => ({ ...prev, name: e.target.value }))} placeholder="اسم الطبيب" className="input-luxury rounded-xl h-10" /></div>
             <div><Label className="text-xs font-bold">التخصص</Label><Input value={doctorForm.specialty} onChange={e => setDoctorForm(prev => ({ ...prev, specialty: e.target.value }))} placeholder="التخصص" className="input-luxury rounded-xl h-10" /></div>
           </div>
-          <div><Label className="text-xs font-bold">الهاتف</Label><Input value={doctorForm.phone} onChange={e => setDoctorForm(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))} placeholder="رقم الهاتف" className="input-luxury rounded-xl h-10" /></div>
+          <div><Label className="text-xs font-bold">الهاتف</Label><Input dir="ltr" value={doctorForm.phone} onChange={e => setDoctorForm(prev => ({ ...prev, phone: normalizePhone(e.target.value) }))} placeholder="رقم الهاتف" className="input-luxury rounded-xl h-10 text-left" /></div>
           <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20">
             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><DollarSign size={14} className="text-emerald-500" /> النسب المئوية</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
@@ -7296,12 +7305,12 @@ export default function Home() {
       <Dialog open={showAddWaiting} onOpenChange={setShowAddWaiting}><DialogContent className="max-w-md">
         <DialogHeader><DialogTitle className="flex items-center gap-2"><Clock size={18} className="text-red-500" /> إضافة لقائمة الانتظار</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label className="text-xs font-bold">اسم المريض أو اختر من القائمة</Label><Select value={waitingFormName} onValueChange={v => { const p = patients.find(pp => pp.id === v); if (p) setWaitingFormName(p.name) }}><SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر مريض موجود..." /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
-          <div><Label className="text-xs font-bold">أو اكتب اسم المريض</Label><Input value={waitingFormName} onChange={e => setWaitingFormName(e.target.value)} placeholder="اسم المريض..." className="input-luxury rounded-xl mt-1" /></div>
+          <div><Label className="text-xs font-bold">اسم المريض أو اختر من القائمة</Label><Select value={waitingFormName} onValueChange={v => { const p = patients.find(pp => pp.id === v); if (p) { setWaitingFormName(p.name); setWaitingFormPatientId(p.id) } }}><SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر مريض موجود..." /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.phone ? ` (${p.phone})` : ''}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label className="text-xs font-bold">أو اكتب اسم المريض</Label><Input value={waitingFormName} onChange={e => { setWaitingFormName(e.target.value); setWaitingFormPatientId(undefined) }} placeholder="اسم المريض..." className="input-luxury rounded-xl mt-1" /></div>
           <div><Label className="text-xs font-bold">الأولوية</Label><div className="grid grid-cols-2 gap-2 mt-1"><motion.button whileTap={{ scale: 0.95 }} onClick={() => setWaitingFormPriority('normal')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', waitingFormPriority === 'normal' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}>🟢 عادي</motion.button><motion.button whileTap={{ scale: 0.95 }} onClick={() => setWaitingFormPriority('urgent')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', waitingFormPriority === 'urgent' ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}>🔴 عاجل</motion.button></div></div>
           <div><Label className="text-xs font-bold">ملاحظات</Label><Input value={waitingFormNotes} onChange={e => setWaitingFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1" /></div>
         </div>
-        <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-red-500 to-red-600 text-white" onClick={async () => { if (!waitingFormName.trim()) return toast.error('اسم المريض مطلوب'); const priority = waitingFormPriority === 'urgent' ? 2 : 1; await addItem('/waiting', { patientName: waitingFormName, priority, status: 'waiting', notes: waitingFormNotes || undefined }, setWaitingQueue); setWaitingFormName(''); setWaitingFormPriority('normal'); setWaitingFormNotes(''); setShowAddWaiting(false) }}>إضافة للقائمة</Button></DialogFooter>
+        <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-red-500 to-red-600 text-white" onClick={async () => { if (!waitingFormName.trim()) return toast.error('اسم المريض مطلوب'); const priority = waitingFormPriority === 'urgent' ? 2 : 1; await addItem('/waiting', { patientId: waitingFormPatientId || undefined, patientName: waitingFormName, priority, status: 'waiting', notes: waitingFormNotes || undefined }, setWaitingQueue); setWaitingFormName(''); setWaitingFormPriority('normal'); setWaitingFormNotes(''); setWaitingFormPatientId(undefined); setShowAddWaiting(false) }}>إضافة للقائمة</Button></DialogFooter>
       </DialogContent></Dialog>
 
       {/* Apply Template to Patient Dialog */}
