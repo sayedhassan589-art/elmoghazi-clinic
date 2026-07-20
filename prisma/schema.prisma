@@ -40,6 +40,7 @@ model Patient {
   starred         Boolean  @default(false)
   improved        Boolean  @default(false)
   publishable     Boolean  @default(false) // حالات هتتنشر (صور قبل/بعد)
+  dangerous       Boolean  @default(false) // حالات خطر تحتاج متابعة دقيقة
   colorTag        String?  // custom color tag for patient status
   improvementScore Int?    // مؤشر التحسن من 1 إلى 10
   improvementHistory String? // سجل تغييرات التحسن (JSON string)

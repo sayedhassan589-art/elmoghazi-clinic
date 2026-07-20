@@ -59,6 +59,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         starred: body.starred ?? undefined,
         improved: body.improved ?? undefined,
         publishable: body.publishable ?? undefined,
+        dangerous: body.dangerous ?? undefined,
         colorTag: body.colorTag ?? undefined,
         improvementScore: body.improvementScore !== undefined ? body.improvementScore : undefined,
         improvementHistory: body.improvementHistory !== undefined ? body.improvementHistory : undefined,

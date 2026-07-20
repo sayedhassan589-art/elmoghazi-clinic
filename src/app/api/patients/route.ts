@@ -88,6 +88,7 @@ export async function POST(request: Request) {
         medicalHistory: body.medicalHistory || null,
         starred: body.starred || false,
         publishable: body.publishable || false,
+        dangerous: body.dangerous || false,
       },
     })
 

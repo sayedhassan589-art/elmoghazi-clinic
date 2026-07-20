@@ -43,7 +43,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface ImprovementEntry { score: number; date: string; note?: string }
-interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; publishable?: boolean; colorTag?: string; bloodType?: string; improvementScore?: number; improvementHistory?: string; createdAt: string; }
+interface Patient { id: string; fileNumber: string; name: string; phone?: string; phone2?: string; age?: number; gender?: string; address?: string; notes?: string; allergies?: string; medicalHistory?: string; starred?: boolean; improved?: boolean; publishable?: boolean; dangerous?: boolean; colorTag?: string; bloodType?: string; improvementScore?: number; improvementHistory?: string; createdAt: string; }
 interface Visit { id: string; patientId: string; doctorId?: string; type: string; diagnosis?: string; notes?: string; date: string; }
 interface Session { id: string; patientId: string; serviceId?: string; doctorId?: string; status: string; notes?: string; date: string; price: number; paid: boolean; }
 interface Service { id: string; name: string; category?: string; price: number; duration?: number; active: boolean; }
@@ -502,7 +502,7 @@ export default function Home() {
   const [quickNote, setQuickNote] = useState('')
 
   // Patient filters & detail
-  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved' | 'publishable'>('all')
+  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved' | 'publishable' | 'dangerous'>('all')
   const [patientDetailTab, setPatientDetailTab] = useState('overview')
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteContent, setEditingNoteContent] = useState('')
@@ -1407,6 +1407,7 @@ export default function Home() {
     if (patientFilter === 'starred') list = list.filter(p => p.starred)
     if (patientFilter === 'improved') list = list.filter(p => p.improved)
     if (patientFilter === 'publishable') list = list.filter(p => p.publishable)
+    if (patientFilter === 'dangerous') list = list.filter(p => p.dangerous)
     return list
   }, [patients, visitsByPatient, sessionsByPatient, debouncedSearchQuery, patientFilter, searchField])
   useEffect(() => { setPatientDisplayCount(50) }, [debouncedSearchQuery])
@@ -2206,18 +2207,19 @@ export default function Home() {
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</motion.button>
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'publishable' ? 'all' : 'publishable')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'publishable' ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-green-50 dark:hover:bg-green-950/20')}><ThumbsUp size={16} className={patientFilter === 'publishable' ? 'text-green-500 fill-green-500' : ''} /> 👍 للنشر</motion.button>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'dangerous' ? 'all' : 'dangerous')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'dangerous' ? 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/20')}><AlertTriangle size={16} className={patientFilter === 'dangerous' ? 'text-red-500' : ''} /> 💀 خطر</motion.button>
                     {patientFilter !== 'all' && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPatientFilter('all')}>إلغاء الفلتر</Button>}
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : patientFilter === 'publishable' ? 'لا توجد حالات للنشر بعد' : 'لا توجد نتائج'}</p></Card>}
+                  {filteredPatients.length === 0 && <Card className="card-luxury p-8 text-center"><p className="text-muted-foreground">{patientFilter === 'starred' ? 'لا توجد حالات مميزة بعد' : patientFilter === 'improved' ? 'لا توجد حالات متحسنة بعد' : patientFilter === 'publishable' ? 'لا توجد حالات للنشر بعد' : patientFilter === 'dangerous' ? 'لا توجد حالات خطر بعد' : 'لا توجد نتائج'}</p></Card>}
                   {filteredPatients.slice(0, patientDisplayCount).map(p => {
                     const stripeGradient = p.gender === 'female' ? 'bg-gradient-to-b from-pink-400 to-rose-500' : p.gender === 'male' ? 'bg-gradient-to-b from-blue-400 to-indigo-500' : 'bg-gradient-to-b from-gray-400 to-gray-500'
                     // Get latest diagnosis from visits
                     const latestDiagnosis = visits.filter(v => v.patientId === p.id && v.diagnosis).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.diagnosis
                     return (
-                      <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="patient-card-3d rounded-2xl border border-border bg-card text-card-foreground p-4 cursor-pointer relative" onClick={() => setSelectedPatient(p)}>
-                        <div className={`patient-stripe ${stripeGradient}`} />
+                      <motion.div key={p.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className={cn('patient-card-3d rounded-2xl border bg-card text-card-foreground p-4 cursor-pointer relative transition-all', p.dangerous ? 'border-red-400 dark:border-red-600 shadow-md shadow-red-200 dark:shadow-red-900/30' : 'border-border')} onClick={() => setSelectedPatient(p)}>
+                        <div className={`patient-stripe ${p.dangerous ? 'bg-gradient-to-b from-red-500 to-red-700' : stripeGradient}`} />
                         <div className="flex items-center gap-3">
                           <Avatar className="h-14 w-14 border-2 shadow-md" style={{ borderColor: p.colorTag || (p.gender === 'female' ? '#ec4899' : '#3b82f6') }}>
                             <AvatarFallback className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 font-black text-xl" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{p.name?.charAt(0)}</AvatarFallback>
@@ -2228,6 +2230,7 @@ export default function Home() {
                               {p.starred && <span className="badge-glow text-amber-500 text-sm">⭐</span>}
                               {p.improved && <span className="badge-glow text-pink-500 text-sm" style={{animationDelay: '0.5s'}}>💗</span>}
                               {p.publishable && <span className="badge-glow text-green-500 text-sm" style={{animationDelay: '1s'}}>👍</span>}
+                              {p.dangerous && <span className="badge-glow text-red-500 text-sm" style={{animationDelay: '1.5s'}}>💀</span>}
                             </div>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full"><Hash size={9} />{p.fileNumber}</span>
@@ -2249,7 +2252,7 @@ export default function Home() {
                                   {inQueue.status === 'in-progress' ? '🩺 جاري الكشف' : '⏳ في الانتظار'}
                                 </Badge>
                               ) : (
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={async (e) => { e.stopPropagation(); await addItem('/waiting', { patientId: p.id, patientName: p.name, priority: 1, status: 'waiting', notes: undefined }, setWaitingQueue); toast.success('تم إضافة ⏳ لقائمة الانتظار') }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/40 transition-all border border-orange-200 dark:border-orange-800">
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={async (e) => { e.stopPropagation(); await addItem('/waiting', { patientId: p.id, patientName: p.name, priority: p.dangerous ? 2 : 1, status: 'waiting', notes: p.dangerous ? '⚠️ حالة خطر' : undefined }, setWaitingQueue); toast.success(p.dangerous ? 'تم الإضافة كحالة عاجلة ⏳🚨' : 'تم إضافة ⏳ لقائمة الانتظار') }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/40 transition-all border border-orange-200 dark:border-orange-800">
                                   <Timer size={10} /> إرسال للانتظار
                                 </motion.button>
                               )}
@@ -2290,6 +2293,7 @@ export default function Home() {
                         {selectedPatient.starred && <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="absolute -top-1 -right-1 text-xl">⭐</motion.span>}
                         {selectedPatient.improved && <span className="absolute -bottom-1 -right-1 text-lg">💗</span>}
                         {selectedPatient.publishable && <span className="absolute top-1/2 -left-2 text-lg">👍</span>}
+                        {selectedPatient.dangerous && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute -bottom-1 -left-2 text-lg">💀</motion.span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
@@ -2329,6 +2333,12 @@ export default function Home() {
                           {selectedPatient.age && <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-lg text-white/90 text-xs border border-white/10">🎂 {selectedPatient.age} سنة</span>}
                           {selectedPatient.gender && <Badge className="text-[10px] font-bold bg-white/20 backdrop-blur-sm text-white border border-white/20">🔬 {selectedPatient.gender}</Badge>}
                         </div>
+                        {selectedPatient.dangerous && (
+                          <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 p-2.5 rounded-xl bg-red-500/30 backdrop-blur-sm border-2 border-red-400/50 flex items-center gap-2">
+                            <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-lg">💀</motion.span>
+                            <span className="text-xs font-bold text-red-100">حالة خطر — تحتاج متابعة دقيقة</span>
+                          </motion.div>
+                        )}
                       </div>
                     </div>
                     {/* Quick Actions — Glass Style */}
@@ -2338,7 +2348,8 @@ export default function Home() {
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.starred ? 'bg-amber-400/30 border-amber-400/40 text-amber-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Star size={13} className={selectedPatient.starred ? 'fill-amber-300' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.improved ? 'bg-pink-400/30 border-pink-400/40 text-pink-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Heart size={13} className={selectedPatient.improved ? 'fill-pink-300' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ publishable: !selectedPatient.publishable }) }); const u = { ...selectedPatient, publishable: !selectedPatient.publishable }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.publishable ? 'تم إزالة علامة النشر' : 'تم وضع علامة النشر 👍') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.publishable ? 'bg-green-400/30 border-green-400/40 text-green-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><ThumbsUp size={13} className={selectedPatient.publishable ? 'fill-green-300' : ''} /> {selectedPatient.publishable ? 'للنشر' : 'نشر'}</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { const alreadyInQueue = waitingQueue.find(w => w.patientId === selectedPatient.id && (w.status === 'waiting' || w.status === 'in-progress')); if (alreadyInQueue) { toast.info('المريض موجود بالفعل في قائمة الانتظار ⏳'); return } await addItem('/waiting', { patientId: selectedPatient.id, patientName: selectedPatient.name, priority: 1, status: 'waiting', notes: undefined }, setWaitingQueue); toast.success('تم الإضافة لقائمة الانتظار ⏳') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-orange-400/30 backdrop-blur-sm border border-orange-400/30 text-orange-100 hover:bg-orange-400/40 transition-all"><Timer size={13} /> انتظار</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ dangerous: !selectedPatient.dangerous }) }); const u = { ...selectedPatient, dangerous: !selectedPatient.dangerous }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.dangerous ? 'تم إزالة علامة الخطر' : 'تم وضع علامة الخطر 💀') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.dangerous ? 'bg-red-500/40 border-red-400/50 text-red-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><AlertTriangle size={13} className={selectedPatient.dangerous ? 'text-red-300' : ''} /> {selectedPatient.dangerous ? 'خطر' : '⚠️ خطر'}</motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { const alreadyInQueue = waitingQueue.find(w => w.patientId === selectedPatient.id && (w.status === 'waiting' || w.status === 'in-progress')); if (alreadyInQueue) { toast.info('المريض موجود بالفعل في قائمة الانتظار ⏳'); return } await addItem('/waiting', { patientId: selectedPatient.id, patientName: selectedPatient.name, priority: selectedPatient.dangerous ? 2 : 1, status: 'waiting', notes: selectedPatient.dangerous ? '⚠️ حالة خطر' : undefined }, setWaitingQueue); toast.success(selectedPatient.dangerous ? 'تم الإضافة لقائمة الانتظار كحالة عاجلة ⏳🚨' : 'تم الإضافة لقائمة الانتظار ⏳') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-orange-400/30 backdrop-blur-sm border border-orange-400/30 text-orange-100 hover:bg-orange-400/40 transition-all"><Timer size={13} /> انتظار</motion.button>
                       {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/30 backdrop-blur-sm border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/40 transition-all"><Send size={12} /> واتساب</motion.button>}
                     </div>
                     {/* Edit Patient Form */}
@@ -4919,6 +4930,7 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-xs text-muted-foreground">⭐ حالات مميزة</p><p className="text-lg font-bold text-amber-600">{patients.filter(p => p.starred).length}</p></div>
                       <div className="p-3 rounded-xl bg-pink-50 dark:bg-pink-900/20"><p className="text-xs text-muted-foreground">💗 متحسنين</p><p className="text-lg font-bold text-pink-600">{patients.filter(p => p.improved).length}</p></div>
                       <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20"><p className="text-xs text-muted-foreground">👍 حالات للنشر</p><p className="text-lg font-bold text-green-600">{patients.filter(p => p.publishable).length}</p></div>
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20"><p className="text-xs text-muted-foreground">💀 حالات خطر</p><p className="text-lg font-bold text-red-600">{patients.filter(p => p.dangerous).length}</p></div>
                     </div>
                   </CardContent></Card>
 
