@@ -1873,16 +1873,16 @@ export default function Home() {
     const noteEmojis = ['📝', '💡', '📌', '🔔', '⭐', '💬']
     return (
       <Card className="card-luxury mt-4 border-2 border-indigo-200 dark:border-indigo-800" key={`notes-${section}`}>
-        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}><FileText size={14} className="text-indigo-500" /></motion.div> ملاحظات محترفة</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><div className="animate-wiggle"><FileText size={14} className="text-indigo-500" /></div> ملاحظات محترفة</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           <div className="flex gap-2">
             <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة سريعة..." className="input-luxury rounded-xl h-9 text-sm border-2 border-indigo-200 dark:border-indigo-800 focus:border-indigo-400" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: cairoISO() }, setNotes); setQuickNote('') } }} />
-            <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-3 py-1.5 rounded-xl bg-gradient-to-l from-indigo-500 to-violet-500 text-white text-sm font-bold shadow-md" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: cairoISO() }, setNotes); setQuickNote('') } }}><Plus size={16} /></motion.button>
+ <button className="px-3 py-1.5 rounded-xl bg-gradient-to-l from-indigo-500 to-violet-500 text-white text-sm font-bold shadow-md active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section, createdAt: cairoISO() }, setNotes); setQuickNote('') } }}><Plus size={16} /></button>
           </div>
           <div className="space-y-1.5">
           {sectionNotesList.slice(0, 8).map((n, i) => (
             <motion.div key={n.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={cn('flex items-start gap-2 p-2.5 rounded-xl border bg-gradient-to-l transition-all hover:shadow-md', noteColors[i % noteColors.length])}>
-              <motion.span animate={{ y: [0, -2, 0] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }} className="text-sm">{noteEmojis[i % noteEmojis.length]}</motion.span>
+              <span className="text-sm animate-bounce-y-sm">{noteEmojis[i % noteEmojis.length]}</span>
               <p className="flex-1 text-xs font-medium">{n.content}</p>
               <span className="text-[9px] text-muted-foreground whitespace-nowrap">{formatDate(n.createdAt)}</span>
               <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={10} className="text-red-400" /></Button>
@@ -1962,14 +1962,14 @@ export default function Home() {
               {!loginRole ? (
                 <div className="space-y-3">
                   <p className="text-emerald-200 text-center text-sm font-bold mb-2">اختر دورك للدخول</p>
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('doctor')} className="w-full p-4 rounded-2xl border-2 border-amber-400/30 bg-gradient-to-l from-amber-900/30 to-emerald-900/30 hover:from-amber-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
+ <button onClick={() => setLoginRole('doctor')} className="w-full p-4 rounded-2xl border-2 border-amber-400/30 bg-gradient-to-l from-amber-900/30 to-emerald-900/30 hover:from-amber-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg"><Stethoscope className="text-white" size={28} /></div>
                     <div className="text-right"><p className="text-white font-bold text-lg">طبيب</p><p className="text-emerald-200/60 text-xs">دخول كامل لجميع الأقسام</p></div>
-                  </motion.button>
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4">
+                  </button>
+ <button onClick={() => setLoginRole('secretary')} className="w-full p-4 rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-l from-cyan-900/30 to-emerald-900/30 hover:from-cyan-900/50 hover:to-emerald-900/50 transition-all flex items-center gap-4 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center shadow-lg"><Users size={28} className="text-white" /></div>
                     <div className="text-right"><p className="text-white font-bold text-lg">سكرتيرة</p><p className="text-emerald-200/60 text-xs">المرضى والليزر والانتظار</p></div>
-                  </motion.button>
+                  </button>
                 </div>
               ) : (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
@@ -2021,7 +2021,7 @@ export default function Home() {
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-emerald-50 dark:bg-emerald-950/30">
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🏥</motion.div><div><h1 className="text-2xl font-bold">لوحة التحكم</h1><p className="text-muted-foreground text-sm">مرحباً، {safeName(user?.name)}</p></div></div>
+                    <div className="flex items-center gap-3"><div className="text-4xl animate-wiggle-wide">🏥</div><div><h1 className="text-2xl font-bold">لوحة التحكم</h1><p className="text-muted-foreground text-sm">مرحباً، {safeName(user?.name)}</p></div></div>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-l from-amber-500/90 to-orange-600/90 dark:from-amber-600/90 dark:to-orange-700/90 shadow-lg shadow-amber-500/20">
                         <Clock size={20} className="text-white animate-pulse" />
@@ -2032,7 +2032,7 @@ export default function Home() {
                   </div>
                 </div>
                 {/* Quick Actions - AT TOP */}
-                <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800"><CardHeader className="pb-2"><CardTitle className="text-lg flex items-center gap-2"><motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}>⚡</motion.span> إجراءات سريعة</CardTitle></CardHeader><CardContent><div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800"><CardHeader className="pb-2"><CardTitle className="text-lg flex items-center gap-2"><span className="animate-wiggle-wide">⚡</span> إجراءات سريعة</CardTitle></CardHeader><CardContent><div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                   {[
                     { label: 'مريض جديد', icon: <UserPlus size={22} />, color: 'bg-gradient-to-br from-blue-500 to-blue-700', action: () => setShowAddPatient(true) },
                     { label: 'سجل ليزر', icon: <Zap size={22} />, color: 'bg-gradient-to-br from-cyan-500 to-cyan-700', action: () => setShowAddLaserRecord(true) },
@@ -2040,7 +2040,7 @@ export default function Home() {
                     { label: 'موعد', icon: <Calendar size={22} />, color: 'bg-gradient-to-br from-purple-500 to-purple-700', action: () => setShowAddAppointment(true) },
                     { label: 'بحث ذكي', icon: <Search size={22} />, color: 'bg-gradient-to-br from-indigo-500 to-indigo-700', action: () => setSmartSearchOpen(true) },
                   ].map((a, i) => (
-                    <motion.button key={i} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08, y: -2 }} onClick={a.action} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-muted/50 transition-all group"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4, delay: i * 0.2 }} className={cn('p-3.5 rounded-2xl text-white shadow-xl group-hover:shadow-2xl transition-shadow', a.color)}>{a.icon}</motion.div><span className="text-[11px] font-bold">{a.label}</span></motion.button>
+ <button key={i} onClick={a.action} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-muted/50 transition-all group active:scale-[0.9] hover:scale-[1.08] transition-transform duration-150"><div className={cn('p-3.5 rounded-2xl text-white shadow-xl group-hover:shadow-2xl transition-shadow animate-bounce-y-sm', a.color)}>{a.icon}</div><span className="text-[11px] font-bold active:scale-[0.9] hover:scale-[1.08] transition-transform duration-150">{a.label}</span></button>
                   ))}
                 </div></CardContent></Card>
                 <div className="grid grid-cols-2 gap-4">
@@ -2053,7 +2053,7 @@ export default function Home() {
                     { icon: '💎', label: 'سجلات الليزر', value: laserRecords.filter(r => r.status === 'active').length, sub: `${new Set(laserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-700', anim: { scale: [1, 1.1, 1] } },
                   ].map((s, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, type: 'spring' }} className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br', s.gradient)}>
-                      <motion.div animate={s.anim} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-5xl mb-2 drop-shadow-lg">{s.icon}</motion.div>
+                      <div className="text-5xl mb-2 drop-shadow-lg animate-pulse-scale">{s.icon}</div>
                       <p className="text-sm font-medium text-white/80">{s.label}</p>
                       <p className="text-2xl font-black mt-1">{s.value}</p>
                       {s.sub && <p className="text-xs text-white/60 mt-1">{s.sub}</p>}
@@ -2068,12 +2068,12 @@ export default function Home() {
                     <CardHeader className="pb-2 relative z-10">
                       <CardTitle className="text-lg flex items-center justify-between">
                         <span className="flex items-center gap-2">
-                          <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>📊</motion.span>
+                          <span className="animate-wiggle-wide">📊</span>
                           ملخص نهاية اليوم
                         </span>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-shadow">
+ <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-shadow active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">
                           <Download size={14} /> طباعة الملخص
-                        </motion.button>
+                        </button>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="relative z-10">
@@ -2086,12 +2086,12 @@ export default function Home() {
                         return (
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg">
-                              <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">👥</motion.div>
+                              <div className="text-2xl mb-1 animate-bounce-y-sm">👥</div>
                               <p className="text-xs text-white/70">إجمالي المرضى اليوم</p>
                               <p className="text-2xl font-black">{todayVisits.length}</p>
                             </motion.div>
                             <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg">
-                              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }} className="text-2xl mb-1">💰</motion.div>
+                              <div className="text-2xl mb-1 animate-pulse-scale-lg">💰</div>
                               <p className="text-xs text-white/70">إجمالي الإيرادات</p>
                               <p className="text-xl font-black">{formatCurrency(todayIncome)}</p>
                               <div className="mt-1.5 space-y-0.5">
@@ -2101,12 +2101,12 @@ export default function Home() {
                               </div>
                             </motion.div>
                             <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-lg">
-                              <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-2xl mb-1">⚡</motion.div>
+                              <div className="text-2xl mb-1 animate-wiggle-wide">⚡</div>
                               <p className="text-xs text-white/70">جلسات مكتملة</p>
                               <p className="text-2xl font-black">{todaySessionsCompleted}</p>
                             </motion.div>
                             <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg">
-                              <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-2xl mb-1">⚠️</motion.div>
+                              <div className="text-2xl mb-1 animate-pulse-scale">⚠️</div>
                               <p className="text-xs text-white/70">مبالغ غير مدفوعة</p>
                               <p className="text-xl font-black">{formatCurrency(todayUnpaid)}</p>
                             </motion.div>
@@ -2192,13 +2192,11 @@ export default function Home() {
                       { id: 'phone', label: 'الهاتف', emoji: '📞', gradient: 'from-amber-500 to-orange-500' },
                       { id: 'notes', label: 'الملاحظات', emoji: '📋', gradient: 'from-purple-500 to-violet-500' },
                     ].map(chip => (
-                      <motion.button
+                      <button
                         key={chip.id}
-                        whileTap={{ scale: 0.93 }}
-                        whileHover={{ scale: 1.05 }}
                         onClick={() => setSearchField(chip.id as 'all' | 'name' | 'address' | 'diagnosis' | 'phone' | 'notes')}
                         className={cn(
-                          'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border-2 shadow-sm',
+                          'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border-2 shadow-sm active:scale-[0.93] hover:scale-[1.05] transition-transform duration-150',
                           searchField === chip.id
                             ? `bg-gradient-to-l ${chip.gradient} text-white border-transparent shadow-md`
                             : 'bg-card border-border text-muted-foreground hover:border-violet-300 dark:hover:border-violet-700'
@@ -2206,16 +2204,16 @@ export default function Home() {
                       >
                         <span className="text-base">{chip.emoji}</span>
                         <span style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{chip.label}</span>
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
 
                   {/* Starred/Improved filters */}
                   <div className="flex items-center gap-2">
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</motion.button>
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</motion.button>
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'publishable' ? 'all' : 'publishable')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'publishable' ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-green-50 dark:hover:bg-green-950/20')}><ThumbsUp size={16} className={patientFilter === 'publishable' ? 'text-green-500 fill-green-500' : ''} /> 👍 للنشر</motion.button>
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPatientFilter(patientFilter === 'dangerous' ? 'all' : 'dangerous')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2', patientFilter === 'dangerous' ? 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/20')}><AlertTriangle size={16} className={patientFilter === 'dangerous' ? 'text-red-500' : ''} /> 💀 خطر</motion.button>
+ <button onClick={() => setPatientFilter(patientFilter === 'starred' ? 'all' : 'starred')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', patientFilter === 'starred' ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/20')}><Star size={16} className={patientFilter === 'starred' ? 'text-amber-500 fill-amber-500' : ''} /> ⭐ المميزة</button>
+ <button onClick={() => setPatientFilter(patientFilter === 'improved' ? 'all' : 'improved')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', patientFilter === 'improved' ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600 text-pink-700 dark:text-pink-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-pink-50 dark:hover:bg-pink-950/20')}><Heart size={16} className={patientFilter === 'improved' ? 'text-pink-500 fill-pink-500' : ''} /> 💗 المتحسنين</button>
+ <button onClick={() => setPatientFilter(patientFilter === 'publishable' ? 'all' : 'publishable')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', patientFilter === 'publishable' ? 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-green-50 dark:hover:bg-green-950/20')}><ThumbsUp size={16} className={patientFilter === 'publishable' ? 'text-green-500 fill-green-500' : ''} /> 👍 للنشر</button>
+ <button onClick={() => setPatientFilter(patientFilter === 'dangerous' ? 'all' : 'dangerous')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', patientFilter === 'dangerous' ? 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 shadow-lg' : 'bg-muted/50 border-transparent text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/20')}><AlertTriangle size={16} className={patientFilter === 'dangerous' ? 'text-red-500' : ''} /> 💀 خطر</button>
                     {patientFilter !== 'all' && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPatientFilter('all')}>إلغاء الفلتر</Button>}
                   </div>
                 </div>
@@ -2260,9 +2258,9 @@ export default function Home() {
                                   {inQueue.status === 'in-progress' ? '🩺 جاري الكشف' : '⏳ في الانتظار'}
                                 </Badge>
                               ) : (
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={async (e) => { e.stopPropagation(); await addItem('/waiting', { patientId: p.id, patientName: p.name, priority: p.dangerous ? 2 : 1, status: 'waiting', notes: p.dangerous ? '⚠️ حالة خطر' : undefined }, setWaitingQueue); toast.success(p.dangerous ? 'تم الإضافة كحالة عاجلة ⏳🚨' : 'تم إضافة ⏳ لقائمة الانتظار') }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/40 transition-all border border-orange-200 dark:border-orange-800">
+ <button onClick={async (e) => { e.stopPropagation(); await addItem('/waiting', { patientId: p.id, patientName: p.name, priority: p.dangerous ? 2 : 1, status: 'waiting', notes: p.dangerous ? '⚠️ حالة خطر' : undefined }, setWaitingQueue); toast.success(p.dangerous ? 'تم الإضافة كحالة عاجلة ⏳🚨' : 'تم إضافة ⏳ لقائمة الانتظار') }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/40 transition-all border border-orange-200 dark:border-orange-800 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">
                                   <Timer size={10} /> إرسال للانتظار
-                                </motion.button>
+                                </button>
                               )}
                             </div>
                           )
@@ -2283,25 +2281,25 @@ export default function Home() {
             {/* ═══ PATIENT DETAIL - DEDICATED PROFILE ═══ */}
             {activeTab === 'patients' && selectedPatient && (
               <div className="space-y-4">
-                <motion.button initial={{ x: -10 }} animate={{ x: 0 }} whileTap={{ scale: 0.95 }} whileHover={{ x: -3 }} onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-bold hover:shadow-md transition-all"><ChevronDown size={16} className="rotate-90" /> العودة للقائمة</motion.button>
+ <button initial={{ x: -10 }} animate={{ x: 0 }} onClick={() => setSelectedPatient(null)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm font-bold hover:shadow-md transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><ChevronDown size={16} className="rotate-90 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /> العودة للقائمة</button>
 
                 {/* ═══ PATIENT HEADER — Luxury Premium Design ═══ */}
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl shadow-xl border-0">
                   {/* Animated gradient background */}
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-blue-600 to-violet-700" />
                   <div className="absolute inset-0 opacity-20">
-                    <motion.div animate={{ x: [0, 120, 0], y: [0, -60, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-64 h-64 bg-white/15 rounded-full blur-3xl" />
-                    <motion.div animate={{ x: [0, -90, 0], y: [0, 70, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-300/15 rounded-full blur-3xl" />
-                    <motion.div animate={{ x: [0, 60, 0], y: [0, 40, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} className="absolute top-1/2 left-1/2 w-36 h-36 bg-amber-200/10 rounded-full blur-3xl" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/15 rounded-full blur-3xl animate-drift-a"/>
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-300/15 rounded-full blur-3xl animate-drift-a"/>
+                    <div className="absolute top-1/2 left-1/2 w-36 h-36 bg-amber-200/10 rounded-full blur-3xl animate-drift-a"/>
                   </div>
                   <div className="relative z-10 p-6">
                     <div className="flex items-start gap-4">
                       <div className="relative">
                         <Avatar className="h-22 w-22 border-4 shadow-2xl" style={{ borderColor: selectedPatient.colorTag || '#818cf8', width: 88, height: 88 }}><AvatarFallback className="bg-white/20 backdrop-blur-sm text-white text-3xl font-black" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>{selectedPatient.name?.charAt(0)}</AvatarFallback></Avatar>
-                        {selectedPatient.starred && <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="absolute -top-1 -right-1 text-xl">⭐</motion.span>}
+                        {selectedPatient.starred && <span className="absolute -top-1 -right-1 text-xl animate-wiggle-wide">⭐</span>}
                         {selectedPatient.improved && <span className="absolute -bottom-1 -right-1 text-lg">💗</span>}
                         {selectedPatient.publishable && <span className="absolute top-1/2 -left-2 text-lg">👍</span>}
-                        {selectedPatient.dangerous && <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute -bottom-1 -left-2 text-lg">💀</motion.span>}
+                        {selectedPatient.dangerous && <span className="absolute -bottom-1 -left-2 text-lg animate-pulse-scale-lg">💀</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
@@ -2343,7 +2341,7 @@ export default function Home() {
                         </div>
                         {selectedPatient.dangerous && (
                           <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-3 p-2.5 rounded-xl bg-red-500/30 backdrop-blur-sm border-2 border-red-400/50 flex items-center gap-2">
-                            <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-lg">💀</motion.span>
+                            <span className="text-lg animate-pulse-scale-lg">💀</span>
                             <span className="text-xs font-bold text-red-100">حالة خطر — تحتاج متابعة دقيقة</span>
                           </motion.div>
                         )}
@@ -2351,14 +2349,14 @@ export default function Home() {
                     </div>
                     {/* Quick Actions — Glass Style */}
                     <div className="flex items-center gap-2 mt-4 flex-wrap">
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { setEditingPatient(!editingPatient); if (!editingPatient) setEditPatientForm({ name: selectedPatient.name, phone: selectedPatient.phone || '', phone2: selectedPatient.phone2 || '', age: String(selectedPatient.age || ''), gender: selectedPatient.gender || '', address: selectedPatient.address || '', bloodType: selectedPatient.bloodType || '', medicalHistory: selectedPatient.medicalHistory || '', notes: selectedPatient.notes || '' }) }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', editingPatient ? 'bg-white/30 border-white/40 text-white shadow-lg' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Edit3 size={13} /> تعديل</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-red-500/30 backdrop-blur-sm border border-red-400/30 text-red-100 hover:bg-red-500/40 transition-all"><Trash2 size={13} /> حذف</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.starred ? 'bg-amber-400/30 border-amber-400/40 text-amber-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Star size={13} className={selectedPatient.starred ? 'fill-amber-300' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.improved ? 'bg-pink-400/30 border-pink-400/40 text-pink-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Heart size={13} className={selectedPatient.improved ? 'fill-pink-300' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ publishable: !selectedPatient.publishable }) }); const u = { ...selectedPatient, publishable: !selectedPatient.publishable }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.publishable ? 'تم إزالة علامة النشر' : 'تم وضع علامة النشر 👍') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.publishable ? 'bg-green-400/30 border-green-400/40 text-green-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><ThumbsUp size={13} className={selectedPatient.publishable ? 'fill-green-300' : ''} /> {selectedPatient.publishable ? 'للنشر' : 'نشر'}</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ dangerous: !selectedPatient.dangerous }) }); const u = { ...selectedPatient, dangerous: !selectedPatient.dangerous }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.dangerous ? 'تم إزالة علامة الخطر' : 'تم وضع علامة الخطر 💀') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm', selectedPatient.dangerous ? 'bg-red-500/40 border-red-400/50 text-red-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><AlertTriangle size={13} className={selectedPatient.dangerous ? 'text-red-300' : ''} /> {selectedPatient.dangerous ? 'خطر' : '⚠️ خطر'}</motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={async () => { const alreadyInQueue = waitingQueue.find(w => w.patientId === selectedPatient.id && (w.status === 'waiting' || w.status === 'in-progress')); if (alreadyInQueue) { toast.info('المريض موجود بالفعل في قائمة الانتظار ⏳'); return } await addItem('/waiting', { patientId: selectedPatient.id, patientName: selectedPatient.name, priority: selectedPatient.dangerous ? 2 : 1, status: 'waiting', notes: selectedPatient.dangerous ? '⚠️ حالة خطر' : undefined }, setWaitingQueue); toast.success(selectedPatient.dangerous ? 'تم الإضافة لقائمة الانتظار كحالة عاجلة ⏳🚨' : 'تم الإضافة لقائمة الانتظار ⏳') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-orange-400/30 backdrop-blur-sm border border-orange-400/30 text-orange-100 hover:bg-orange-400/40 transition-all"><Timer size={13} /> انتظار</motion.button>
-                      {selectedPatient.phone && <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }} onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/30 backdrop-blur-sm border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/40 transition-all"><Send size={12} /> واتساب</motion.button>}
+ <button onClick={() => { setEditingPatient(!editingPatient); if (!editingPatient) setEditPatientForm({ name: selectedPatient.name, phone: selectedPatient.phone || '', phone2: selectedPatient.phone2 || '', age: String(selectedPatient.age || ''), gender: selectedPatient.gender || '', address: selectedPatient.address || '', bloodType: selectedPatient.bloodType || '', medicalHistory: selectedPatient.medicalHistory || '', notes: selectedPatient.notes || '' }) }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150', editingPatient ? 'bg-white/30 border-white/40 text-white shadow-lg' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Edit3 size={13} /> تعديل</button>
+ <button onClick={() => setDeletePatientConfirmOpen(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-red-500/30 backdrop-blur-sm border border-red-400/30 text-red-100 hover:bg-red-500/40 transition-all active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150"><Trash2 size={13} /> حذف</button>
+ <button onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ starred: !selectedPatient.starred }) }); const u = { ...selectedPatient, starred: !selectedPatient.starred }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.starred ? 'تم إزالة التمييز' : 'تم التمييز ⭐') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150', selectedPatient.starred ? 'bg-amber-400/30 border-amber-400/40 text-amber-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Star size={13} className={selectedPatient.starred ? 'fill-amber-300' : ''} /> {selectedPatient.starred ? 'مميز' : 'تمييز'}</button>
+ <button onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ improved: !selectedPatient.improved }) }); const u = { ...selectedPatient, improved: !selectedPatient.improved }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.improved ? 'تم إزالة التحسن' : 'تم تسجيل التحسن 💗') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150', selectedPatient.improved ? 'bg-pink-400/30 border-pink-400/40 text-pink-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><Heart size={13} className={selectedPatient.improved ? 'fill-pink-300' : ''} /> {selectedPatient.improved ? 'متحسن' : 'تحسن'}</button>
+ <button onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ publishable: !selectedPatient.publishable }) }); const u = { ...selectedPatient, publishable: !selectedPatient.publishable }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.publishable ? 'تم إزالة علامة النشر' : 'تم وضع علامة النشر 👍') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150', selectedPatient.publishable ? 'bg-green-400/30 border-green-400/40 text-green-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><ThumbsUp size={13} className={selectedPatient.publishable ? 'fill-green-300' : ''} /> {selectedPatient.publishable ? 'للنشر' : 'نشر'}</button>
+ <button onClick={async () => { try { await apiFetch(`/patients/${selectedPatient.id}`, { method: 'PUT', body: JSON.stringify({ dangerous: !selectedPatient.dangerous }) }); const u = { ...selectedPatient, dangerous: !selectedPatient.dangerous }; setSelectedPatient(u); setPatients(prev => prev.map(p => p.id === selectedPatient.id ? u : p)); toast.success(selectedPatient.dangerous ? 'تم إزالة علامة الخطر' : 'تم وضع علامة الخطر 💀') } catch { toast.error('خطأ') } }} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border backdrop-blur-sm active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150', selectedPatient.dangerous ? 'bg-red-500/40 border-red-400/50 text-red-100' : 'bg-white/15 border-white/20 text-white/90 hover:bg-white/25')}><AlertTriangle size={13} className={selectedPatient.dangerous ? 'text-red-300' : ''} /> {selectedPatient.dangerous ? 'خطر' : '⚠️ خطر'}</button>
+ <button onClick={async () => { const alreadyInQueue = waitingQueue.find(w => w.patientId === selectedPatient.id && (w.status === 'waiting' || w.status === 'in-progress')); if (alreadyInQueue) { toast.info('المريض موجود بالفعل في قائمة الانتظار ⏳'); return } await addItem('/waiting', { patientId: selectedPatient.id, patientName: selectedPatient.name, priority: selectedPatient.dangerous ? 2 : 1, status: 'waiting', notes: selectedPatient.dangerous ? '⚠️ حالة خطر' : undefined }, setWaitingQueue); toast.success(selectedPatient.dangerous ? 'تم الإضافة لقائمة الانتظار كحالة عاجلة ⏳🚨' : 'تم الإضافة لقائمة الانتظار ⏳') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-orange-400/30 backdrop-blur-sm border border-orange-400/30 text-orange-100 hover:bg-orange-400/40 transition-all active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150"><Timer size={13} /> انتظار</button>
+ {selectedPatient.phone && <button onClick={() => { const wp = waPhone(selectedPatient.phone); if (wp) window.open(`https://wa.me/${wp}`, '_blank') }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/30 backdrop-blur-sm border border-emerald-400/30 text-emerald-100 hover:bg-emerald-500/40 transition-all active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150"><Send size={12} /> واتساب</button>}
                     </div>
                     {/* Edit Patient Form */}
                     {editingPatient && (
@@ -2452,11 +2450,11 @@ export default function Home() {
                         {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
                           const nColors = getImprovementColor(n)
                           return (
-                            <motion.button key={n} whileTap={{ scale: 0.9 }} onClick={() => setImprovementSliderValue(n)}
+ <button className="active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" key={n} onClick={() => setImprovementSliderValue(n)}
                               className={cn('w-9 h-9 rounded-xl text-sm font-black transition-all border-2', improvementSliderValue === n ? 'text-white shadow-lg scale-110' : 'bg-white dark:bg-slate-800 border-border text-muted-foreground hover:scale-105')}
                               style={improvementSliderValue === n ? { backgroundColor: nColors.ring, borderColor: nColors.ring } : {}}>
                               {n}
-                            </motion.button>
+                            </button>
                           )
                         })}
                       </div>
@@ -2684,7 +2682,7 @@ export default function Home() {
                     <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-2"><Stethoscope size={15} className="text-violet-500" /> الزيارات</h3><Button size="sm" className="rounded-xl bg-violet-600 text-white h-8 text-xs" onClick={() => { setProfileVisitType('checkup'); setProfileVisitPrice(String(defaultCheckupPrice)); setProfileVisitNotes(''); setProfileVisitDate(''); setShowAddVisitProfile(true) }}><Plus size={12} className="ml-1" /> زيارة</Button></div>
                     {showAddVisitProfile && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 space-y-2">
-                        <div className="grid grid-cols-3 gap-2">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => { setProfileVisitType(vt.id); if (vt.id === 'checkup') setProfileVisitPrice(String(defaultCheckupPrice)); else if (vt.id === 'revisit') setProfileVisitPrice(String(defaultRevisitPrice)); else setProfileVisitPrice(''); }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700 shadow-md' : 'border-transparent bg-muted/50 text-muted-foreground hover:bg-muted')}><span className="text-base">{vt.emoji}</span>{vt.label}{vt.id === 'checkup' && <span className="text-[8px] text-muted-foreground">{defaultCheckupPrice} ج.م</span>}{vt.id === 'revisit' && <span className="text-[8px] text-muted-foreground">{defaultRevisitPrice} ج.م</span>}</motion.button>))}</div>
+ <div className="grid grid-cols-3 gap-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{VISIT_TYPES.slice(0, 3).map(vt => (<button key={vt.id} onClick={() => { setProfileVisitType(vt.id); if (vt.id === 'checkup') setProfileVisitPrice(String(defaultCheckupPrice)); else if (vt.id === 'revisit') setProfileVisitPrice(String(defaultRevisitPrice)); else setProfileVisitPrice(''); }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 text-xs font-bold transition-all', profileVisitType === vt.id ? 'border-violet-500 bg-violet-100 dark:bg-violet-900/30 text-violet-700 shadow-md' : 'border-transparent bg-muted/50 text-muted-foreground hover:bg-muted')}><span className="text-base active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{vt.emoji}</span>{vt.label}{vt.id === 'checkup' && <span className="text-[8px] text-muted-foreground active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{defaultCheckupPrice} ج.م</span>}{vt.id === 'revisit' && <span className="text-[8px] text-muted-foreground active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{defaultRevisitPrice} ج.م</span>}</button>))}</div>
                         <div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px] font-bold">السعر (ج.م)</Label><Input type="number" value={profileVisitPrice} onChange={e => setProfileVisitPrice(e.target.value)} placeholder={profileVisitType === 'checkup' ? String(defaultCheckupPrice) : profileVisitType === 'revisit' ? String(defaultRevisitPrice) : '0'} className="input-luxury rounded-xl h-9 mt-0.5" /></div><div><Label className="text-[10px] font-bold">ملاحظات</Label><Input value={profileVisitNotes} onChange={e => setProfileVisitNotes(e.target.value)} placeholder="ملاحظات..." className="input-luxury rounded-xl h-9 mt-0.5" /></div></div>
                         <div><Label className="text-[10px] font-bold text-cyan-600 flex items-center gap-1"><Calendar size={10} /> تاريخ الزيارة (اختياري)</Label><Input type="date" value={profileVisitDate || cairoTodayInput()} onChange={e => setProfileVisitDate(e.target.value)} className="rounded-xl h-9 text-xs mt-0.5 border-cyan-200 dark:border-cyan-800" placeholder="اتركه فارغاً لتاريخ اليوم" /></div>
                         <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white" onClick={async () => { const currentType = profileVisitType; const currentPrice = profileVisitPrice; const currentNotes = profileVisitNotes; const vDate = cairoDateTime(profileVisitDate); const patientName = selectedPatient.name; const patientId = selectedPatient.id; if (!currentType) { toast.error('اختر نوع الزيارة'); return; } const vPrice = parseFloat(String(currentPrice)) || 0; const cat = getVisitCategory(currentType); try { await addItem('/visits', { patientId, type: currentType, notes: currentNotes || undefined, date: vDate }, setVisits, true); if (vPrice > 0) { await addItem('/finance/transactions', { type: 'income', category: cat, amount: vPrice, description: `${cat} - ${patientName}`, date: vDate }, setTransactions, true); } } catch (e) { console.error('Visit save error:', e); } setShowAddVisitProfile(false); setProfileVisitType('checkup'); setProfileVisitPrice(''); setProfileVisitNotes(''); setProfileVisitDate(''); try { const txnRes = await apiFetch<any>('/finance/transactions?limit=100000'); const dbTxns = txnRes?.transactions || []; if (dbTxns.length > 0) setTransactions(dbTxns) } catch {} toast.success(`تم إضافة الزيارة - ${cat}${vPrice > 0 ? ` ${vPrice} ج.م` : ''}`) }}>حفظ</Button><Button variant="ghost" size="sm" onClick={() => setShowAddVisitProfile(false)}>إلغاء</Button></div>
@@ -2706,13 +2704,13 @@ export default function Home() {
                       </motion.div>
                     )}
                     {sessions.filter(s => s.patientId === selectedPatient.id).length === 0 && !showAddSessionProfile && <p className="text-center text-muted-foreground text-xs py-6">لا توجد جلسات</p>}
-                    {sessions.filter(s => s.patientId === selectedPatient.id).map(s => { const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="border border-slate-200 dark:border-slate-800 p-3">{editingSessionId === s.id ? (<div className="space-y-2 p-2 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-300"><div className="grid grid-cols-2 gap-2"><div><Label className="text-[10px]">السعر</Label><Input type="number" value={editSessionForm.price} onChange={e => setEditSessionForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs" /></div><div><Label className="text-[10px]">الحالة</Label><Select value={editSessionForm.status} onValueChange={val => setEditSessionForm(f => ({ ...f, status: val }))}><SelectTrigger className="rounded-xl h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">مجدولة</SelectItem><SelectItem value="completed">مكتملة</SelectItem><SelectItem value="cancelled">ملغاة</SelectItem></SelectContent></Select></div></div><Input value={editSessionForm.notes} onChange={e => setEditSessionForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-8 text-xs" /><div className="flex gap-2"><Button size="sm" className="rounded-xl bg-orange-500 text-white text-xs h-7" onClick={async () => { try { const newPrice = parseFloat(editSessionForm.price) || s.price; await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined }) }); const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر')); if (relatedTx && newPrice !== s.price) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, amount: newPrice } : t)); } setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined } : ss)); setEditingSessionId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditingSessionId(null)}>إلغاء</Button></div></div>) : (<div className="flex items-center justify-between"><div className="flex items-center gap-2"><div className={cn('p-2 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600" size={14} /> : <Clock className="text-amber-600" size={14} />}</div><div><p className="font-bold text-xs">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[8px]">{s.status === 'completed' ? 'مكتملة' : s.status === 'cancelled' ? 'ملغاة' : 'مجدولة'}</Badge>{s.paid ? <span className="text-[8px] text-emerald-600 font-bold">مدفوعة</span> : <span className="text-[8px] text-amber-600 font-bold">غير مدفوعة</span>}</div>{s.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{s.notes}</p>}</div></div><div className="flex items-center gap-1"><div className="text-left"><p className="font-black text-xs text-orange-600">{formatCurrency(s.price)}</p><p className="text-[9px] text-muted-foreground">{formatDate(s.date)}</p>{!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-1.5 py-0.5 rounded bg-emerald-500 text-white text-[8px] font-bold mt-0.5">دفع</motion.button>}</div><Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingSessionId(s.id); setEditSessionForm({ price: String(s.price), notes: s.notes || '', status: s.status, paid: s.paid }) }}><Edit3 size={9} className="text-orange-500" /></Button><Button variant="ghost" size="icon" className="h-5 w-5" onClick={async () => { try { const sDateStr = s.date ? new Date(s.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) : ''; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر') && t.amount === s.price && (sDateStr ? new Date(t.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) === sDateStr : true)); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); setSessions(prev => prev.filter(ss => ss.id !== s.id)); toast.success('تم الحذف') } catch { toast.error('خطأ') } }}><Trash2 size={9} className="text-red-500" /></Button></div></div>)}</Card> })}
+ {sessions.filter(s => s.patientId === selectedPatient.id).map(s => { const svc = services.find(sv => sv.id === s.serviceId); return <Card key={s.id} className="border border-slate-200 dark:border-slate-800 p-3 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{editingSessionId === s.id ? (<div className="space-y-2 p-2 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-300 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div className="grid grid-cols-2 gap-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div><Label className="text-[10px] active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">السعر</Label><Input type="number" value={editSessionForm.price} onChange={e => setEditSessionForm(f => ({ ...f, price: e.target.value }))} className="input-luxury rounded-xl h-8 text-xs active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /></div><div><Label className="text-[10px] active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">الحالة</Label><Select value={editSessionForm.status} onValueChange={val => setEditSessionForm(f => ({ ...f, status: val }))}><SelectTrigger className="rounded-xl h-8 text-xs active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">مجدولة</SelectItem><SelectItem value="completed">مكتملة</SelectItem><SelectItem value="cancelled">ملغاة</SelectItem></SelectContent></Select></div></div><Input value={editSessionForm.notes} onChange={e => setEditSessionForm(f => ({ ...f, notes: e.target.value }))} placeholder="ملاحظات..." className="input-luxury rounded-xl h-8 text-xs active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /><div className="flex gap-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><Button size="sm" className="rounded-xl bg-orange-500 text-white text-xs h-7 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={async () => { try { const newPrice = parseFloat(editSessionForm.price) || s.price; await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined }) }); const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر')); if (relatedTx && newPrice !== s.price) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'PUT', body: JSON.stringify({ amount: newPrice }) }); setTransactions(prev => prev.map(t => t.id === relatedTx.id ? { ...t, amount: newPrice } : t)); } setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, price: newPrice, status: editSessionForm.status, notes: editSessionForm.notes || undefined } : ss)); setEditingSessionId(null); toast.success('تم التعديل') } catch { toast.error('خطأ') } }}>حفظ</Button><Button variant="ghost" size="sm" className="text-xs h-7 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => setEditingSessionId(null)}>إلغاء</Button></div></div>) : (<div className="flex items-center justify-between active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div className="flex items-center gap-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div className={cn('p-2 rounded-lg', s.paid ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30')}>{s.paid ? <CheckCircle className="text-emerald-600 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" size={14} /> : <Clock className="text-amber-600 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" size={14} />}</div><div><p className="font-bold text-xs active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{svc?.name || 'جلسة'}</p><div className="flex items-center gap-1.5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><Badge variant="outline" className="text-[8px] active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{s.status === 'completed' ? 'مكتملة' : s.status === 'cancelled' ? 'ملغاة' : 'مجدولة'}</Badge>{s.paid ? <span className="text-[8px] text-emerald-600 font-bold active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">مدفوعة</span> : <span className="text-[8px] text-amber-600 font-bold active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">غير مدفوعة</span>}</div>{s.notes && <p className="text-[10px] text-muted-foreground mt-0.5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{s.notes}</p>}</div></div><div className="flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div className="text-left active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><p className="font-black text-xs text-orange-600 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{formatCurrency(s.price)}</p><p className="text-[9px] text-muted-foreground active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{formatDate(s.date)}</p>{!s.paid && <button onClick={() => markSessionPaid(s)} className="px-1.5 py-0.5 rounded bg-emerald-500 text-white text-[8px] font-bold mt-0.5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">دفع</button>}</div><Button variant="ghost" size="icon" className="h-5 w-5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => { setEditingSessionId(s.id); setEditSessionForm({ price: String(s.price), notes: s.notes || '', status: s.status, paid: s.paid }) }}><Edit3 size={9} className="text-orange-500 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /></Button><Button variant="ghost" size="icon" className="h-5 w-5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={async () => { try { const sDateStr = s.date ? new Date(s.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) : ''; const relatedTx = transactions.find(t => t.description?.includes(selectedPatient!.name) && (t.category === 'جلسات' || t.category === 'ليزر') && t.amount === s.price && (sDateStr ? new Date(t.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }) === sDateStr : true)); if (relatedTx) { await apiFetch(`/finance/transactions/${relatedTx.id}`, { method: 'DELETE' }); setTransactions(prev => prev.filter(t => t.id !== relatedTx.id)); } await apiFetch(`/sessions/${s.id}`, { method: 'DELETE' }); setSessions(prev => prev.filter(ss => ss.id !== s.id)); toast.success('تم الحذف') } catch { toast.error('خطأ') } }}><Trash2 size={9} className="text-red-500 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /></Button></div></div>)}</Card> })}
                   </TabsContent>
 
                   {/* ═══ LASER ═══ */}
                   <TabsContent value="laser" className="space-y-3 mt-3">
                     <div className="flex items-center justify-between"><h3 className="font-bold text-sm flex items-center gap-2"><Zap size={15} className="text-cyan-500" /> سجلات الليزر</h3></div>
-                    {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-3xl mb-2">💎</motion.div><p className="text-muted-foreground text-xs">لا توجد سجلات ليزر</p><Button size="sm" className="mt-2 rounded-xl bg-gradient-to-l from-cyan-500 to-teal-600 text-white text-xs" onClick={() => { setActiveTab('laser'); setShowAddLaserRecord(true); setLaserFormPatientId(selectedPatient.id); setLaserFormPatientSearch(selectedPatient.name) }}><Plus size={12} className="ml-1" /> إنشاء سجل</Button></Card>}
+                    {laserRecords.filter(l => l.patientId === selectedPatient.id).length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-3xl mb-2 animate-bounce-y">💎</div><p className="text-muted-foreground text-xs">لا توجد سجلات ليزر</p><Button size="sm" className="mt-2 rounded-xl bg-gradient-to-l from-cyan-500 to-teal-600 text-white text-xs" onClick={() => { setActiveTab('laser'); setShowAddLaserRecord(true); setLaserFormPatientId(selectedPatient.id); setLaserFormPatientSearch(selectedPatient.name) }}><Plus size={12} className="ml-1" /> إنشاء سجل</Button></Card>}
                     {laserRecords.filter(l => l.patientId === selectedPatient.id).map(l => {
                       const areaInfo = BODY_AREAS.find(a => a.id === l.bodyArea || a.label === l.bodyArea)
                       const lSess = l.laserSessions || []
@@ -2725,7 +2723,7 @@ export default function Home() {
                         <motion.div key={l.id} whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.99 }}>
                           <Card className="border-2 border-cyan-200 dark:border-cyan-800 p-3 cursor-pointer hover:shadow-lg transition-all" onClick={() => { setActiveTab('laser'); setSelectedLaserRecordId(l.id); setLaserDetailTab('overview') }}>
                             <div className="flex items-center gap-3">
-                              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-md"><Zap size={16} /></motion.div>
+                              <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-md animate-pulse-scale"><Zap size={16} /></div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2"><span className="font-bold text-sm">{areaInfo?.label || l.bodyArea}</span><Badge className={cn('text-[8px]', l.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400')}>{l.status === 'active' ? '🟢 نشط' : l.status === 'completed' ? '🔵 مكتمل' : l.status === 'paused' ? '⏸️ متوقف' : l.status}</Badge></div>
                                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">{l.skinType && <span>بشرة {l.skinType}</span>}{l.hairColor && <span>شعر {l.hairColor}</span>}{l.machineName && <span>| {l.machineName}</span>}</div>
@@ -2828,9 +2826,9 @@ export default function Home() {
                         </Label>
                         <div className="flex gap-2">
                           <Textarea value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="اكتب ملاحظتك هنا... اضغط Enter للحفظ" className="flex-1 rounded-xl min-h-[52px] text-sm font-medium border-2 border-amber-200 dark:border-amber-800 focus:border-amber-400 focus:ring-amber-400/20 bg-white/80 dark:bg-slate-900/60 resize-none" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif", fontSize: '14px' }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && quickNote.trim() && selectedPatient) { e.preventDefault(); const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }} />
-                          <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-4 py-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold shadow-lg shadow-amber-300/30 dark:shadow-amber-900/30 flex items-center gap-1.5 text-sm self-end" onClick={() => { if (quickNote.trim() && selectedPatient) { const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }}>
+ <button className="px-4 py-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold shadow-lg shadow-amber-300/30 dark:shadow-amber-900/30 flex items-center gap-1.5 text-sm self-end active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => { if (quickNote.trim() && selectedPatient) { const content = quickNote; setQuickNote(''); addItem('/notes', { content, important: false, patientId: selectedPatient.id, section: 'patient' }, setNotes) } }}>
                             <Plus size={16} /> إضافة
-                          </motion.button>
+                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -2838,7 +2836,7 @@ export default function Home() {
                     {/* Notes List */}
                     {notes.filter(n => n.patientId === selectedPatient.id).length === 0 && (
                       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-12 text-center">
-                        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-6xl mb-4">📝</motion.div>
+                        <div className="text-6xl mb-4 animate-bounce-y">📝</div>
                         <p className="text-lg font-bold text-slate-600 dark:text-slate-300" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>لا توجد ملاحظات بعد</p>
                         <p className="text-sm text-muted-foreground mt-1">ابدأ بإضافة ملاحظتك الأولى أعلاه</p>
                       </motion.div>
@@ -2886,14 +2884,14 @@ export default function Home() {
                                     </div>
                                   </div>
                                   <div className="flex flex-col gap-1 flex-shrink-0">
-                                    <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.1 }} className="h-8 w-8 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}>
+ <button className="h-8 w-8 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all active:scale-[0.85] hover:scale-[1.1] transition-transform duration-150" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content) }}>
                                       <Edit3 size={14} className="text-blue-600 dark:text-blue-400" />
-                                    </motion.button>
+                                    </button>
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
-                                        <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.1 }} className="h-8 w-8 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all">
+ <button className="h-8 w-8 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all active:scale-[0.85] hover:scale-[1.1] transition-transform duration-150">
                                           <Trash2 size={14} className="text-red-500 dark:text-red-400" />
-                                        </motion.button>
+                                        </button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
                                         <AlertDialogHeader>
@@ -2924,7 +2922,7 @@ export default function Home() {
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-cyan-50 dark:bg-cyan-950/30">
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">💎</motion.div><div><h1 className="text-2xl font-bold">مركز الليزر</h1><p className="text-muted-foreground text-sm">إدارة شاملة لليزر إزالة الشعر</p></div></div>
+                    <div className="flex items-center gap-3"><div className="text-4xl animate-pulse-scale-lg">💎</div><div><h1 className="text-2xl font-bold">مركز الليزر</h1><p className="text-muted-foreground text-sm">إدارة شاملة لليزر إزالة الشعر</p></div></div>
                     <div className="flex gap-2">
                       <Button className="btn-luxury bg-gradient-to-l from-cyan-600 to-cyan-700 text-white shadow-lg" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> سجل جديد</Button>
                       {isDoctor && <Button variant="outline" className="rounded-xl" onClick={() => setShowAddLaserPackage(true)}><Package size={14} className="ml-1" /> باقة</Button>}
@@ -2950,7 +2948,7 @@ export default function Home() {
                     { id: 'finance', icon: '💰', label: 'المالي', color: 'from-green-500 to-green-700', count: 0 },
                     { id: 'settings', icon: '⚙️', label: 'الأجهزة', color: 'from-slate-500 to-slate-700', count: laserSettings.length },
                   ].map(tab => (
-                    <motion.button key={tab.id} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03, y: -2 }}
+ <button className="active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150" key={tab.id}
                       onClick={() => setLaserSubTab(tab.id)}
                       className={cn(
                         'flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all text-white shadow-lg',
@@ -2962,7 +2960,7 @@ export default function Home() {
                       <span className="text-xl">{tab.icon}</span>
                       <span className="text-[10px] font-bold">{tab.label}</span>
                       {tab.count > 0 && <Badge className={cn('text-[8px] px-1 py-0', laserSubTab === tab.id ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground')}>{tab.count}</Badge>}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
 
@@ -2993,25 +2991,25 @@ export default function Home() {
                           {/* ─── Animated Header ─── */}
                           <motion.div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-700 p-5 shadow-xl">
                             <div className="absolute inset-0 opacity-15">
-                              <motion.div animate={{ x: [0, 120, 0], y: [0, -60, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
-                              <motion.div animate={{ x: [0, -90, 0], y: [0, 70, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-36 h-36 bg-cyan-300/20 rounded-full blur-3xl" />
+                              <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl animate-drift-a"/>
+                              <div className="absolute bottom-0 left-0 w-36 h-36 bg-cyan-300/20 rounded-full blur-3xl animate-drift-a"/>
                             </div>
                             <div className="relative z-10">
                               <div className="flex items-center justify-between mb-3">
-                                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05, x: -3 }} onClick={() => { setSelectedLaserRecordId(null); setLaserDetailTab('overview') }} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-sm font-bold border border-white/20 hover:bg-white/25 transition-all">
+ <button onClick={() => { setSelectedLaserRecordId(null); setLaserDetailTab('overview') }} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-sm font-bold border border-white/20 hover:bg-white/25 transition-all active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">
                                   <ChevronDown size={16} className="rotate-90" /> رجوع
-                                </motion.button>
+                                </button>
                                 <div className="flex gap-2">
-                                  <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setEditingLaserRecordId(isEditingRecord ? null : rec.id); setEditLaserRecordForm({ bodyArea: rec.bodyArea, skinType: rec.skinType || '', hairColor: rec.hairColor || '', hairDensity: rec.hairDensity || '', totalSessions: String(rec.totalSessions), price: String(rec.price), totalPrice: String(rec.totalPrice), paid: rec.paid, machineName: rec.machineName || '', energy: String(rec.energy || ''), pulse: rec.pulse || '', status: rec.status, notes: rec.notes || '' }) }} className="px-3 py-1.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-xs font-bold border border-white/20 hover:bg-white/25 transition-all flex items-center gap-1.5">
+ <button onClick={() => { setEditingLaserRecordId(isEditingRecord ? null : rec.id); setEditLaserRecordForm({ bodyArea: rec.bodyArea, skinType: rec.skinType || '', hairColor: rec.hairColor || '', hairDensity: rec.hairDensity || '', totalSessions: String(rec.totalSessions), price: String(rec.price), totalPrice: String(rec.totalPrice), paid: rec.paid, machineName: rec.machineName || '', energy: String(rec.energy || ''), pulse: rec.pulse || '', status: rec.status, notes: rec.notes || '' }) }} className="px-3 py-1.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-xs font-bold border border-white/20 hover:bg-white/25 transition-all flex items-center gap-1.5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">
                                     {isEditingRecord ? <><X size={12} /> إلغاء</> : <><Edit3 size={12} /> تعديل</>}
-                                  </motion.button>
-                                  <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setShowAddLaserSessionForm(true); setNewLaserSessionForm({ energy: String(rec.energy || ''), pulse: rec.pulse || '', painLevel: '', reaction: '', notes: '', date: getLocalDateStr() }) }} className="px-3 py-1.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-xs font-bold border border-white/20 hover:bg-white/25 transition-all flex items-center gap-1.5">
+                                  </button>
+ <button onClick={() => { setShowAddLaserSessionForm(true); setNewLaserSessionForm({ energy: String(rec.energy || ''), pulse: rec.pulse || '', painLevel: '', reaction: '', notes: '', date: getLocalDateStr() }) }} className="px-3 py-1.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-xs font-bold border border-white/20 hover:bg-white/25 transition-all flex items-center gap-1.5 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">
                                     <Plus size={12} /> جلسة جديدة
-                                  </motion.button>
+                                  </button>
                                 </div>
                               </div>
                               <div className="flex items-center gap-4">
-                                <motion.div animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-5xl">💎</motion.div>
+                                <div className="text-5xl animate-pulse-scale">💎</div>
                                 <div className="flex-1">
                                   <h2 className="text-2xl font-black text-white">{pat?.name || 'مريض'}</h2>
                                   <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -3022,7 +3020,7 @@ export default function Home() {
                                   </div>
                                 </div>
                                 <div className="text-left">
-                                  <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }} className="text-4xl font-black text-white">{Math.round(progressPct)}%</motion.div>
+                                  <div className="text-4xl font-black text-white animate-pulse-scale">{Math.round(progressPct)}%</div>
                                   <p className="text-cyan-200 text-[10px]">{sessCount} من {rec.totalSessions} جلسة</p>
                                 </div>
                               </div>
@@ -3040,7 +3038,7 @@ export default function Home() {
                             ].map((stat, idx) => (
                               <motion.div key={stat.label} initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: idx * 0.1, type: 'spring', stiffness: 200 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden">
                                 <div className={cn('p-3 rounded-2xl bg-gradient-to-br text-white shadow-lg', stat.gradient)}>
-                                  <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.3 }} className="absolute top-1 left-1 text-2xl opacity-15">{stat.emoji}</motion.div>
+                                  <div className="absolute top-1 left-1 text-2xl opacity-15 animate-bounce-y-sm">{stat.emoji}</div>
                                   <div className="relative z-10 flex items-center gap-2.5">
                                     <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">{stat.icon}</div>
                                     <div><p className="text-[9px] text-white/70">{stat.label}</p><p className="text-base font-black">{stat.value}</p></div>
@@ -3058,10 +3056,10 @@ export default function Home() {
                               { id: 'payments' as const, label: 'المدفوعات', emoji: '💰', color: 'from-emerald-500 to-green-600' },
                               { id: 'notes' as const, label: 'ملاحظات', emoji: '📝', color: 'from-amber-500 to-orange-600' },
                             ].map(tab => (
-                              <motion.button key={tab.id} whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03, y: -1 }} onClick={() => setLaserDetailTab(tab.id)} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap', laserDetailTab === tab.id ? `bg-gradient-to-l ${tab.color} text-white shadow-lg` : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>
+ <button key={tab.id} onClick={() => setLaserDetailTab(tab.id)} className={cn('flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap active:scale-[0.95] hover:scale-[1.03] transition-transform duration-150', laserDetailTab === tab.id ? `bg-gradient-to-l ${tab.color} text-white shadow-lg` : 'bg-muted/50 text-muted-foreground hover:bg-muted')}>
                                 <span>{tab.emoji}</span> {tab.label}
                                 {tab.id === 'sessions' && laserSess.length > 0 && <Badge className={cn('text-[8px] px-1', laserDetailTab === tab.id ? 'bg-white/20 text-white' : '')}>{laserSess.length}</Badge>}
-                              </motion.button>
+                              </button>
                             ))}
                           </div>
 
@@ -3071,7 +3069,7 @@ export default function Home() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
                                 <Card className="card-luxury overflow-hidden h-full">
-                                  <div className="bg-gradient-to-l from-blue-500 to-indigo-600 p-3 flex items-center gap-2"><motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-xl">👤</motion.div><CardTitle className="text-sm text-white font-bold">بيانات المريض</CardTitle></div>
+                                  <div className="bg-gradient-to-l from-blue-500 to-indigo-600 p-3 flex items-center gap-2"><div className="text-xl animate-bounce-y-sm">👤</div><CardTitle className="text-sm text-white font-bold">بيانات المريض</CardTitle></div>
                                   <CardContent className="p-3 space-y-2">
                                     {pat && <><div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20"><Users size={14} className="text-blue-500" /><div><p className="text-xs text-muted-foreground">الاسم</p><p className="font-bold text-sm">{pat.name}</p></div></div>
                                     {pat.phone && <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 dark:bg-green-900/20"><Phone size={14} className="text-green-500" /><div><p className="text-xs text-muted-foreground">الهاتف</p><p className="font-bold text-sm" dir="ltr">{pat.phone}</p></div></div>}
@@ -3083,7 +3081,7 @@ export default function Home() {
                               </motion.div>
                               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
                                 <Card className="card-luxury overflow-hidden h-full">
-                                  <div className="bg-gradient-to-l from-cyan-500 to-teal-600 p-3 flex items-center gap-2"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-xl">🔬</motion.div><CardTitle className="text-sm text-white font-bold">بيانات العلاج</CardTitle></div>
+                                  <div className="bg-gradient-to-l from-cyan-500 to-teal-600 p-3 flex items-center gap-2"><div className="text-xl animate-spin-slow">🔬</div><CardTitle className="text-sm text-white font-bold">بيانات العلاج</CardTitle></div>
                                   <CardContent className="p-3 space-y-2">
                                     <div className="flex items-center gap-2 p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/20"><MapPin size={14} className="text-cyan-500" /><div><p className="text-xs text-muted-foreground">منطقة العلاج</p><p className="font-bold text-sm">{areaInfo?.label || rec.bodyArea}</p></div></div>
                                     {rec.skinType && <div className={cn('flex items-center gap-2 p-2 rounded-lg border', skinInfo?.color || 'bg-muted/50')}><ThermometerSun size={14} className="text-amber-500" /><div><p className="text-xs text-muted-foreground">نوع البشرة</p><p className="font-bold text-sm">{skinInfo?.label || rec.skinType}</p></div></div>}
@@ -3101,7 +3099,7 @@ export default function Home() {
                             {/* Contraindications & Safety */}
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                               <Card className="card-luxury overflow-hidden border-2 border-red-200 dark:border-red-800/50">
-                                <div className="bg-gradient-to-l from-red-500 to-rose-600 p-3 flex items-center gap-2"><motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }} className="text-xl">⚠️</motion.div><CardTitle className="text-sm text-white font-bold">موانع الاستخدام والاحتياطات</CardTitle></div>
+                                <div className="bg-gradient-to-l from-red-500 to-rose-600 p-3 flex items-center gap-2"><div className="text-xl animate-pulse-scale-lg">⚠️</div><CardTitle className="text-sm text-white font-bold">موانع الاستخدام والاحتياطات</CardTitle></div>
                                 <CardContent className="p-3">
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {['حمل', 'رضاعة', 'أدوية حساسة للضوء', 'هرمونات/كورتيزون', 'أمراض جلدية نشطة', 'تاريخ ندبات', 'كريمات ريتينول (5 أيام)', 'حساسية ضوئية', 'مرض السكري (غير منضبط)', 'وخز حديث (أسبوعين)'].map(item => (
@@ -3117,7 +3115,7 @@ export default function Home() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
                                 <Card className="card-luxury overflow-hidden">
-                                  <div className="bg-gradient-to-l from-green-500 to-emerald-600 p-3 flex items-center gap-2"><motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }} className="text-xl">🧪</motion.div><CardTitle className="text-sm text-white font-bold">اختبار البقعة (Patch Test)</CardTitle></div>
+                                  <div className="bg-gradient-to-l from-green-500 to-emerald-600 p-3 flex items-center gap-2"><div className="text-xl animate-pulse-scale">🧪</div><CardTitle className="text-sm text-white font-bold">اختبار البقعة (Patch Test)</CardTitle></div>
                                   <CardContent className="p-3 space-y-2">
                                     <p className="text-xs text-muted-foreground">يُنصح بإجراء اختبار بقعة قبل أول جلسة ليزر، خاصة للمرضى الجدد أو أصحاب البشرة الحساسة. يتم اختبار منطقة صغيرة ومراقبتها لمدة 24-48 ساعة.</p>
                                     <div className="flex items-center gap-2"><Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px]">✅ مطلوب قبل الجلسة الأولى</Badge></div>
@@ -3126,13 +3124,13 @@ export default function Home() {
                               </motion.div>
                               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                                 <Card className="card-luxury overflow-hidden">
-                                  <div className="bg-gradient-to-l from-indigo-500 to-blue-600 p-3 flex items-center gap-2"><motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-xl">📅</motion.div><CardTitle className="text-sm text-white font-bold">الجلسة القادمة</CardTitle></div>
+                                  <div className="bg-gradient-to-l from-indigo-500 to-blue-600 p-3 flex items-center gap-2"><div className="text-xl animate-wiggle-wide">📅</div><CardTitle className="text-sm text-white font-bold">الجلسة القادمة</CardTitle></div>
                                   <CardContent className="p-3 space-y-2">
                                     {remainingSessions > 0 ? (<>
                                       <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20"><p className="text-xs text-muted-foreground">الفترة الموصى بها بين الجلسات</p><p className="font-bold text-sm">4-6 أسابيع (حسب دورة نمو الشعر)</p></div>
                                       {rec.energy && <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20"><p className="text-xs text-muted-foreground">إعدادات موصى بها</p><p className="font-bold text-sm">⚡ طاقة: {rec.energy} جول | نبض: {rec.pulse || '-'}</p></div>}
                                       <p className="text-[10px] text-muted-foreground">💡 يُنصح بزيادة الطاقة تدريجياً 10-15% كل جلسة حسب تحمل المريض</p>
-                                    </>) : <div className="text-center py-3"><motion.div animate={{ y: [0, -5, 0], scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-3xl mb-2">🎉</motion.div><p className="font-bold text-sm text-emerald-600">تم الانتهاء من جميع الجلسات!</p></div>}
+                                    </>) : <div className="text-center py-3"><div className="text-3xl mb-2 animate-bounce-y">🎉</div><p className="font-bold text-sm text-emerald-600">تم الانتهاء من جميع الجلسات!</p></div>}
                                   </CardContent>
                                 </Card>
                               </motion.div>
@@ -3173,10 +3171,10 @@ export default function Home() {
                               <h3 className="font-bold text-lg flex items-center gap-2"><Zap size={18} className="text-violet-500" /> سجل الجلسات</h3>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">{laserSess.length} جلسة</Badge>
-                                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setShowAddLaserSessionForm(true); setNewLaserSessionForm({ energy: String(rec.energy || ''), pulse: rec.pulse || '', painLevel: '', reaction: '', notes: '', date: getLocalDateStr() }) }} className="px-3 py-1.5 rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white text-xs font-bold shadow-lg flex items-center gap-1"><Plus size={12} /> جلسة</motion.button>
+ <button onClick={() => { setShowAddLaserSessionForm(true); setNewLaserSessionForm({ energy: String(rec.energy || ''), pulse: rec.pulse || '', painLevel: '', reaction: '', notes: '', date: getLocalDateStr() }) }} className="px-3 py-1.5 rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white text-xs font-bold shadow-lg flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><Plus size={12} /> جلسة</button>
                               </div>
                             </div>
-                            {laserSess.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">⚡</motion.div><p className="font-bold mb-1">لا توجد جلسات مسجلة</p><p className="text-muted-foreground text-xs mb-3">ابدأ بتسجيل أول جلسة ليزر لهذا المريض</p><Button className="rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white" onClick={() => { setShowAddLaserSessionForm(true); setNewLaserSessionForm({ energy: String(rec.energy || ''), pulse: rec.pulse || '', painLevel: '', reaction: '', notes: '', date: getLocalDateStr() }) }}><Plus size={14} className="ml-1" /> تسجيل جلسة</Button></Card>}
+                            {laserSess.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-5xl mb-3 animate-bounce-y">⚡</div><p className="font-bold mb-1">لا توجد جلسات مسجلة</p><p className="text-muted-foreground text-xs mb-3">ابدأ بتسجيل أول جلسة ليزر لهذا المريض</p><Button className="rounded-xl bg-gradient-to-l from-violet-500 to-purple-600 text-white" onClick={() => { setShowAddLaserSessionForm(true); setNewLaserSessionForm({ energy: String(rec.energy || ''), pulse: rec.pulse || '', painLevel: '', reaction: '', notes: '', date: getLocalDateStr() }) }}><Plus size={14} className="ml-1" /> تسجيل جلسة</Button></Card>}
 
                             {laserSess.map((ls, idx) => {
                               const isEditing = editingLaserSessionId === ls.id
@@ -3281,7 +3279,7 @@ export default function Home() {
                               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02 }}>
                                 <Card className="card-luxury overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/50">
                                   <div className="bg-gradient-to-l from-emerald-500 to-green-600 p-3 flex items-center gap-2"><CheckCircle size={16} className="text-white" /><p className="text-sm text-white font-bold">المدفوع</p></div>
-                                  <CardContent className="p-3 text-center"><motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-2xl font-black text-emerald-600">{formatCurrency(totalPaid)}</motion.div></CardContent>
+                                  <CardContent className="p-3 text-center"><div className="text-2xl font-black text-emerald-600 animate-pulse-scale">{formatCurrency(totalPaid)}</div></CardContent>
                                 </Card>
                               </motion.div>
                               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.02 }}>
@@ -3320,7 +3318,7 @@ export default function Home() {
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                       <span className={cn('font-bold text-sm', ls.paid ? 'text-emerald-600' : 'text-amber-600')}>{formatCurrency(ls.price || rec.price)}</span>
-                                      {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">✅</Badge> : <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); const txnAmount = ls.price || rec.price; const txnDesc = `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`; const txnDate = ls.date || cairoISO(); try { const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }) }); const newTxn = txnRes?.transaction || txnRes?.data || txnRes; if (newTxn?.id) { setTransactions(prev => [newTxn, ...prev]); } else { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } } catch { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600">💰 دفع</motion.button>}
+ {ls.paid ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px] active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150">✅</Badge> : <button onClick={async () => { try { await apiFetch(`/laser/sessions/${ls.id}`, { method: 'PUT', body: JSON.stringify({ paid: true, price: ls.price || rec.price }) }); const txnAmount = ls.price || rec.price; const txnDesc = `جلسة ليزر #${ls.sessionNumber} - ${pat?.name || 'مريض'} - ${areaInfo?.label || rec.bodyArea}`; const txnDate = ls.date || cairoISO(); try { const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }) }); const newTxn = txnRes?.transaction || txnRes?.data || txnRes; if (newTxn?.id) { setTransactions(prev => [newTxn, ...prev]); } else { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } } catch { setTransactions(prev => [...prev, { id: 'laser-' + Date.now(), type: 'income', category: 'ليزر', amount: txnAmount, description: txnDesc, date: txnDate }]); } setLaserRecords(prev => prev.map(r => r.id === rec.id ? { ...r, laserSessions: (r.laserSessions || []).map(s => s.id === ls.id ? { ...s, paid: true } : s) } : r)); toast.success('تم تأكيد الدفع ✅') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-md hover:bg-emerald-600 active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150">💰 دفع</button>}
                                       <Button size="sm" variant="outline" className="h-6 px-1.5 rounded-lg text-red-500 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-[9px]" onClick={() => setDeleteLaserSessionConfirmId(ls.id)}><Trash2 size={9} className="ml-0.5" /> حذف</Button>
                                     </div>
                                   </motion.div>
@@ -3367,7 +3365,7 @@ export default function Home() {
 
                             {/* Professional Treatment Notes */}
                             <Card className="card-luxury overflow-hidden border-2 border-teal-200 dark:border-teal-800/50">
-                              <div className="bg-gradient-to-l from-teal-500 to-emerald-600 p-3 flex items-center gap-2"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="text-lg">💡</motion.div><CardTitle className="text-sm text-white font-bold">نصائح مهنية - ما بعد الجلسة</CardTitle></div>
+                              <div className="bg-gradient-to-l from-teal-500 to-emerald-600 p-3 flex items-center gap-2"><div className="text-lg animate-spin-slow">💡</div><CardTitle className="text-sm text-white font-bold">نصائح مهنية - ما بعد الجلسة</CardTitle></div>
                               <CardContent className="p-3 space-y-2">
                                 {['تجنب التعرض لأشعة الشمس المباشرة لمدة أسبوعين', 'استخدم واقي شمس SPF 50+ يومياً', 'تجنب التقشير الكيميائي لمدة أسبوع', 'لا تستخدم مزيل شعر بالشمع بين الجلسات', 'استخدم كريم مهدئ (ألوفيرا) بعد الجلسة', 'تجنب الماء الساخن على المنطقة لمدة 24 ساعة', 'تجنب ممارسة الرياضة الشاقة لمدة 24-48 ساعة', 'لا تقوم بفرك المنطقة أو حكها'].map((tip, i) => (
                                   <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-2 p-1.5 rounded-lg bg-teal-50/50 dark:bg-teal-900/10 text-xs"><CheckCircle size={12} className="text-teal-500 shrink-0 mt-0.5" /><span>{tip}</span></motion.div>
@@ -3379,7 +3377,7 @@ export default function Home() {
                       )
                     })() : (<div className="space-y-3">
                     {/* ─── Records List (when no record selected) ─── */}
-                    {laserRecords.length === 0 && <Card className="card-luxury p-8 text-center"><motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">💎</motion.div><p className="text-lg font-bold mb-1">لا توجد سجلات ليزر بعد</p><p className="text-muted-foreground text-sm mb-3">ابدأ بإضافة سجل جديد لمريض</p><Button className="btn-luxury rounded-xl bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> إنشاء سجل</Button></Card>}
+                    {laserRecords.length === 0 && <Card className="card-luxury p-8 text-center"><div className="text-5xl mb-3 animate-bounce-y">💎</div><p className="text-lg font-bold mb-1">لا توجد سجلات ليزر بعد</p><p className="text-muted-foreground text-sm mb-3">ابدأ بإضافة سجل جديد لمريض</p><Button className="btn-luxury rounded-xl bg-gradient-to-l from-cyan-600 to-cyan-700 text-white" onClick={() => setShowAddLaserRecord(true)}><Plus size={14} className="ml-1" /> إنشاء سجل</Button></Card>}
                     {laserRecords.map(r => {
                       const p = r.patient || patients.find(pt => pt.id === r.patientId)
                       const areaInfo = BODY_AREAS.find(a => a.id === r.bodyArea || a.label === r.bodyArea)
@@ -3398,7 +3396,7 @@ export default function Home() {
                               <div className="flex items-start gap-3">
                                 {/* Area Icon */}
                                 <div className={cn('p-2.5 rounded-xl flex-shrink-0', areaInfo?.color || 'bg-cyan-100 dark:bg-cyan-900/30')}>
-                                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-lg">💎</motion.div>
+                                  <div className="text-lg animate-pulse-scale">💎</div>
                                 </div>
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
@@ -3452,7 +3450,7 @@ export default function Home() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-sm">{formatCurrency(s.price)}</span>
-                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-200">دفع</motion.button>}
+ {!s.paid && <button onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-200 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">دفع</button>}
                               </div>
                             </div>
                           </Card>
@@ -3493,11 +3491,11 @@ export default function Home() {
                           const count = laserRecords.filter(r => r.bodyArea === area.id || r.bodyArea === area.label).length
                           const areaRevenue = laserPackages.filter(p => p.bodyArea === area.label).reduce((s, p) => s + p.price, 0)
                           return (
-                            <motion.button key={area.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className={cn('flex items-center justify-center gap-1.5 p-2.5 rounded-xl border transition-all relative', area.color, count > 0 ? 'ring-2 ring-primary/30' : 'border-dashed')}>
+ <button key={area.id} className={cn('flex items-center justify-center gap-1.5 p-2.5 rounded-xl border transition-all relative active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', area.color, count > 0 ? 'ring-2 ring-primary/30' : 'border-dashed')}>
                               <MapPin size={14} />
                               <span className="text-xs font-bold">{area.label}</span>
                               {count > 0 && <Badge variant="secondary" className="text-[9px]">{count} سجل</Badge>}
-                            </motion.button>
+                            </button>
                           )
                         })}
                       </div>
@@ -3540,7 +3538,7 @@ export default function Home() {
                     </CardContent></Card>
                     {/* Unpaid Dues */}
                     <Card className="card-luxury"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt size={16} /> المبالغ المستحقة</CardTitle></CardHeader><CardContent className="space-y-2">
-                      {laserHairSessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30"><div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة ليزر'}</p></div><div className="flex items-center gap-2"><span className="font-bold text-red-600">{formatCurrency(s.price)}</span><motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold">تأكيد الدفع</motion.button></div></div> })}
+ {laserHairSessions.filter(s => !s.paid).slice(0, 15).map(s => { const p = patients.find(pt => pt.id === s.patientId); const svc = services.find(sv => sv.id === s.serviceId); return <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div><p className="font-medium text-sm active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{svc?.name || s.notes || 'جلسة ليزر'}</p></div><div className="flex items-center gap-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><span className="font-bold text-red-600 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{formatCurrency(s.price)}</span><button onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">تأكيد الدفع</button></div></div> })}
                       {laserHairSessions.filter(s => !s.paid).length === 0 && <p className="text-center text-muted-foreground text-sm py-4">لا توجد مبالغ مستحقة ✅</p>}
                     </CardContent></Card>
                     </>) })()}
@@ -3549,7 +3547,7 @@ export default function Home() {
                 {/* Machine Settings */}
                 {laserSubTab === 'settings' && (<div className="mt-4">
                     <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Settings size={18} /> إعدادات الأجهزة</CardTitle><CardDescription>إعدادات الطاقة والنبض لكل جهاز</CardDescription></CardHeader><CardContent>
-                      {laserSettings.length === 0 ? <div className="text-center py-8"><motion.div animate={{ rotate: [0, 180, 360] }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }} className="text-4xl mb-2 inline-block">⚙️</motion.div><p className="text-muted-foreground">لا توجد إعدادات أجهزة</p><p className="text-xs text-muted-foreground mt-1">أضف إعدادات من لوحة تحكم الأجهزة</p></div> :
+                      {laserSettings.length === 0 ? <div className="text-center py-8"><div className="text-4xl mb-2 inline-block animate-spin-slow">⚙️</div><p className="text-muted-foreground">لا توجد إعدادات أجهزة</p><p className="text-xs text-muted-foreground mt-1">أضف إعدادات من لوحة تحكم الأجهزة</p></div> :
                         <div className="space-y-2">{laserSettings.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"><div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/30"><Wand2 className="text-cyan-600" size={16} /></div><div><p className="font-medium text-sm">{s.machineName}</p><p className="text-xs text-muted-foreground">{s.bodyArea}</p></div></div><div className="flex gap-2"><Badge variant="outline" className="text-[10px]">⚡ طاقة: {s.defaultEnergy || '-'}</Badge><Badge variant="outline" className="text-[10px]">📢 نبض: {s.defaultPulse || '-'}</Badge></div></div>)}</div>
                       }
                     </CardContent></Card>
@@ -3563,7 +3561,7 @@ export default function Home() {
               <div className="space-y-5">
                 <div className="section-header-animated rounded-2xl bg-amber-50 dark:bg-amber-950/30">
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-4xl">💰</motion.div><div><h1 className="text-2xl font-bold">الإدارة المالية</h1><p className="text-muted-foreground text-sm">إيرادات ومصروفات العيادة - يومية بالتاريخ</p></div></div>
+                    <div className="flex items-center gap-3"><div className="text-4xl animate-spin-slow">💰</div><div><h1 className="text-2xl font-bold">الإدارة المالية</h1><p className="text-muted-foreground text-sm">إيرادات ومصروفات العيادة - يومية بالتاريخ</p></div></div>
                     <div className="flex items-center gap-2">
                       <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20">
                         <Clock size={14} className="text-amber-600 dark:text-amber-400" />
@@ -3718,14 +3716,14 @@ export default function Home() {
                 {/* ─── Ultra Premium Header ─── */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#6366F1] via-[#A855F7] to-[#EC4899] p-6 shadow-2xl">
                   <div className="absolute inset-0">
-                    <motion.div animate={{ x: [0, 120, 0], y: [0, -60, 0] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
-                    <motion.div animate={{ x: [0, -80, 0], y: [0, 80, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-36 h-36 bg-pink-300/20 rounded-full blur-3xl" />
-                    <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-200/10 rounded-full blur-3xl" />
-                    <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }} className="absolute -top-10 -left-10 w-32 h-32 border border-white/10 rounded-full" />
-                    <motion.div animate={{ rotate: [360, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'linear' }} className="absolute -bottom-8 -right-8 w-40 h-40 border border-white/10 rounded-full" />
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl animate-drift-a"/>
+                    <div className="absolute bottom-0 left-0 w-36 h-36 bg-pink-300/20 rounded-full blur-3xl animate-drift-a"/>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-200/10 rounded-full blur-3xl animate-pulse-scale-lg"/>
+                    <div className="absolute -top-10 -left-10 w-32 h-32 border border-white/10 rounded-full animate-spin-slow"/>
+                    <div className="absolute -bottom-8 -right-8 w-40 h-40 border border-white/10 rounded-full animate-spin-slow"/>
                   </div>
                   <div className="relative z-10 flex items-center gap-4">
-                    <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-lg border border-white/20">📋</motion.div>
+                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-lg border border-white/20 animate-spin-slow">📋</div>
                     <div>
                       <h1 className="text-3xl font-black text-white drop-shadow-lg" style={{ fontFamily: "'Noto Sans SC', 'Segoe UI', sans-serif" }}>المزيد</h1>
                       <p className="text-white/90 text-sm font-medium">خدمات وأدوات إضافية لإدارة عيادتك</p>
@@ -3754,11 +3752,11 @@ export default function Home() {
                     { id: 'personal', label: 'شخصي', emoji: '🌟', gradient: 'from-[#F97316] to-[#EA580C]', glow: 'shadow-orange-500/40', ring: 'ring-orange-400/60' },
                     { id: 'settings', label: 'الإعدادات', emoji: '🎨', gradient: 'from-[#A855F7] to-[#9333EA]', glow: 'shadow-purple-500/40', ring: 'ring-purple-400/60' },
                   ].map(s => (
-                    <motion.button key={s.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08, y: -3 }} onClick={() => setMoreSubTab(s.id)} className={cn('relative overflow-hidden flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all duration-300', moreSubTab === s.id ? cn('ring-2 shadow-xl scale-105 bg-white dark:bg-gray-800', s.ring, s.glow) : 'bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 hover:shadow-lg border border-white/30 dark:border-gray-700/30')}>
+ <button key={s.id} onClick={() => setMoreSubTab(s.id)} className={cn('relative overflow-hidden flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all duration-300 active:scale-[0.9] hover:scale-[1.08] transition-transform duration-150', moreSubTab === s.id ? cn('ring-2 shadow-xl scale-105 bg-white dark:bg-gray-800', s.ring, s.glow) : 'bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 hover:shadow-lg border border-white/30 dark:border-gray-700/30')}>
                       {moreSubTab === s.id && <div className={cn('absolute inset-0 bg-gradient-to-br opacity-15', s.gradient)} />}
                       <motion.div animate={moreSubTab === s.id ? { scale: [1, 1.2, 1] } : {}} transition={{ duration: 0.5 }} className={cn('w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all duration-300', moreSubTab === s.id ? cn('bg-gradient-to-br text-white shadow-lg', s.gradient, s.glow) : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600')}>{s.emoji}</motion.div>
                       <span className={cn('text-[10px] font-bold transition-colors whitespace-nowrap', moreSubTab === s.id ? 'text-foreground' : 'text-muted-foreground')}>{s.label}</span>
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
 
@@ -3808,12 +3806,12 @@ export default function Home() {
                     {/* Hero Header - Light Cyan Theme */}
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0891B2] via-[#06B6D4] to-[#67E8F9] p-5 shadow-xl">
                       <div className="absolute inset-0 opacity-15">
-                        <motion.div animate={{ x: [0, 80, 0], y: [0, -40, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-36 h-36 bg-white/30 rounded-full blur-3xl" />
-                        <motion.div animate={{ x: [0, -60, 0], y: [0, 50, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-28 h-28 bg-white/20 rounded-full blur-3xl" />
+                        <div className="absolute top-0 right-0 w-36 h-36 bg-white/30 rounded-full blur-3xl animate-drift-a"/>
+                        <div className="absolute bottom-0 left-0 w-28 h-28 bg-white/20 rounded-full blur-3xl animate-drift-a"/>
                       </div>
                       <div className="relative z-10 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} className="text-4xl">🔄</motion.div>
+                          <div className="text-4xl animate-spin-slow">🔄</div>
                           <div>
                             <h1 className="text-2xl font-bold text-white">المتابعات</h1>
                             <p className="text-white/80 text-sm">متابعة الحالات المزمنة والباقات</p>
@@ -4016,7 +4014,7 @@ export default function Home() {
                           )
                         })() : (
                           <Card className="card-luxury p-12 text-center border-[#06B6D4]/20">
-                            <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">🔄</motion.div>
+                            <div className="text-5xl mb-3 animate-bounce-y">🔄</div>
                             <p className="text-muted-foreground">اختر حالة من القائمة لعرض التفاصيل</p>
                           </Card>
                         )}
@@ -4029,9 +4027,9 @@ export default function Home() {
                 {/* Services Sub-tab - Premium Design */}
                 {moreSubTab === 'services' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 via-emerald-500 to-green-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, 80, 0] }} transition={{ duration: 12, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-drift-c"/></div>
                     <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="text-4xl">⚙️</motion.div><div><h2 className="text-2xl font-black text-white">الخدمات</h2><p className="text-white/80 text-sm">{services.length} خدمة مسجلة</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-4xl animate-spin-slow">⚙️</div><div><h2 className="text-2xl font-black text-white">الخدمات</h2><p className="text-white/80 text-sm">{services.length} خدمة مسجلة</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddService(true)}><Plus size={14} className="ml-1" /> خدمة جديدة</Button>
                     </div>
                   </motion.div>
@@ -4041,7 +4039,7 @@ export default function Home() {
                     <div className="absolute top-0 left-0 w-24 h-24 bg-blue-400/10 rounded-full blur-2xl" />
                     <div className="relative z-10">
                       <div className="flex items-center gap-2 mb-3">
-                        <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-xl">💰</motion.div>
+                        <div className="text-xl animate-pulse-scale">💰</div>
                         <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">قيم الكشف والإعادة الافتراضية</h3>
                         <span className="text-[9px] text-muted-foreground bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">تُطبق تلقائياً عند إنشاء زيارة</span>
                       </div>
@@ -4065,7 +4063,7 @@ export default function Home() {
                     </div>
                   </motion.div>
                   {services.length === 0 && <Card className="card-luxury p-6 text-center"><p className="text-3xl mb-2">⚙️</p><p className="text-muted-foreground">لا توجد خدمات بعد</p></Card>}
-                  {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury"><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Tag size={14} className="text-teal-500" /> {cat} <Badge variant="secondary" className="text-[9px]">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all"><div className="flex items-center gap-3"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div>{editingServiceId === s.id ? (<div className="flex items-center gap-2"><Input value={editingServiceName} onChange={e => setEditingServiceName(e.target.value)} className="h-8 text-sm rounded-lg font-medium w-32" placeholder="اسم الخدمة" /><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-24 h-8 text-sm rounded-lg font-bold" /><Button size="sm" className="h-8 rounded-lg text-xs bg-teal-600 text-white" onClick={async () => { const newPrice = parseFloat(editingServicePrice); const newName = editingServiceName.trim(); if (isNaN(newPrice)) { toast.error('أدخل سعر صحيح'); return } if (!newName) { toast.error('أدخل اسم الخدمة'); return } try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, name: newName, price: newPrice } : sv)); toast.success('تم التحديث ✓'); setEditingServiceId(null) } catch (e: any) { toast.error(e?.message || 'خطأ'); setEditingServiceId(null) } }}>✓</Button><Button variant="ghost" size="sm" className="h-8 rounded-lg" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><p className="font-medium text-sm cursor-pointer hover:text-teal-600 hover:underline decoration-dashed underline-offset-2" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}>{s.name}</p><p className="text-xs text-muted-foreground">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></>)}</div></div><div className="flex items-center gap-2">{editingServiceId !== s.id && (<><motion.button whileTap={{ scale: 0.95 }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-dashed border-teal-300 dark:border-teal-700 hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-all cursor-pointer" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><span className="font-bold text-sm text-teal-700 dark:text-teal-300">{s.price}</span><span className="text-xs text-muted-foreground">ج.م</span><Edit3 size={10} className="text-teal-400" /></motion.button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500" /></Button></div></div>)}</CardContent></Card>)}
+ {Object.entries(servicesByCategory).map(([cat, svcs]) => <Card key={cat} className="card-luxury active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><CardHeader className="pb-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><CardTitle className="text-sm flex items-center gap-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><Tag size={14} className="text-teal-500 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /> {cat} <Badge variant="secondary" className="text-[9px] active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{svcs.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{svcs.map(s => <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-transparent hover:border-primary/20 transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><div className="flex items-center gap-3 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><div className={cn('w-2 h-8 rounded-full', s.active ? 'bg-emerald-500' : 'bg-red-400')} /><div>{editingServiceId === s.id ? (<div className="flex items-center gap-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><Input value={editingServiceName} onChange={e => setEditingServiceName(e.target.value)} className="h-8 text-sm rounded-lg font-medium w-32 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" placeholder="اسم الخدمة" /><Input type="number" value={editingServicePrice} onChange={e => setEditingServicePrice(e.target.value)} className="w-24 h-8 text-sm rounded-lg font-bold active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /><Button size="sm" className="h-8 rounded-lg text-xs bg-teal-600 text-white active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={async () => { const newPrice = parseFloat(editingServicePrice); const newName = editingServiceName.trim(); if (isNaN(newPrice)) { toast.error('أدخل سعر صحيح'); return } if (!newName) { toast.error('أدخل اسم الخدمة'); return } try { await apiFetch(`/services/${s.id}`, { method: 'PUT', body: JSON.stringify({ name: newName, price: newPrice }) }); setServices(prev => prev.map(sv => sv.id === s.id ? { ...sv, name: newName, price: newPrice } : sv)); toast.success('تم التحديث ✓'); setEditingServiceId(null) } catch (e: any) { toast.error(e?.message || 'خطأ'); setEditingServiceId(null) } }}>✓</Button><Button variant="ghost" size="sm" className="h-8 rounded-lg active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => setEditingServiceId(null)}>✕</Button></div>) : (<><p className="font-medium text-sm cursor-pointer hover:text-teal-600 hover:underline decoration-dashed underline-offset-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}>{s.name}</p><p className="text-xs text-muted-foreground active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{s.duration ? `${s.duration} دقيقة` : 'بدون مدة محددة'}</p></>)}</div></div><div className="flex items-center gap-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{editingServiceId !== s.id && (<><button className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-dashed border-teal-300 dark:border-teal-700 hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-all cursor-pointer active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><span className="font-bold text-sm text-teal-700 dark:text-teal-300 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{s.price}</span><span className="text-xs text-muted-foreground active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">ج.م</span><Edit3 size={10} className="text-teal-400 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /></button><Button variant="ghost" size="icon" className="h-7 w-7 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => { setEditingServiceId(s.id); setEditingServiceName(s.name); setEditingServicePrice(String(s.price)) }}><Edit3 size={11} className="text-teal-500 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /></Button></>)}<Badge className={s.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]'}>{s.active ? 'نشط' : 'معطل'}</Badge><Button variant="ghost" size="icon" className="h-7 w-7 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => deleteItem('/services', s.id, setServices)}><Trash2 size={12} className="text-red-500 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /></Button></div></div>)}</CardContent></Card>)}
                 </div>)}
 
                 {/* ═══ Sessions Sub-tab - PROFESSIONAL ANIMATED ═══ */}
@@ -4073,12 +4071,12 @@ export default function Home() {
                   {/* Animated Header */}
                   <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-5 shadow-xl">
                     <div className="absolute inset-0 opacity-20">
-                      <motion.div animate={{ x: [0, 100, 0], y: [0, -50, 0] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="absolute top-0 right-0 w-40 h-40 bg-white/20 rounded-full blur-3xl" />
-                      <motion.div animate={{ x: [0, -80, 0], y: [0, 60, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }} className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-300/20 rounded-full blur-3xl" />
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-drift-a"/>
+                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-300/20 rounded-full blur-3xl animate-drift-a"/>
                     </div>
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <motion.div animate={{ rotate: [0, -10, 10, -10, 0], scale: [1, 1.2, 1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-5xl">⚡</motion.div>
+                        <div className="text-5xl animate-pulse-scale">⚡</div>
                         <div>
                           <h2 className="text-2xl font-black text-white">إدارة الجلسات</h2>
                           <p className="text-violet-200 text-sm mt-0.5">تتبع ومتابعة وإدارة جميع جلسات العيادة</p>
@@ -4105,7 +4103,7 @@ export default function Home() {
                     ].map((stat, idx) => (
                       <motion.div key={stat.label} initial={{ opacity: 0, y: 30, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: idx * 0.1, type: 'spring', stiffness: 200 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden">
                         <div className={cn('p-4 rounded-2xl bg-gradient-to-br text-white shadow-lg', stat.gradient)}>
-                          <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.3 }} className="absolute top-2 left-2 text-3xl opacity-20">{stat.emoji}</motion.div>
+                          <div className="absolute top-2 left-2 text-3xl opacity-20 animate-bounce-y-sm">{stat.emoji}</div>
                           <div className="relative z-10 flex items-center gap-3">
                             <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">{stat.icon}</div>
                             <div><p className="text-[10px] text-white/70 font-medium">{stat.label}</p><p className="text-xl font-black">{stat.value}</p></div>
@@ -4153,13 +4151,13 @@ export default function Home() {
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
                     <Card className="card-luxury border-2 border-violet-200 dark:border-violet-800 overflow-hidden">
                       <div className="bg-gradient-to-l from-violet-500 to-purple-600 p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }} className="text-xl">📅</motion.div><CardTitle className="text-sm text-white font-bold">جلسات اليوم</CardTitle></div>
+                        <div className="flex items-center gap-2"><div className="text-xl animate-spin-slow">📅</div><CardTitle className="text-sm text-white font-bold">جلسات اليوم</CardTitle></div>
                         <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => getLocalDateStr(s.date) === todayStr).length}</Badge>
                       </div>
                       <CardContent className="p-3 space-y-2">
                         {(() => {
                           const todaySessions = sessions.filter(s => getLocalDateStr(s.date) === todayStr)
-                          if (todaySessions.length === 0) return <div className="text-center py-8"><motion.div animate={{ y: [0, -10, 0], rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">😴</motion.div><p className="text-muted-foreground font-medium">لا توجد جلسات اليوم</p><p className="text-xs text-muted-foreground mt-1">أضف جلسة جديدة من الأعلى</p></div>
+                          if (todaySessions.length === 0) return <div className="text-center py-8"><div className="text-5xl mb-3 animate-bounce-y">😴</div><p className="text-muted-foreground font-medium">لا توجد جلسات اليوم</p><p className="text-xs text-muted-foreground mt-1">أضف جلسة جديدة من الأعلى</p></div>
                           return todaySessions.map((s, idx) => {
                             const p = patients.find(pt => pt.id === s.patientId)
                             const svc = services.find(sv => sv.id === s.serviceId)
@@ -4179,7 +4177,7 @@ export default function Home() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-black text-sm bg-gradient-to-l from-violet-600 to-purple-600 bg-clip-text text-transparent">{formatCurrency(s.price)}</span>
-                                  {!s.paid && <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.05 }} onClick={() => markSessionPaid(s)} className="px-3 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md hover:shadow-lg transition-shadow">💰 دفع</motion.button>}
+                                  {!s.paid && <button onClick={() => markSessionPaid(s)} className="px-3 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md hover:shadow-lg transition-shadow active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150">💰 دفع</button>}
                                 </div>
                               </motion.div>
                             )
@@ -4193,11 +4191,11 @@ export default function Home() {
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                     <Card className="card-luxury border-2 border-purple-200 dark:border-purple-800 overflow-hidden">
                       <div className="bg-gradient-to-l from-purple-500 to-fuchsia-600 p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2"><motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-xl">⚡</motion.div><CardTitle className="text-sm text-white font-bold">جميع الجلسات</CardTitle></div>
+                        <div className="flex items-center gap-2"><div className="text-xl animate-pulse-scale-lg">⚡</div><CardTitle className="text-sm text-white font-bold">جميع الجلسات</CardTitle></div>
                         <Badge className="bg-white/20 text-white border-white/30">{sessions.length} جلسة</Badge>
                       </div>
                       <CardContent className="p-3 space-y-2">
-                        {sessions.length === 0 && <div className="text-center py-8"><motion.div animate={{ y: [0, -5, 0], scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">📋</motion.div><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></div>}
+                        {sessions.length === 0 && <div className="text-center py-8"><div className="text-5xl mb-3 animate-bounce-y">📋</div><p className="text-muted-foreground">لا توجد جلسات مسجلة</p></div>}
                         {sessions.slice(0, 50).map((s, idx) => {
                           const p = patients.find(pt => pt.id === s.patientId)
                           const svc = services.find(sv => sv.id === s.serviceId)
@@ -4218,7 +4216,7 @@ export default function Home() {
                               <div className="flex items-center gap-2">
                                 <span className="font-black text-sm">{formatCurrency(s.price)}</span>
                                 <Button variant="outline" size="sm" className="rounded-lg text-[10px] h-7" onClick={() => { const pt = patients.find(pp => pp.id === s.patientId); if (pt) { setSelectedPatient(pt); setActiveTab('patients') } }}><Eye size={10} /></Button>
-                                {!s.paid && <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md">دفع</motion.button>}
+ {!s.paid && <button onClick={() => markSessionPaid(s)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold shadow-md active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">دفع</button>}
                               </div>
                             </motion.div>
                           )
@@ -4232,7 +4230,7 @@ export default function Home() {
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}>
                       <Card className="card-luxury border-2 border-red-300 dark:border-red-800 overflow-hidden">
                         <div className="bg-gradient-to-l from-red-500 to-rose-600 p-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity }} className="text-xl">🚨</motion.div><CardTitle className="text-sm text-white font-bold">مستحقات غير مدفوعة</CardTitle></div>
+                          <div className="flex items-center gap-2"><div className="text-xl animate-pulse-scale-lg">🚨</div><CardTitle className="text-sm text-white font-bold">مستحقات غير مدفوعة</CardTitle></div>
                           <Badge className="bg-white/20 text-white border-white/30">{sessions.filter(s => !s.paid).length} مستحق</Badge>
                         </div>
                         <CardContent className="p-3 space-y-2">
@@ -4242,12 +4240,12 @@ export default function Home() {
                             return (
                               <motion.div key={s.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }} className="flex items-center justify-between p-2.5 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30">
                                 <div className="flex items-center gap-2">
-                                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }} className="text-lg">⚠️</motion.div>
+                                  <div className="text-lg animate-pulse-scale">⚠️</div>
                                   <div><p className="font-medium text-sm">{p?.name || 'مريض'}</p><p className="text-xs text-muted-foreground">{svc?.name || s.notes || 'جلسة'}</p></div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-red-600">{formatCurrency(s.price)}</span>
-                                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => markSessionPaid(s)} className="px-2.5 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md">تأكيد الدفع</motion.button>
+ <button onClick={() => markSessionPaid(s)} className="px-2.5 py-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 text-white text-[10px] font-bold shadow-md active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">تأكيد الدفع</button>
                                 </div>
                               </motion.div>
                             )
@@ -4268,7 +4266,7 @@ export default function Home() {
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
                       <Card className="card-luxury overflow-hidden">
                         <div className="bg-gradient-to-l from-indigo-500 to-blue-600 p-3 flex items-center gap-2">
-                          <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="text-xl">📊</motion.div>
+                          <div className="text-xl animate-spin-slow">📊</div>
                           <CardTitle className="text-sm text-white font-bold">إحصائيات حسب الخدمة</CardTitle>
                         </div>
                         <CardContent className="p-3 space-y-2">
@@ -4301,20 +4299,20 @@ export default function Home() {
                 {/* Visits Sub-tab - ENHANCED */}
                 {moreSubTab === 'visits' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, -60, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute bottom-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
-                    <div className="relative z-10 flex items-center gap-3"><motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🩺</motion.div><div><h2 className="text-2xl font-black text-white">الزيارات</h2><p className="text-white/80 text-sm">{visits.length} زيارة مسجلة</p></div></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute bottom-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-drift-c"/></div>
+                    <div className="relative z-10 flex items-center gap-3"><div className="text-4xl animate-pulse-scale">🩺</div><div><h2 className="text-2xl font-black text-white">الزيارات</h2><p className="text-white/80 text-sm">{visits.length} زيارة مسجلة</p></div></div>
                   </motion.div>
                   
                   {/* Filter by visit type */}
                   <div className="flex gap-2 flex-wrap">
                     {[{ id: 'all', label: 'الكل', emoji: '📋' }, ...VISIT_TYPES.slice(0, 3)].map(vt => (
-                      <motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setVisitFilterType(vt.id)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all', visitFilterType === vt.id ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20 shadow-md' : 'border-transparent bg-muted/50 hover:bg-muted')}>
+ <button key={vt.id} onClick={() => setVisitFilterType(vt.id)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', visitFilterType === vt.id ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/20 shadow-md' : 'border-transparent bg-muted/50 hover:bg-muted')}>
                         <span>{vt.id === 'all' ? '📋' : vt.emoji}</span><span>{vt.label}</span>
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
 
-                  {visits.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">🩺</motion.div><p className="text-muted-foreground">لا توجد زيارات بعد</p></Card>}
+                  {visits.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">🩺</div><p className="text-muted-foreground">لا توجد زيارات بعد</p></Card>}
                   <div className="space-y-3">{(() => {
                     const filtered = visits.filter(v => visitFilterType === 'all' || v.type === visitFilterType).slice(0, 50)
                     return filtered.map((v, idx) => {
@@ -4326,7 +4324,7 @@ export default function Home() {
                           <Card className="section-card p-4 border-2 border-violet-100 dark:border-violet-900 hover:shadow-lg transition-all">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <motion.div animate={{ y: [0, -2, 0] }} transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }} className={cn('p-2 rounded-xl text-white text-lg', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</motion.div>
+                                <div className={cn('p-2 rounded-xl text-white text-lg animate-bounce-y-sm', vt?.bg || 'bg-gray-500')}>{vt?.emoji || '📝'}</div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-bold text-sm">{p?.name || 'مريض'}</span>
@@ -4334,7 +4332,7 @@ export default function Home() {
                                   </div>
                                   {isEditing ? (
                                     <div className="space-y-2 mt-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
-                                      <div><Label className="text-xs font-bold">نوع الزيارة</Label><div className="flex gap-1.5 mt-1">{VISIT_TYPES.slice(0, 3).map(vt => (<motion.button key={vt.id} whileTap={{ scale: 0.95 }} onClick={() => setEditVisitForm(prev => ({ ...prev, type: vt.id }))} className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-white text-[10px] font-bold transition-all', vt.bg, editVisitForm.type === vt.id ? 'ring-2 ring-white shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{vt.emoji}</span>{vt.label}</motion.button>))}</div></div>
+ <div><Label className="text-xs font-bold active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">نوع الزيارة</Label><div className="flex gap-1.5 mt-1 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{VISIT_TYPES.slice(0, 3).map(vt => (<button key={vt.id} onClick={() => setEditVisitForm(prev => ({ ...prev, type: vt.id }))} className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-white text-[10px] font-bold transition-all', vt.bg, editVisitForm.type === vt.id ? 'ring-2 ring-white shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{vt.emoji}</span>{vt.label}</button>))}</div></div>
                                       <div><Label className="text-xs font-bold">ملاحظات</Label><Textarea value={editVisitForm.notes} onChange={e => setEditVisitForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="ملاحظات الزيارة..." className="input-luxury rounded-xl h-16 text-xs mt-1" /></div>
                                       <div className="flex gap-2"><Button size="sm" className="rounded-xl bg-violet-600 text-white text-xs" onClick={() => editVisitWithFinance(v, editVisitForm.type, editVisitForm.notes, p?.name || '')}>حفظ</Button><Button variant="ghost" size="sm" className="rounded-xl text-xs" onClick={() => setEditingVisitId(null)}>إلغاء</Button></div>
                                     </div>
@@ -4369,9 +4367,9 @@ export default function Home() {
                 {/* Partner Doctors Sub-tab - Complete System */}
                 {moreSubTab === 'doctors' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ y: [0, 40, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-bounce-y"/></div>
                     <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">👨‍⚕️</motion.div><div><h2 className="text-2xl font-black text-white">الأطباء المشاركون</h2><p className="text-white/80 text-sm">{doctors.length} طبيب مشارك</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-4xl animate-bounce-y">👨‍⚕️</div><div><h2 className="text-2xl font-black text-white">الأطباء المشاركون</h2><p className="text-white/80 text-sm">{doctors.length} طبيب مشارك</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => { setDoctorForm({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' }); setShowAddDoctor(true) }}><Plus size={14} className="ml-1" /> طبيب جديد</Button>
                     </div>
                   </motion.div>
@@ -4384,7 +4382,7 @@ export default function Home() {
                       <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20"><p className="text-[10px] text-muted-foreground">إجمالي الإيرادات</p><p className="text-sm font-bold text-amber-600">{formatCurrency(totalIncome)}</p></div>
                     </div>
                   </CardContent></Card>}
-                  {doctors.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">👨‍⚕️</motion.div><p className="text-muted-foreground">لا يوجد أطباء مشاركون بعد</p><p className="text-xs text-muted-foreground mt-1">أضف أطباء مشاركين مع تحديد نسبهم</p></Card>}
+                  {doctors.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">👨‍⚕️</div><p className="text-muted-foreground">لا يوجد أطباء مشاركون بعد</p><p className="text-xs text-muted-foreground mt-1">أضف أطباء مشاركين مع تحديد نسبهم</p></Card>}
                   {doctorEarnings.map(d => (
                     <Card key={d.id} className="section-card p-4 border-2 border-emerald-100 dark:border-emerald-900">
                       <div className="flex items-start justify-between mb-3">
@@ -4409,20 +4407,20 @@ export default function Home() {
                 {/* Inventory Sub-tab - PROFESSIONAL */}
                 {moreSubTab === 'inventory' && (<div className="space-y-4">
                   {/* Header */}
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> المخزون</h3><div className="flex items-center gap-2">{lowStockItems.length > 0 && <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: Infinity }}><Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">{lowStockItems.length} منخفض</Badge></motion.div>}<Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={() => { setEditingInventoryId(null); setEditInventoryForm({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' }); setShowAddInventory(true) }}><Plus size={14} className="ml-1" /> عنصر</Button></div></div>
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><Package size={18} className="text-amber-500" /> المخزون</h3><div className="flex items-center gap-2">{lowStockItems.length > 0 && <div className="animate-pulse-scale"><Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[9px]">{lowStockItems.length} منخفض</Badge></div>}<Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={() => { setEditingInventoryId(null); setEditInventoryForm({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' }); setShowAddInventory(true) }}><Plus size={14} className="ml-1" /> عنصر</Button></div></div>
                   
                   {/* Dashboard Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
                       <Card className="border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-3 text-center">
-                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">📦</motion.div>
+                        <div className="text-2xl mb-1 animate-bounce-y-sm">📦</div>
                         <p className="text-xl font-black text-amber-700 dark:text-amber-300">{inventoryItems.length}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">إجمالي العناصر</p>
                       </Card>
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                       <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 p-3 text-center">
-                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="text-2xl mb-1">💰</motion.div>
+                        <div className="text-2xl mb-1 animate-bounce-y-sm">💰</div>
                         <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{formatCurrency(inventoryItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">إجمالي القيمة</p>
                       </Card>
@@ -4436,7 +4434,7 @@ export default function Home() {
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                       <Card className="border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 p-3 text-center">
-                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1 }} className="text-2xl mb-1">🏷️</motion.div>
+                        <div className="text-2xl mb-1 animate-bounce-y-sm">🏷️</div>
                         <p className="text-xl font-black text-violet-700 dark:text-violet-300">{new Set(inventoryItems.map(i => i.category || 'عام')).size}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">الفئات</p>
                       </Card>
@@ -4451,7 +4449,7 @@ export default function Home() {
                   </div>
 
                   {/* Items List */}
-                  {inventoryItems.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📦</motion.div><p className="text-muted-foreground">لا توجد عناصر في المخزون</p><p className="text-xs text-muted-foreground mt-1">أضف عناصر للبدء في إدارة المخزون</p></Card>}
+                  {inventoryItems.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">📦</div><p className="text-muted-foreground">لا توجد عناصر في المخزون</p><p className="text-xs text-muted-foreground mt-1">أضف عناصر للبدء في إدارة المخزون</p></Card>}
                   <div className="space-y-3">{(() => {
                     const filtered = inventoryItems.filter(i => {
                       if (inventorySearch && !i.name.toLowerCase().includes(inventorySearch.toLowerCase())) return false
@@ -4516,20 +4514,20 @@ export default function Home() {
                 {/* Bookings Sub-tab - PROFESSIONAL */}
                 {moreSubTab === 'bookings' && (<div className="space-y-4">
                   {/* Header */}
-                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}><CalendarCheck size={18} className="text-sky-500" /></motion.div> نظام الحجز</h3><div className="flex items-center gap-2"><Badge variant="outline">{appointments.length} حجز</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-sky-500 to-sky-600 text-white" onClick={() => { setEditingBookingId(null); setBookingFormPatientSearch(''); setBookingFormPatientId(''); setBookingFormDate(cairoTodayInput()); setBookingFormTime(cairoTimeInput()); setBookingFormType('checkup'); setBookingFormStatus('scheduled'); setBookingFormNotes(''); setShowAddBooking(true) }}><Plus size={14} className="ml-1" /> حجز جديد</Button></div></div>
+                  <div className="flex items-center justify-between"><h3 className="font-bold text-lg flex items-center gap-2"><div className="animate-wiggle"><CalendarCheck size={18} className="text-sky-500" /></div> نظام الحجز</h3><div className="flex items-center gap-2"><Badge variant="outline">{appointments.length} حجز</Badge><Button className="btn-luxury rounded-xl bg-gradient-to-l from-sky-500 to-sky-600 text-white" onClick={() => { setEditingBookingId(null); setBookingFormPatientSearch(''); setBookingFormPatientId(''); setBookingFormDate(cairoTodayInput()); setBookingFormTime(cairoTimeInput()); setBookingFormType('checkup'); setBookingFormStatus('scheduled'); setBookingFormNotes(''); setShowAddBooking(true) }}><Plus size={14} className="ml-1" /> حجز جديد</Button></div></div>
                   
                   {/* Stats Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                       <Card className="border-2 border-sky-200 dark:border-sky-800 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 p-3 text-center">
-                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-2xl mb-1">📅</motion.div>
+                        <div className="text-2xl mb-1 animate-bounce-y-sm">📅</div>
                         <p className="text-xl font-black text-sky-700 dark:text-sky-300">{appointments.filter(a => getLocalDateStr(a.date) === todayStr).length}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">حجز اليوم</p>
                       </Card>
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                       <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 p-3 text-center">
-                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="text-2xl mb-1">📆</motion.div>
+                        <div className="text-2xl mb-1 animate-bounce-y-sm">📆</div>
                         <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{(() => { const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })); const dayOfWeek = nowCairo.getDay(); const daysSinceSaturday = (dayOfWeek + 1) % 7; const satDate = new Date(nowCairo); satDate.setDate(nowCairo.getDate() - daysSinceSaturday); const weekStartStr = satDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); return appointments.filter(a => getLocalDateStr(a.date) >= weekStartStr).length })()}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">هذا الأسبوع</p>
                       </Card>
@@ -4543,7 +4541,7 @@ export default function Home() {
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                       <Card className="border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 p-3 text-center">
-                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1 }} className="text-2xl mb-1">✅</motion.div>
+                        <div className="text-2xl mb-1 animate-bounce-y-sm">✅</div>
                         <p className="text-xl font-black text-violet-700 dark:text-violet-300">{appointments.filter(a => a.status === 'confirmed').length}</p>
                         <p className="text-[10px] text-muted-foreground font-bold">مؤكد</p>
                       </Card>
@@ -4557,7 +4555,7 @@ export default function Home() {
                   </div>
 
                   {/* Appointments List */}
-                  {appointments.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📅</motion.div><p className="text-muted-foreground">لا توجد حجوزات بعد</p><p className="text-xs text-muted-foreground mt-1">أضف حجز جديد للبدء</p></Card>}
+                  {appointments.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">📅</div><p className="text-muted-foreground">لا توجد حجوزات بعد</p><p className="text-xs text-muted-foreground mt-1">أضف حجز جديد للبدء</p></Card>}
                   <div className="space-y-3">{(() => {
                     const filtered = appointments.filter(a => {
                       if (bookingFilterStatus !== 'all' && a.status !== bookingFilterStatus) return false
@@ -4613,7 +4611,7 @@ export default function Home() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-1">
-                                {p?.phone && <motion.button whileTap={{ scale: 0.85 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all" onClick={() => { const wp = waPhone(p.phone); if (wp) { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/${wp}?text=${msg}`, '_blank') } }}><Send size={14} className="text-green-600" /></motion.button>}
+ {p?.phone && <button className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150" onClick={() => { const wp = waPhone(p.phone); if (wp) { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/${wp}?text=${msg}`, '_blank') } }}><Send size={14} className="text-green-600 active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150" /></button>}
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingBookingId(apt.id); setBookingFormPatientSearch(p?.name || ''); setBookingFormPatientId(apt.patientId || ''); setBookingFormDate(apt.date?.split('T')[0] || ''); setBookingFormTime(aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })); setBookingFormType(apt.type); setBookingFormStatus(apt.status); setBookingFormNotes(apt.notes || ''); setShowAddBooking(true) }}><Edit3 size={12} className="text-sky-500" /></Button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/appointments', apt.id, setAppointments)}><Trash2 size={12} className="text-red-500" /></Button>
                               </div>
@@ -4628,9 +4626,9 @@ export default function Home() {
                 {/* Medications Sub-tab - Enhanced */}
                 {moreSubTab === 'medications' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-lime-500 via-green-500 to-emerald-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-pulse-scale-lg"/></div>
                     <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">💊</motion.div><div><h2 className="text-2xl font-black text-white">الأدوية</h2><p className="text-white/80 text-sm">{medications.length} دواء مسجل</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-4xl animate-wiggle-wide">💊</div><div><h2 className="text-2xl font-black text-white">الأدوية</h2><p className="text-white/80 text-sm">{medications.length} دواء مسجل</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddMedication(true)}><Plus size={14} className="ml-1" /> دواء جديد</Button>
                     </div>
                   </motion.div>
@@ -4641,9 +4639,9 @@ export default function Home() {
                 {/* Reminders Sub-tab - ENHANCED Professional */}
                 {moreSubTab === 'reminders' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500 via-red-500 to-orange-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, 60, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute bottom-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute bottom-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-drift-c"/></div>
                     <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="text-4xl">⏰</motion.div><div><h2 className="text-2xl font-black text-white">التذكيرات</h2><p className="text-white/80 text-sm">{reminders.length} تذكير مسجل</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-4xl animate-wiggle-wide">⏰</div><div><h2 className="text-2xl font-black text-white">التذكيرات</h2><p className="text-white/80 text-sm">{reminders.length} تذكير مسجل</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddReminder(true)}><Plus size={14} className="ml-1" /> تذكير جديد</Button>
                     </div>
                   </motion.div>
@@ -4656,7 +4654,7 @@ export default function Home() {
                       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
                         <Card className="border-2 border-amber-400 dark:border-amber-600 overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-l from-amber-100/50 via-orange-100/30 to-yellow-100/50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/30 pointer-events-none" />
-                          <CardHeader className="pb-2 relative z-10"><CardTitle className="text-sm flex items-center gap-2"><motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>📌</motion.span> تذكيرات اليوم <Badge className="bg-amber-500 text-white text-[9px]">{todayReminders.length}</Badge></CardTitle></CardHeader>
+                          <CardHeader className="pb-2 relative z-10"><CardTitle className="text-sm flex items-center gap-2"><span className="animate-wiggle-wide">📌</span> تذكيرات اليوم <Badge className="bg-amber-500 text-white text-[9px]">{todayReminders.length}</Badge></CardTitle></CardHeader>
                           <CardContent className="space-y-2 relative z-10">
                             {todayReminders.map(r => {
                               const rTypeConfig: Record<string, { emoji: string; color: string; bg: string }> = { urgent: { emoji: '🔴', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' }, important: { emoji: '🟡', color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' }, followup: { emoji: '🔵', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' }, general: { emoji: '🟢', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' } }
@@ -4669,8 +4667,8 @@ export default function Home() {
                                       <div><p className="font-bold text-sm">{r.title}</p>{r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}</div>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                      {r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); const wp = rp?.phone ? waPhone(rp.phone) : ''; return wp ? <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${wp}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600"><Send size={12} /></motion.button> : null })()}
-                                      <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); setCelebratingId(r.id); setTimeout(() => setCelebratingId(null), 2000); toast.success('🎉 تم إكمال التذكير!') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1">✓ تم</motion.button>
+ {r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); const wp = rp?.phone ? waPhone(rp.phone) : ''; return wp ? <button onClick={() => window.open(`https://wa.me/${wp}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><Send size={12} /></button> : null })()}
+ <button onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); setCelebratingId(r.id); setTimeout(() => setCelebratingId(null), 2000); toast.success('🎉 تم إكمال التذكير!') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150">✓ تم</button>
                                     </div>
                                   </div>
                                 </motion.div>
@@ -4685,7 +4683,7 @@ export default function Home() {
                   {/* Celebration overlay */}
                   <AnimatePresence>{celebratingId && (<motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"><motion.div animate={{ y: [0, -20, 0], rotate: [0, 10, -10, 0] }} transition={{ duration: 1, repeat: 2 }} className="text-6xl">🎉</motion.div></motion.div>)}</AnimatePresence>
 
-                  {reminders.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⏰</motion.div><p className="text-muted-foreground">لا توجد تذكيرات</p><p className="text-xs text-muted-foreground mt-1">أضف تذكيراً جديداً للبدء</p></Card>}
+                  {reminders.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">⏰</div><p className="text-muted-foreground">لا توجد تذكيرات</p><p className="text-xs text-muted-foreground mt-1">أضف تذكيراً جديداً للبدء</p></Card>}
                   <div className="space-y-2">{reminders.map(r => {
                     const isPast = new Date(r.date) < new Date()
                     const rTypeConfig: Record<string, { emoji: string; color: string; bg: string; gradient: string }> = { urgent: { emoji: '🔴', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700', gradient: 'from-red-500 to-red-700' }, important: { emoji: '🟡', color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700', gradient: 'from-amber-500 to-amber-700' }, followup: { emoji: '🔵', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700', gradient: 'from-blue-500 to-blue-700' }, general: { emoji: '🟢', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700', gradient: 'from-emerald-500 to-emerald-700' } }
@@ -4712,9 +4710,9 @@ export default function Home() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            {r.status !== 'completed' && r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); const wp = rp?.phone ? waPhone(rp.phone) : ''; return wp ? <motion.button whileTap={{ scale: 0.9 }} onClick={() => window.open(`https://wa.me/${wp}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 hover:bg-green-200 transition-colors"><Send size={12} /></motion.button> : null })()}
+ {r.status !== 'completed' && r.patientId && (() => { const rp = patients.find(p => p.id === r.patientId); const wp = rp?.phone ? waPhone(rp.phone) : ''; return wp ? <button onClick={() => window.open(`https://wa.me/${wp}`, '_blank')} className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 hover:bg-green-200 transition-colors active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><Send size={12} /></button> : null })()}
                             <Badge variant="outline" className={r.status === 'completed' ? 'border-emerald-500 text-emerald-600 text-[9px]' : r.status === 'pending' ? 'border-amber-500 text-amber-600 text-[9px]' : 'border-blue-500 text-blue-600 text-[9px]'}>{r.status === 'completed' ? 'مكتمل ✓' : r.status === 'pending' ? 'قيد الانتظار' : r.status}</Badge>
-                            {r.status !== 'completed' && <motion.button whileTap={{ scale: 0.85 }} onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); setCelebratingId(r.id); setTimeout(() => setCelebratingId(null), 2000); toast.success('🎉 تم إكمال التذكير!') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 hover:bg-emerald-600 transition-colors">✓ تم</motion.button>}
+ {r.status !== 'completed' && <button onClick={async () => { try { await apiFetch(`/reminders/${r.id}`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) }); setReminders(prev => prev.map(rm => rm.id === r.id ? { ...rm, status: 'completed' } : rm)); setCelebratingId(r.id); setTimeout(() => setCelebratingId(null), 2000); toast.success('🎉 تم إكمال التذكير!') } catch { toast.error('خطأ') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 hover:bg-emerald-600 transition-colors active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150">✓ تم</button>}
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteItem('/reminders', r.id, setReminders)}><Trash2 size={10} className="text-red-500" /></Button>
                           </div>
                         </div>
@@ -4726,9 +4724,9 @@ export default function Home() {
                 {/* Treatment Templates Sub-tab - قوالب العلاج */}
                 {moreSubTab === 'templates' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-fuchsia-500 via-pink-500 to-rose-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, 50, 0], y: [0, -30, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 right-0 w-28 h-28 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute top-0 right-0 w-28 h-28 bg-white/20 rounded-full blur-3xl animate-drift-a"/></div>
                     <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3"><motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">📋</motion.div><div><h2 className="text-2xl font-black text-white">قوالب العلاج</h2><p className="text-white/80 text-sm">{treatmentTemplates.length} قالب جاهز</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-4xl animate-pulse-scale">📋</div><div><h2 className="text-2xl font-black text-white">قوالب العلاج</h2><p className="text-white/80 text-sm">{treatmentTemplates.length} قالب جاهز</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => { const name = prompt('اسم القالب:'); if (!name) return; const desc = prompt('الوصف:') || ''; const sess = parseInt(prompt('عدد الجلسات:', '6') || '6'); const price = parseFloat(prompt('السعر التقديري:', '1000') || '1000'); const cat = prompt('الفئة:', 'جلدية') || 'جلدية'; setTreatmentTemplates(prev => [...prev, { id: Date.now().toString(), name, description: desc, sessions: sess, estimatedPrice: price, category: cat }]); toast.success('تم إضافة القالب') }}><Plus size={14} className="ml-1" /> قالب جديد</Button>
                     </div>
                   </motion.div>
@@ -4763,24 +4761,24 @@ export default function Home() {
                       )
                     })}
                   </div>
-                  {treatmentTemplates.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📋</motion.div><p className="text-muted-foreground">لا توجد قوالب علاج بعد</p></Card>}
+                  {treatmentTemplates.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">📋</div><p className="text-muted-foreground">لا توجد قوالب علاج بعد</p></Card>}
                 </div>)}
 
                 {/* Waiting Queue Sub-tab - قائمة الانتظار */}
                 {moreSubTab === 'waiting' && (<div className="space-y-4">
                   <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 via-orange-500 to-amber-600 p-5 shadow-xl">
-                    <div className="absolute inset-0 opacity-15"><motion.div animate={{ x: [0, -40, 0] }} transition={{ duration: 9, repeat: Infinity }} className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                    <div className="absolute inset-0 opacity-15"><div className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-drift-c"/></div>
                     <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-3"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-4xl">⏳</motion.div><div><h2 className="text-2xl font-black text-white">قائمة الانتظار</h2><p className="text-white/80 text-sm">إدارة المرضى في الانتظار</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-4xl animate-bounce-y">⏳</div><div><h2 className="text-2xl font-black text-white">قائمة الانتظار</h2><p className="text-white/80 text-sm">إدارة المرضى في الانتظار</p></div></div>
                       <Button className="rounded-xl bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 shadow-lg" onClick={() => setShowAddWaiting(true)}><Plus size={14} className="ml-1" /> إضافة مريض</Button>
                     </div>
                   </motion.div>
                   
                   {/* Queue Stats */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-center border border-amber-200 dark:border-amber-800"><motion.div animate={{ y: [0, -2, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-xl mb-1">⏳</motion.div><p className="text-lg font-black text-amber-600">{waitingQueue.filter(w => w.status === 'waiting').length}</p><p className="text-[9px] text-muted-foreground">في الانتظار</p></div>
-                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center border border-blue-200 dark:border-blue-800"><motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-xl mb-1">🩺</motion.div><p className="text-lg font-black text-blue-600">{waitingQueue.filter(w => w.status === 'in-progress').length}</p><p className="text-[9px] text-muted-foreground">جاري الكشف</p></div>
-                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center border border-emerald-200 dark:border-emerald-800"><motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-xl mb-1">✅</motion.div><p className="text-lg font-black text-emerald-600">{waitingQueue.filter(w => w.status === 'done' || w.status === 'left').length}</p><p className="text-[9px] text-muted-foreground">تم/غادر</p></div>
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-center border border-amber-200 dark:border-amber-800"><div className="text-xl mb-1 animate-bounce-y-sm">⏳</div><p className="text-lg font-black text-amber-600">{waitingQueue.filter(w => w.status === 'waiting').length}</p><p className="text-[9px] text-muted-foreground">في الانتظار</p></div>
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center border border-blue-200 dark:border-blue-800"><div className="text-xl mb-1 animate-wiggle-wide">🩺</div><p className="text-lg font-black text-blue-600">{waitingQueue.filter(w => w.status === 'in-progress').length}</p><p className="text-[9px] text-muted-foreground">جاري الكشف</p></div>
+                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center border border-emerald-200 dark:border-emerald-800"><div className="text-xl mb-1 animate-pulse-scale">✅</div><p className="text-lg font-black text-emerald-600">{waitingQueue.filter(w => w.status === 'done' || w.status === 'left').length}</p><p className="text-[9px] text-muted-foreground">تم/غادر</p></div>
                   </div>
 
                   {/* Active Queue */}
@@ -4794,7 +4792,7 @@ export default function Home() {
                     const doneQueue = waitingQueue.filter(w => w.status === 'done' || w.status === 'left')
                     return (
                       <>
-                        {activeQueue.length === 0 && doneQueue.length === 0 && <Card className="card-luxury p-6 text-center"><motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⏳</motion.div><p className="text-muted-foreground">قائمة الانتظار فارغة</p></Card>}
+                        {activeQueue.length === 0 && doneQueue.length === 0 && <Card className="card-luxury p-6 text-center"><div className="text-4xl mb-2 animate-bounce-y">⏳</div><p className="text-muted-foreground">قائمة الانتظار فارغة</p></Card>}
                         <div className="space-y-2">
                           {activeQueue.map((w, i) => {
                             const waitMinutes = Math.round((Date.now() - new Date(w.createdAt).getTime()) / 60000)
@@ -4818,9 +4816,9 @@ export default function Home() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    {w.status === 'waiting' && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'in-progress' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('جاري الكشف') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('جاري الكشف') } }} className="px-2 py-1 rounded-lg bg-blue-500 text-white text-[10px] font-bold hover:bg-blue-600 transition-colors">🩺 كشف</motion.button>}
-                                    {w.status === 'in-progress' && <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold hover:bg-emerald-600 transition-colors">✅ تم</motion.button>}
-                                    <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-2 py-1 rounded-lg bg-gray-400 text-white text-[10px] font-bold hover:bg-gray-500 transition-colors">🚪 غادر</motion.button>
+ {w.status === 'waiting' && <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'in-progress' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('جاري الكشف') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('جاري الكشف') } }} className="px-2 py-1 rounded-lg bg-blue-500 text-white text-[10px] font-bold hover:bg-blue-600 transition-colors active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">🩺 كشف</button>}
+ {w.status === 'in-progress' && <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } }} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold hover:bg-emerald-600 transition-colors active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">✅ تم</button>}
+ <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-2 py-1 rounded-lg bg-gray-400 text-white text-[10px] font-bold hover:bg-gray-500 transition-colors active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">🚪 غادر</button>
                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteItem('/waiting', w.id, setWaitingQueue)}><Trash2 size={10} className="text-red-500" /></Button>
                                   </div>
                                 </div>
@@ -4899,9 +4897,9 @@ export default function Home() {
                     <div className="space-y-4">
                       {/* Header */}
                       <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 p-5 shadow-xl">
-                        <div className="absolute inset-0 opacity-20"><motion.div animate={{ x: [0, 60, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                        <div className="absolute inset-0 opacity-20"><div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-drift-c"/></div>
                         <div className="relative z-10 flex items-center justify-between">
-                          <div className="flex items-center gap-3"><motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-5xl">📩</motion.div><div><h1 className="text-2xl font-black text-white">رسائل جماعية</h1><p className="text-white/80 text-sm">إرسال رسائل واتساب لكل المرضى بضغة واحدة</p></div></div>
+                          <div className="flex items-center gap-3"><div className="text-5xl animate-bounce-y">📩</div><div><h1 className="text-2xl font-black text-white">رسائل جماعية</h1><p className="text-white/80 text-sm">إرسال رسائل واتساب لكل المرضى بضغة واحدة</p></div></div>
                           <div className="flex items-center gap-2">
                             <Badge className="bg-white/20 text-white border-white/30 text-sm">{patientsWithPhone.length} 📱</Badge>
                           </div>
@@ -4921,9 +4919,9 @@ export default function Home() {
                         <CardContent>
                           <div className="grid grid-cols-3 gap-2 mb-3">
                             {broadcastTemplates.map(t => (
-                              <motion.button key={t.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setBroadcastMessage(t.message)} className={cn('flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', broadcastMessage === t.message ? 'bg-green-100 dark:bg-green-900/30 border-green-400 text-green-700 dark:text-green-300 shadow-lg' : 'bg-white/60 dark:bg-gray-800/60 border-border text-muted-foreground hover:border-green-300')}>
+ <button key={t.id} onClick={() => setBroadcastMessage(t.message)} className={cn('flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all text-xs font-bold active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', broadcastMessage === t.message ? 'bg-green-100 dark:bg-green-900/30 border-green-400 text-green-700 dark:text-green-300 shadow-lg' : 'bg-white/60 dark:bg-gray-800/60 border-border text-muted-foreground hover:border-green-300')}>
                                 <span className="text-lg">{t.emoji}</span>{t.label}
-                              </motion.button>
+                              </button>
                             ))}
                           </div>
                           <div><Label className="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1"><Send size={12} /> نص الرسالة</Label><Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="اكتب رسالتك هنا... استخدم {name} لاسم المريض..." className="mt-1 rounded-xl min-h-[100px] border-2 border-green-200 dark:border-green-800 bg-white dark:bg-black/20 text-sm" /></div>
@@ -4944,9 +4942,9 @@ export default function Home() {
                               { id: 'recent7', label: '7 أيام', emoji: '📆', count: patientsWithPhone.filter(p => { const c = new Date(); c.setDate(c.getDate() - 7); return new Date(p.createdAt) >= c }).length },
                               { id: 'recent30', label: '30 يوم', emoji: '🗓️', count: patientsWithPhone.filter(p => { const c = new Date(); c.setDate(c.getDate() - 30); return new Date(p.createdAt) >= c }).length },
                             ].map(f => (
-                              <motion.button key={f.id} whileTap={{ scale: 0.9 }} onClick={() => { setBroadcastFilter(f.id as any); setBroadcastSelectedIds([]) }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', broadcastFilter === f.id && broadcastSelectedIds.length === 0 ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-white/60 dark:bg-gray-800/60 border-border text-muted-foreground hover:border-amber-300')}>
+ <button key={f.id} onClick={() => { setBroadcastFilter(f.id as any); setBroadcastSelectedIds([]) }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 transition-all text-xs font-bold active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', broadcastFilter === f.id && broadcastSelectedIds.length === 0 ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-white/60 dark:bg-gray-800/60 border-border text-muted-foreground hover:border-amber-300')}>
                                 <span className="text-lg">{f.emoji}</span><span>{f.label}</span><Badge variant="outline" className="text-[8px]">{f.count}</Badge>
-                              </motion.button>
+                              </button>
                             ))}
                           </div>
                           {/* Manual patient selection */}
@@ -4957,11 +4955,11 @@ export default function Home() {
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1">
                               {patientsWithPhone.slice(0, 30).map(p => (
-                                <motion.button key={p.id} whileTap={{ scale: 0.95 }} onClick={() => { setBroadcastFilter('all'); setBroadcastSelectedIds(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]) }} className={cn('w-full flex items-center gap-2 p-2 rounded-lg transition-all text-xs', broadcastSelectedIds.includes(p.id) ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' : 'bg-muted/30 hover:bg-muted/50')}>
+ <button key={p.id} onClick={() => { setBroadcastFilter('all'); setBroadcastSelectedIds(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]) }} className={cn('w-full flex items-center gap-2 p-2 rounded-lg transition-all text-xs active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', broadcastSelectedIds.includes(p.id) ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' : 'bg-muted/30 hover:bg-muted/50')}>
                                   <div className={cn('w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all', broadcastSelectedIds.includes(p.id) ? 'bg-green-500 border-green-600 text-white' : 'border-muted-foreground/30')}><CheckCircle size={10} /></div>
                                   <span className="font-bold">{p.name}</span>
                                   <span dir="ltr" className="text-muted-foreground ml-auto">{p.phone}</span>
-                                </motion.button>
+                                </button>
                               ))}
                               {patientsWithPhone.length > 30 && <p className="text-center text-[10px] text-muted-foreground">و {patientsWithPhone.length - 30} مريض آخر...</p>}
                             </div>
@@ -4993,12 +4991,12 @@ export default function Home() {
                               </div>
                               {/* Send Buttons */}
                               <div className="grid grid-cols-2 gap-3">
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={sendBroadcast} disabled={broadcastSending || !broadcastMessage.trim() || filteredBroadcastPatients.length === 0} className={cn('flex items-center justify-center gap-2 p-4 rounded-2xl text-sm font-bold transition-all shadow-lg', broadcastSending ? 'bg-muted text-muted-foreground cursor-wait' : !broadcastMessage.trim() || filteredBroadcastPatients.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl')}>
+ <button onClick={sendBroadcast} disabled={broadcastSending || !broadcastMessage.trim() || filteredBroadcastPatients.length === 0} className={cn('flex items-center justify-center gap-2 p-4 rounded-2xl text-sm font-bold transition-all shadow-lg active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', broadcastSending ? 'bg-muted text-muted-foreground cursor-wait' : !broadcastMessage.trim() || filteredBroadcastPatients.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl')}>
                                   <Send size={18} /> {broadcastSending ? `إرسال... (${broadcastProgress.sent}/${broadcastProgress.total})` : 'إرسال واتساب'}
-                                </motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={copyBroadcastInfo} disabled={!broadcastMessage.trim() || filteredBroadcastPatients.length === 0} className={cn('flex items-center justify-center gap-2 p-4 rounded-2xl text-sm font-bold transition-all', !broadcastMessage.trim() || filteredBroadcastPatients.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:shadow-xl shadow-lg')}>
+                                </button>
+ <button onClick={copyBroadcastInfo} disabled={!broadcastMessage.trim() || filteredBroadcastPatients.length === 0} className={cn('flex items-center justify-center gap-2 p-4 rounded-2xl text-sm font-bold transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', !broadcastMessage.trim() || filteredBroadcastPatients.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:shadow-xl shadow-lg')}>
                                   <Copy size={18} /> نسخ البيانات
-                                </motion.button>
+                                </button>
                               </div>
                               {broadcastSending && (
                                 <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
@@ -5433,7 +5431,7 @@ export default function Home() {
                       </div>
                       {/* Export Buttons */}
                       <div className="flex gap-2 flex-wrap">
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
+ <button className="active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => {
                           const filtered = patients.filter(p => {
                             if (!patientCopySearch.trim()) return true
                             const q = patientCopySearch.toLowerCase()
@@ -5466,8 +5464,8 @@ export default function Home() {
                           toast.success(`تم تصدير ${filtered.length} مريض بصيغة CSV ✓`)
                         }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-l from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-lg hover:shadow-xl transition-all">
                           <FileDown size={14} /> تصدير CSV
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
+                        </button>
+ <button className="active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => {
                           const filtered = patients.filter(p => {
                             if (!patientCopySearch.trim()) return true
                             const q = patientCopySearch.toLowerCase()
@@ -5499,8 +5497,8 @@ export default function Home() {
                           toast.success(`تم تصدير ${filtered.length} مريض بصيغة JSON ✓`)
                         }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-l from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-lg hover:shadow-xl transition-all">
                           <FileDown size={14} /> تصدير JSON
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={async () => {
+                        </button>
+ <button className="active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={async () => {
                           const filtered = patients.filter(p => {
                             if (!patientCopySearch.trim()) return true
                             const q = patientCopySearch.toLowerCase()
@@ -5517,7 +5515,7 @@ export default function Home() {
                           }
                         }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-l from-teal-400 to-cyan-500 text-white text-xs font-bold shadow-lg hover:shadow-xl transition-all">
                           <Copy size={14} /> نسخ نصي
-                        </motion.button>
+                        </button>
                       </div>
                       {/* Patient List */}
                       <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -5544,19 +5542,19 @@ export default function Home() {
                                 </p>
                               </div>
                               <div className="flex items-center gap-1">
-                                {wp && <motion.button whileTap={{ scale: 0.9 }} onClick={() => {
+ {wp && <button className="active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => {
                                   const msg = encodeURIComponent(copyText)
                                   window.open(`https://wa.me/${wp}?text=${msg}`, '_blank')
                                 }} className="h-7 w-7 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 transition-all" title="إرسال واتساب">
                                   <Send size={12} />
-                                </motion.button>}
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={async () => {
+                                </button>}
+ <button className="active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={async () => {
                                   try { await navigator.clipboard.writeText(copyText); toast.success(`تم نسخ بيانات ${p.name} ✓`) } catch {
                                     const ta = document.createElement('textarea'); ta.value = copyText; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast.success(`تم نسخ بيانات ${p.name} ✓`)
                                   }
                                 }} className="h-7 w-7 rounded-lg flex items-center justify-center bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-200 transition-all" title="نسخ البيانات">
                                   <Copy size={12} />
-                                </motion.button>
+                                </button>
                               </div>
                             </div>
                           )
@@ -5579,11 +5577,11 @@ export default function Home() {
                     {lastBackup && <p className="text-xs text-muted-foreground">آخر نسخة: {formatDate(lastBackup)}</p>}
                     {/* ─── Backup Actions Grid ─── */}
                     <div className="grid grid-cols-2 gap-3">
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={createBackup} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800"><HardDrive className="text-emerald-600" size={24} /><span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">إنشاء نسخة</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('json')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800"><FileDown className="text-blue-600" size={24} /><span className="text-sm font-medium text-blue-700 dark:text-blue-400">تصدير JSON</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800"><FileUp className="text-amber-600" size={24} /><span className="text-sm font-medium text-amber-700 dark:text-amber-400">استيراد نسخة</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => exportBackup('csv')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-800"><Archive className="text-violet-600" size={24} /><span className="text-sm font-medium text-violet-700 dark:text-violet-400">تصدير CSV</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
+ <button onClick={createBackup} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><HardDrive className="text-emerald-600 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" size={24} /><span className="text-sm font-medium text-emerald-700 dark:text-emerald-400 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">إنشاء نسخة</span></button>
+ <button onClick={() => exportBackup('json')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><FileDown className="text-blue-600 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" size={24} /><span className="text-sm font-medium text-blue-700 dark:text-blue-400 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">تصدير JSON</span></button>
+ <button onClick={() => { fileInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><FileUp className="text-amber-600 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" size={24} /><span className="text-sm font-medium text-amber-700 dark:text-amber-400 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">استيراد نسخة</span></button>
+ <button onClick={() => exportBackup('csv')} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><Archive className="text-violet-600 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" size={24} /><span className="text-sm font-medium text-violet-700 dark:text-violet-400 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">تصدير CSV</span></button>
+ <button className="active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" onClick={() => {
                         // Export patients only (clean JSON for sharing/import)
                         const cleanPatients = patients.map(stripVirtualFields).map(p => ({
                           name: p.name, phone: p.phone || '', phone2: p.phone2 || '',
@@ -5597,8 +5595,8 @@ export default function Home() {
                         const url = URL.createObjectURL(blob)
                         const a = document.createElement('a'); a.href = url; a.download = `elmoghazi-patients-only-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
                         toast.success(`تم تصدير ${cleanPatients.length} مريض ✓`)
-                      }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-800"><Users size={24} className="text-rose-600" /><span className="text-sm font-medium text-rose-700 dark:text-rose-400">تصدير أسماء المرضى</span></motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { patientImportInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"><UserPlus size={24} className="text-cyan-600" /><span className="text-sm font-medium text-cyan-700 dark:text-cyan-400">استيراد أسماء المرضى</span></motion.button>
+                      }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-200 dark:border-rose-800"><Users size={24} className="text-rose-600" /><span className="text-sm font-medium text-rose-700 dark:text-rose-400">تصدير أسماء المرضى</span></button>
+ <button onClick={() => { patientImportInputRef.current?.click() }} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><UserPlus size={24} className="text-cyan-600 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /><span className="text-sm font-medium text-cyan-700 dark:text-cyan-400 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">استيراد أسماء المرضى</span></button>
                     </div>
                     <input ref={fileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={handleFileImport} />
                     <input ref={patientImportInputRef} type="file" accept=".json,.csv,.xlsx,.xls,.tsv,.txt" className="hidden" onChange={async (e) => {
@@ -5715,7 +5713,7 @@ export default function Home() {
                       <div className="flex gap-2">
                         <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="✏️ أضف ملاحظة جديدة..." className="input-luxury rounded-xl h-10 flex-1 border-fuchsia-200 dark:border-fuchsia-800 focus:border-fuchsia-500" onKeyDown={e => { if (e.key === 'Enter' && quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: newNoteSection, createdAt: cairoISO() }, setNotes); setQuickNote('') } }} />
                         <Select value={newNoteSection} onValueChange={setNewNoteSection}><SelectTrigger className="rounded-xl h-10 w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="general">📌 عام</SelectItem><SelectItem value="dashboard">🏠 رئيسية</SelectItem><SelectItem value="patients">👥 مرضى</SelectItem><SelectItem value="laser">💎 ليزر</SelectItem><SelectItem value="finance">💰 مالية</SelectItem></SelectContent></Select>
-                        <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} className="px-4 py-2 rounded-xl bg-gradient-to-l from-fuchsia-500 to-violet-500 text-white font-bold shadow-lg" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: newNoteSection, createdAt: cairoISO() }, setNotes); setQuickNote('') } }}><Plus size={18} /></motion.button>
+ <button className="px-4 py-2 rounded-xl bg-gradient-to-l from-fuchsia-500 to-violet-500 text-white font-bold shadow-lg active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => { if (quickNote.trim()) { addItem('/notes', { content: quickNote, important: false, section: newNoteSection, createdAt: cairoISO() }, setNotes); setQuickNote('') } }}><Plus size={18} /></button>
                       </div>
                     </CardContent>
                   </Card>
@@ -5739,14 +5737,14 @@ export default function Home() {
                     ];
                     const noteEmojis = ['📝', '💡', '📌', '🔔', '⭐', '💬', '🎯', '✨'];
                     const sectionConfig: Record<string, { emoji: string; color: string }> = { dashboard: { emoji: '🏠', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }, patients: { emoji: '👥', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' }, laser: { emoji: '💎', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' }, finance: { emoji: '💰', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' }, general: { emoji: '📌', color: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300' } };
-                    if (filteredNotes.length === 0) return <Card className="card-luxury p-8 text-center"><motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">📝</motion.div><p className="text-lg font-bold mb-1">لا توجد ملاحظات</p><p className="text-muted-foreground text-sm">أضف ملاحظاتك اليومية هنا</p></Card>;
+                    if (filteredNotes.length === 0) return <Card className="card-luxury p-8 text-center"><div className="text-5xl mb-3 animate-bounce-y">📝</div><p className="text-lg font-bold mb-1">لا توجد ملاحظات</p><p className="text-muted-foreground text-sm">أضف ملاحظاتك اليومية هنا</p></Card>;
                     return filteredNotes.map((n, i) => {
                       const sec = sectionConfig[n.section || 'general'] || sectionConfig.general;
                       return (
                         <motion.div key={n.id} initial={{ opacity: 0, x: -10, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ delay: i * 0.03, type: 'spring', stiffness: 200 }} className={cn('relative p-4 rounded-2xl border-2 bg-gradient-to-l transition-all hover:shadow-xl', noteColors[i % noteColors.length])}>
-                          {n.important && <motion.div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-l from-amber-400 to-yellow-300" animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }} />}
+                          {n.important && <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-l from-amber-400 to-yellow-300 animate-bounce-y"/>}
                           <div className="flex items-start gap-3">
-                            <motion.div animate={{ y: [0, -3, 0], rotate: [0, 5, -5, 0] }} transition={{ duration: 3, repeat: Infinity, delay: i * 0.2 }} className="text-2xl mt-0.5">{noteEmojis[i % noteEmojis.length]}</motion.div>
+                            <div className="text-2xl mt-0.5 animate-bounce-y">{noteEmojis[i % noteEmojis.length]}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <motion.div animate={n.important ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.8, repeat: n.important ? Infinity : 0, repeatDelay: 1 }}>
@@ -5766,9 +5764,9 @@ export default function Home() {
                               )}
                             </div>
                             <div className="flex gap-1">
-                              <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }} className={cn('h-8 w-8 rounded-lg flex items-center justify-center transition-all', n.important ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/50 hover:bg-amber-50 dark:hover:bg-amber-900/20')} onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ important: !n.important }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, important: !nn.important } : nn)); toast.success(n.important ? 'تم إزالة الأهمية' : 'تم التمييز كمهم ⭐') } catch { toast.error('خطأ') } }}><Star size={14} className={n.important ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} /></motion.button>
-                              <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content); setEditingNoteSectionMore(n.section || 'general') }}><Edit3 size={14} className="text-fuchsia-500" /></motion.button>
-                              <motion.button whileTap={{ scale: 0.85 }} whileHover={{ scale: 1.15 }} className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={14} className="text-red-500" /></motion.button>
+ <button className={cn('h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-[0.85] hover:scale-[1.15] transition-transform duration-150', n.important ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/50 hover:bg-amber-50 dark:hover:bg-amber-900/20')} onClick={async () => { try { await apiFetch(`/notes/${n.id}`, { method: 'PUT', body: JSON.stringify({ important: !n.important }) }); setNotes(prev => prev.map(nn => nn.id === n.id ? { ...nn, important: !nn.important } : nn)); toast.success(n.important ? 'تم إزالة الأهمية' : 'تم التمييز كمهم ⭐') } catch { toast.error('خطأ') } }}><Star size={14} className={n.important ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} /></button>
+ <button className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all active:scale-[0.85] hover:scale-[1.15] transition-transform duration-150" onClick={() => { setEditingNoteId(n.id); setEditingNoteContent(n.content); setEditingNoteSectionMore(n.section || 'general') }}><Edit3 size={14} className="text-fuchsia-500 active:scale-[0.85] hover:scale-[1.15] transition-transform duration-150" /></button>
+ <button className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-[0.85] hover:scale-[1.15] transition-transform duration-150" onClick={() => deleteItem('/notes', n.id, setNotes)}><Trash2 size={14} className="text-red-500 active:scale-[0.85] hover:scale-[1.15] transition-transform duration-150" /></button>
                             </div>
                           </div>
                         </motion.div>
@@ -5781,18 +5779,18 @@ export default function Home() {
                 {moreSubTab === 'settings' && (<div className="space-y-4">
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Shield size={20} className="text-indigo-500" /> تخصيص الصلاحيات</CardTitle><CardDescription>تحديد دور المستخدم وصلاحياته</CardDescription></CardHeader><CardContent>
                     <div className="grid grid-cols-2 gap-3">
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('doctor'); toast.success('تم تفعيل صلاحيات الطبيب') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'doctor' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
-                        <motion.div animate={userRole === 'doctor' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👨‍⚕️</motion.div>
+ <button onClick={() => { setUserRole('doctor'); toast.success('تم تفعيل صلاحيات الطبيب') }} className={cn('p-4 rounded-xl border-2 transition-all text-center active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', userRole === 'doctor' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
+                        <div className={cn('text-3xl mb-2', userRole === 'doctor' && 'animate-pulse-scale')}>👨‍⚕️</div>
                         <p className="font-bold text-sm">طبيب</p>
                         <p className="text-[9px] text-muted-foreground mt-1">صلاحية كاملة على جميع الأقسام</p>
                         {userRole === 'doctor' && <Badge className="mt-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">فعّال ✓</Badge>}
-                      </motion.button>
-                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setUserRole('secretary'); toast.success('تم تفعيل صلاحيات السكرتارية') }} className={cn('p-4 rounded-xl border-2 transition-all text-center', userRole === 'secretary' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
-                        <motion.div animate={userRole === 'secretary' ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }} className="text-3xl mb-2">👩‍💼</motion.div>
+                      </button>
+ <button onClick={() => { setUserRole('secretary'); toast.success('تم تفعيل صلاحيات السكرتارية') }} className={cn('p-4 rounded-xl border-2 transition-all text-center active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', userRole === 'secretary' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-lg' : 'border-transparent bg-muted/50 hover:bg-muted')}>
+                        <div className={cn('text-3xl mb-2', userRole === 'secretary' && 'animate-pulse-scale')}>👩‍💼</div>
                         <p className="font-bold text-sm">سكرتارية</p>
                         <p className="text-[9px] text-muted-foreground mt-1">المرضى والليزر والانتظار</p>
                         {userRole === 'secretary' && <Badge className="mt-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px]">فعّال ✓</Badge>}
-                      </motion.button>
+                      </button>
                     </div>
                   </CardContent></Card>
 
@@ -5815,7 +5813,7 @@ export default function Home() {
 
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><RefreshCw size={20} className="text-blue-500" /> حالة المزامنة</CardTitle></CardHeader><CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                      <div className="flex items-center gap-3"><motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="text-xl">🔄</motion.div><div><p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">متصل</p><p className="text-[9px] text-muted-foreground">CockroachDB - سحابي (Vercel)</p></div></div>
+                      <div className="flex items-center gap-3"><div className="text-xl animate-wiggle-wide">🔄</div><div><p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">متصل</p><p className="text-[9px] text-muted-foreground">CockroachDB - سحابي (Vercel)</p></div></div>
                       <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px]">نشط ✓</Badge>
                     </div>
                     {/* Database Details */}
@@ -5851,7 +5849,7 @@ export default function Home() {
                     {lastBackup && <p className="text-[10px] text-muted-foreground text-center">آخر نسخة احتياطية: {formatDate(lastBackup)}</p>}
                   </CardContent></Card>
 
-                  <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Palette size={20} /> ألوان التطبيق</CardTitle><CardDescription>10 ألوان مميزة</CardDescription></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <motion.button key={tc.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</motion.button>)}</div></CardContent></Card>
+ <Card className="card-luxury active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><CardHeader><CardTitle className="flex items-center gap-2 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><Palette size={20} /> ألوان التطبيق</CardTitle><CardDescription>10 ألوان مميزة</CardDescription></CardHeader><CardContent><div className="grid grid-cols-5 gap-3 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{THEME_CONFIGS.map(tc => <button key={tc.id} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150" size={14} />}</button>)}</div></CardContent></Card>
                   <Card className="card-luxury"><CardHeader><CardTitle className="flex items-center gap-2"><Tag size={20} /> ألوان الحالات</CardTitle></CardHeader><CardContent className="space-y-3">{[
                     { key: 'completed' as const, label: 'مكتمل' }, { key: 'active' as const, label: 'نشط' }, { key: 'pending' as const, label: 'قيد الانتظار' }, { key: 'cancelled' as const, label: 'ملغي' }, { key: 'scheduled' as const, label: 'مجدول' },
                   ].map(s => <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/50"><span className="text-sm font-medium">{s.label}</span><div className="flex items-center gap-2"><input type="color" value={statusColors[s.key]} onChange={e => setStatusColors({ ...statusColors, [s.key]: e.target.value })} className="w-8 h-8 rounded-lg cursor-pointer border-0" /><Badge style={{ backgroundColor: statusColors[s.key] + '20', color: statusColors[s.key] }} className="border">{statusColors[s.key]}</Badge></div></div>)}</CardContent></Card>
@@ -5869,7 +5867,7 @@ export default function Home() {
                       {[...Array(5)].map((_, i) => <div key={i} className="absolute rounded-full bg-white" style={{ width: `${30 + i * 15}px`, height: `${30 + i * 15}px`, top: `${10 + i * 15}%`, left: `${5 + i * 18}%`, opacity: 0.15 }} />)}
                     </div>
                     <div className="relative z-10 flex items-center gap-3">
-                      <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-4xl">🌟</motion.div>
+                      <div className="text-4xl animate-pulse-scale">🌟</div>
                       <div>
                         <h1 className="text-2xl font-bold">قسم شخصى</h1>
                         <p className="text-white/80 text-sm">إدارة ماليتك وتذكيراتك وملاحظاتك الشخصية</p>
@@ -5905,10 +5903,10 @@ export default function Home() {
                       { id: 'notes' as const, label: 'الملاحظات', icon: <StickyNote size={16} /> },
                       { id: 'reports' as const, label: 'التقارير', icon: <BarChart3 size={16} /> },
                     ].map(tab => (
-                      <motion.button key={tab.id} whileTap={{ scale: 0.95 }} onClick={() => setPersonalSubTab(tab.id)} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all', personalSubTab === tab.id ? 'bg-gradient-to-l from-orange-500 to-amber-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
+ <button key={tab.id} onClick={() => setPersonalSubTab(tab.id)} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', personalSubTab === tab.id ? 'bg-gradient-to-l from-orange-500 to-amber-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
                         {tab.icon}
                         {tab.label}
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
 
@@ -5989,7 +5987,7 @@ export default function Home() {
                     {/* Transaction List */}
                     {filteredPersonalTxns.length === 0 && (
                       <Card className="card-luxury p-8 text-center">
-                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">💰</motion.div>
+                        <div className="text-4xl mb-2 animate-bounce-y">💰</div>
                         <p className="text-muted-foreground">لا توجد معاملات شخصية بعد</p>
                         <p className="text-xs text-muted-foreground mt-1">أضف أول معاملة لتتبع ماليتك الشخصية</p>
                       </Card>
@@ -6037,7 +6035,7 @@ export default function Home() {
                     </div>
                     {personalReminders.length === 0 && (
                       <Card className="card-luxury p-8 text-center">
-                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">⏰</motion.div>
+                        <div className="text-4xl mb-2 animate-bounce-y">⏰</div>
                         <p className="text-muted-foreground">لا توجد تذكيرات شخصية بعد</p>
                       </Card>
                     )}
@@ -6091,7 +6089,7 @@ export default function Home() {
                     </div>
                     {personalNotes.length === 0 && (
                       <Card className="card-luxury p-8 text-center">
-                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📝</motion.div>
+                        <div className="text-4xl mb-2 animate-bounce-y">📝</div>
                         <p className="text-muted-foreground">لا توجد ملاحظات شخصية بعد</p>
                       </Card>
                     )}
@@ -6099,9 +6097,9 @@ export default function Home() {
                       {personalNotes.map((note, i) => (
                         <motion.div key={note.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.03 }} className={cn('relative p-3 rounded-xl border bg-white/50 dark:bg-white/5 hover:shadow-md transition-all', note.important ? 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/10' : 'border-sky-100 dark:border-sky-900/30')}>
                           {note.important && (
-                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute top-2 left-2">
+                            <div className="absolute top-2 left-2 animate-pulse-scale-lg">
                               <Star size={14} className="text-amber-500 fill-amber-500" />
-                            </motion.div>
+                            </div>
                           )}
                           {editingPersonalNoteId === note.id ? (
                             <div className="space-y-2">
@@ -6150,9 +6148,9 @@ export default function Home() {
                         { id: 'weekly' as const, label: 'أسبوعي', emoji: '📆' },
                         { id: 'monthly' as const, label: 'شهري', emoji: '🗓️' },
                       ]).map(p => (
-                        <motion.button key={p.id} whileTap={{ scale: 0.95 }} onClick={() => setPersonalReportPeriod(p.id)} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all', personalReportPeriod === p.id ? 'bg-gradient-to-l from-violet-500 to-purple-600 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
+ <button key={p.id} onClick={() => setPersonalReportPeriod(p.id)} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', personalReportPeriod === p.id ? 'bg-gradient-to-l from-violet-500 to-purple-600 text-white shadow-md' : 'text-muted-foreground hover:bg-muted')}>
                           <span>{p.emoji}</span> {p.label}
-                        </motion.button>
+                        </button>
                       ))}
                     </div>
 
@@ -6325,7 +6323,7 @@ export default function Home() {
 
                     {personalTransactions.length === 0 && (
                       <Card className="card-luxury p-8 text-center">
-                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-4xl mb-2">📊</motion.div>
+                        <div className="text-4xl mb-2 animate-bounce-y">📊</div>
                         <p className="text-muted-foreground">لا توجد بيانات كافية للتقارير</p>
                         <p className="text-xs text-muted-foreground mt-1">أضف معاملات شخصية لتظهر التقارير</p>
                       </Card>
@@ -6339,7 +6337,7 @@ export default function Home() {
             )}
 
             {/* ═══ SETTINGS direct ═══ */}
-            {activeTab === 'settings' && (<div className="space-y-4"><div className="section-header-animated rounded-2xl bg-indigo-50 dark:bg-indigo-950/30"><div className="relative z-10 flex items-center gap-3"><motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 6, repeat: Infinity, ease: 'linear' }} className="text-4xl">🎨</motion.div><div><h1 className="text-2xl font-bold">الإعدادات</h1></div></div></div><Card className="card-luxury"><CardHeader><CardTitle>ألوان التطبيق</CardTitle></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <motion.button key={tc.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</motion.button>)}</div></CardContent></Card></div>)}
+ {activeTab === 'settings' && (<div className="space-y-4 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><div className="section-header-animated rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><div className="relative z-10 flex items-center gap-3 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><div className="text-4xl animate-spin-slow active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">🎨</div><div><h1 className="text-2xl font-bold active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">الإعدادات</h1></div></div></div><Card className="card-luxury active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><CardHeader><CardTitle>ألوان التطبيق</CardTitle></CardHeader><CardContent><div className="grid grid-cols-5 gap-3 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{THEME_CONFIGS.map(tc => <button key={tc.id} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150" size={14} />}</button>)}</div></CardContent></Card></div>)}
 
             {/* ═══ WAITING TAB - Professional Secretary Queue Management ═══ */}
             {activeTab === 'waiting' && (() => {
@@ -6358,12 +6356,12 @@ export default function Home() {
                   {/* ─── Animated Header ─── */}
                   <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 p-5 shadow-xl">
                     <div className="absolute inset-0 opacity-20">
-                      <motion.div animate={{ x: [0, 60, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" />
-                      <motion.div animate={{ x: [0, -40, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute bottom-0 left-0 w-24 h-24 bg-yellow-300/20 rounded-full blur-3xl" />
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-drift-c"/>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-yellow-300/20 rounded-full blur-3xl animate-drift-c"/>
                     </div>
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-5xl">⏳</motion.div>
+                        <div className="text-5xl animate-bounce-y">⏳</div>
                         <div>
                           <h1 className="text-2xl font-black text-white">إدارة الانتظار</h1>
                           <p className="text-white/80 text-sm">تنظيم دخول المرضى ومتابعة الحالات</p>
@@ -6378,22 +6376,22 @@ export default function Home() {
                   {/* ─── Smart Stats Row ─── */}
                   <div className="grid grid-cols-4 gap-2">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-3 text-white shadow-lg">
-                      <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">⏳</motion.div>
+                      <div className="absolute top-1 left-1 text-2xl opacity-20 animate-bounce-y-sm">⏳</div>
                       <p className="text-2xl font-black relative z-10">{totalWaiting}</p>
                       <p className="text-[10px] text-white/80 font-bold relative z-10">في الانتظار</p>
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 p-3 text-white shadow-lg">
-                      <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">🩺</motion.div>
+                      <div className="absolute top-1 left-1 text-2xl opacity-20 animate-wiggle-wide">🩺</div>
                       <p className="text-2xl font-black relative z-10">{totalInProgress}</p>
                       <p className="text-[10px] text-white/80 font-bold relative z-10">جاري الكشف</p>
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 p-3 text-white shadow-lg">
-                      <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">✅</motion.div>
+                      <div className="absolute top-1 left-1 text-2xl opacity-20 animate-pulse-scale">✅</div>
                       <p className="text-2xl font-black relative z-10">{totalDone}</p>
                       <p className="text-[10px] text-white/80 font-bold relative z-10">تم / غادر</p>
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} whileHover={{ scale: 1.03, y: -2 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 p-3 text-white shadow-lg">
-                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute top-1 left-1 text-2xl opacity-20">🚨</motion.div>
+                      <div className="absolute top-1 left-1 text-2xl opacity-20 animate-pulse-scale-lg">🚨</div>
                       <p className="text-2xl font-black relative z-10">{waitingItems.filter(w => w.priority >= 2).length}</p>
                       <p className="text-[10px] text-white/80 font-bold relative z-10">عاجل</p>
                     </motion.div>
@@ -6403,7 +6401,7 @@ export default function Home() {
                   {inProgressItems.length > 0 && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                       <div className="flex items-center gap-2 mb-2">
-                        <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-lg">🩺</motion.div>
+                        <div className="text-lg animate-wiggle-wide">🩺</div>
                         <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">جاري الكشف الآن</h3>
                         <Badge className="bg-blue-500 text-white text-[8px]">{inProgressItems.length}</Badge>
                       </div>
@@ -6433,9 +6431,9 @@ export default function Home() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {linkedPatient && <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSelectedPatient(linkedPatient); setActiveTab('patients') }} className="px-2 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 transition-colors shadow-md flex items-center gap-1" title="فتح ملف المريض">👤</motion.button>}
-                                  <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } }} className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-md flex items-center gap-1">✅ تم</motion.button>
-                                  <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-3 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors shadow-md flex items-center gap-1">🚪 غادر</motion.button>
+ {linkedPatient && <button onClick={() => { setSelectedPatient(linkedPatient); setActiveTab('patients') }} className="px-2 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 transition-colors shadow-md flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" title="فتح ملف المريض">👤</button>}
+ <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'done' } : q)); toast.success('تم الكشف ✅') } }} className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors shadow-md flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">✅ تم</button>
+ <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-3 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors shadow-md flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">🚪 غادر</button>
                                 </div>
                               </div>
                             </motion.div>
@@ -6448,13 +6446,13 @@ export default function Home() {
                   {/* ─── WAITING LIST SECTION ─── */}
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                     <div className="flex items-center gap-2 mb-2">
-                      <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-lg">⏳</motion.div>
+                      <div className="text-lg animate-bounce-y-sm">⏳</div>
                       <h3 className="font-bold text-sm text-amber-700 dark:text-amber-400">قائمة الانتظار</h3>
                       <Badge className="bg-amber-500 text-white text-[8px]">{totalWaiting}</Badge>
                     </div>
                     {waitingItems.length === 0 && totalInProgress === 0 && totalDone === 0 && (
                       <Card className="card-luxury p-8 text-center">
-                        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2, repeat: Infinity }} className="text-5xl mb-3">⏳</motion.div>
+                        <div className="text-5xl mb-3 animate-bounce-y">⏳</div>
                         <p className="text-muted-foreground font-bold">قائمة الانتظار فارغة</p>
                         <p className="text-muted-foreground text-xs mt-1">اضغط "إضافة مريض" لبدء تنظيم الدخول</p>
                       </Card>
@@ -6492,9 +6490,9 @@ export default function Home() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                {linkedPatient && <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSelectedPatient(linkedPatient); setActiveTab('patients') }} className="px-2 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 transition-colors shadow-md flex items-center gap-1" title="فتح ملف المريض">👤</motion.button>}
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'in-progress' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } }} className="px-3 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition-colors shadow-md flex items-center gap-1">🩺 دخول</motion.button>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-2 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors">🚪</motion.button>
+ {linkedPatient && <button onClick={() => { setSelectedPatient(linkedPatient); setActiveTab('patients') }} className="px-2 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 transition-colors shadow-md flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" title="فتح ملف المريض">👤</button>}
+ <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'in-progress' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'in-progress' } : q)); toast.success('🩺 يتم الكشف الآن') } }} className="px-3 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition-colors shadow-md flex items-center gap-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">🩺 دخول</button>
+ <button onClick={async () => { try { await apiFetch(`/waiting/${w.id}`, { method: 'PUT', body: JSON.stringify({ status: 'left' }) }); setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } catch { setWaitingQueue(prev => prev.map(q => q.id === w.id ? { ...q, status: 'left' } : q)); toast.success('تم تسجيل المغادرة') } }} className="px-2 py-2 rounded-xl bg-gray-400 text-white text-xs font-bold hover:bg-gray-500 transition-colors active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">🚪</button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/waiting', w.id, setWaitingQueue)}><Trash2 size={11} className="text-red-500" /></Button>
                               </div>
                             </div>
@@ -6532,18 +6530,18 @@ export default function Home() {
                             <h4 className="text-xs font-bold text-cyan-700 dark:text-cyan-400">إجراءات سريعة</h4>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setShowAddWaiting(true) }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-amber-100 dark:bg-amber-900/20 hover:bg-amber-200 dark:hover:bg-amber-900/40 transition-all border border-amber-200 dark:border-amber-800">
+ <button onClick={() => { setShowAddWaiting(true) }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-amber-100 dark:bg-amber-900/20 hover:bg-amber-200 dark:hover:bg-amber-900/40 transition-all border border-amber-200 dark:border-amber-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">
                               <span className="text-lg">➕</span>
                               <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400">مريض جديد</span>
-                            </motion.button>
-                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setActiveTab('patients'); setSelectedPatient(null) }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-all border border-blue-200 dark:border-blue-800">
+                            </button>
+ <button onClick={() => { setActiveTab('patients'); setSelectedPatient(null) }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-all border border-blue-200 dark:border-blue-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">
                               <span className="text-lg">👥</span>
                               <span className="text-[9px] font-bold text-blue-700 dark:text-blue-400">المرضى</span>
-                            </motion.button>
-                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setActiveTab('laser') }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-cyan-100 dark:bg-cyan-900/20 hover:bg-cyan-200 dark:hover:bg-cyan-900/40 transition-all border border-cyan-200 dark:border-cyan-800">
+                            </button>
+ <button onClick={() => { setActiveTab('laser') }} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-cyan-100 dark:bg-cyan-900/20 hover:bg-cyan-200 dark:hover:bg-cyan-900/40 transition-all border border-cyan-200 dark:border-cyan-800 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">
                               <span className="text-lg">💎</span>
                               <span className="text-[9px] font-bold text-cyan-700 dark:text-cyan-400">الليزر</span>
-                            </motion.button>
+                            </button>
                           </div>
                         </CardContent>
                       </Card>
@@ -6695,7 +6693,7 @@ export default function Home() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative">
               <div className={cn('rounded-2xl p-4 border-2 transition-all', newPatientName.trim() ? 'border-emerald-400 dark:border-emerald-600 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30' : 'border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20')}>
                 <Label className="text-sm font-bold flex items-center gap-1.5 mb-2 text-amber-700 dark:text-amber-400">
-                  <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>✏️</motion.span>
+                  <span className="animate-pulse-scale-lg">✏️</span>
                   اسم المريض <span className="text-red-500">*</span>
                 </Label>
                 <Input value={newPatientName} onChange={e => setNewPatientName(e.target.value)} placeholder="اكتب اسم المريض أو ابحث عن مريض موجود..." className={cn('rounded-xl h-12 text-base font-bold border-2 transition-all', newPatientName.trim() ? 'border-emerald-300 dark:border-emerald-700 bg-white dark:bg-black/20 focus:border-emerald-500' : 'border-amber-200 dark:border-amber-700 bg-white/80 dark:bg-black/10 focus:border-amber-500')} autoFocus />
@@ -6720,19 +6718,19 @@ export default function Home() {
               <div className="grid grid-cols-3 gap-1.5">
                 {/* First row: كشف / إعادة / جلسة */}
                 {VISIT_TYPES.slice(0, 3).map(vt => (
-                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-0.5 p-2 rounded-lg border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-2 shadow-lg scale-[1.02]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
+ <button key={vt.id} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-0.5 p-2 rounded-lg border-2 transition-all text-white font-medium active:scale-[0.92] hover:scale-[1.03] transition-transform duration-150', vt.bg, selectedVisitType === vt.id ? 'ring-2 shadow-lg scale-[1.02]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
                     <span className="text-sm">{vt.emoji}</span>
                     <span className="text-[10px] font-bold">{vt.label}</span>
-                  </motion.button>
+                  </button>
                 ))}
               </div>
               {/* Second row: Combo types - كشف+جلسة / إعادة+جلسة */}
               <div className="grid grid-cols-2 gap-1.5 mt-1.5">
                 {VISIT_TYPES.slice(3).map(vt => (
-                  <motion.button key={vt.id} whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.03 }} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-white font-medium', vt.bg, selectedVisitType === vt.id ? 'ring-2 shadow-lg scale-[1.02]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
+ <button key={vt.id} onClick={() => setSelectedVisitType(selectedVisitType === vt.id ? '' : vt.id)} className={cn('flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-white font-medium active:scale-[0.92] hover:scale-[1.03] transition-transform duration-150', vt.bg, selectedVisitType === vt.id ? 'ring-2 shadow-lg scale-[1.02]' : 'opacity-50 hover:opacity-80', selectedVisitType === vt.id && vt.ring)}>
                     <span className="text-xs">{vt.emoji}</span>
                     <span className="text-[9px] font-bold">{vt.label}</span>
-                  </motion.button>
+                  </button>
                 ))}
               </div>
               {/* Combo indicator */}
@@ -6745,7 +6743,7 @@ export default function Home() {
               {['session', 'checkup_session', 'revisit_session'].includes(selectedVisitType) && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
                   <Label className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-2">
-                    <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>💰</motion.span>
+                    <span className="animate-pulse-scale-lg">💰</span>
                     قيمة الخدمة (ج.م) <span className="text-red-500">*</span>
                   </Label>
                   <Input type="number" value={customServicePrice} onChange={e => setCustomServicePrice(e.target.value)} placeholder="اكتب قيمة الخدمة بالجنيه المصري..." className="rounded-xl h-12 text-lg font-bold border-2 border-emerald-200 dark:border-emerald-700 bg-white dark:bg-black/20 focus:border-emerald-500 text-emerald-700 dark:text-emerald-300" />
@@ -6776,7 +6774,7 @@ export default function Home() {
             {['checkup', 'revisit', 'checkup_session', 'revisit_session'].includes(selectedVisitType) && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 rounded-2xl border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
                 <Label className="text-sm font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1.5 mb-2">
-                  <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>🩺</motion.span>
+                  <span className="animate-pulse-scale-lg">🩺</span>
                   قيمة {selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? 'الكشف' : 'الإعادة'} (ج.م)
                 </Label>
                 <Input type="number" value={visitPrice || (selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? String(defaultCheckupPrice) : String(defaultRevisitPrice))} onChange={e => setVisitPrice(e.target.value)} placeholder={selectedVisitType === 'checkup' || selectedVisitType === 'checkup_session' ? String(defaultCheckupPrice) : String(defaultRevisitPrice)} className="rounded-xl h-12 text-lg font-bold border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-black/20 focus:border-blue-500 text-blue-700 dark:text-blue-300" />
@@ -6811,7 +6809,7 @@ export default function Home() {
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-3">
                 <div className="p-4 rounded-2xl border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-950/20 dark:to-amber-950/20">
                   <Label className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5 mb-3">
-                    <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}>⚡</motion.span>
+                    <span className="animate-wiggle-wide">⚡</span>
                     اختر الخدمة
                   </Label>
                   {Object.entries(servicesByCategory).length === 0 && (
@@ -6824,10 +6822,10 @@ export default function Home() {
                         {svcs.map(s => {
                           const isSelected = selectedServiceIds.includes(s.id)
                           return (
-                            <motion.button key={s.id} whileTap={{ scale: 0.9 }} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id])} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all', isSelected ? 'bg-orange-500 text-white border-orange-600 shadow-lg shadow-orange-200 dark:shadow-orange-900/30' : 'bg-white/80 dark:bg-black/10 border-orange-200 dark:border-orange-800 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20')}>
+ <button key={s.id} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== s.id) : [...prev, s.id])} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150', isSelected ? 'bg-orange-500 text-white border-orange-600 shadow-lg shadow-orange-200 dark:shadow-orange-900/30' : 'bg-white/80 dark:bg-black/10 border-orange-200 dark:border-orange-800 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20')}>
                               {isSelected ? <CheckCircle size={12} /> : <Circle size={12} className="text-orange-300" />}
                               <span className="font-bold">{s.name}</span>
-                            </motion.button>
+                            </button>
                           )
                         })}
                       </div>
@@ -7039,9 +7037,9 @@ export default function Home() {
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9zdmc+')] opacity-50" />
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }} className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg animate-wiggle">
                   <Zap size={22} className="text-white" />
-                </motion.div>
+                </div>
                 <div>
                   <DialogTitle className="text-xl font-black text-white">سجل ليزر جديد</DialogTitle>
                   <DialogDescription className="text-cyan-100 text-xs mt-0.5">تسجيل جلسة إزالة الشعر بالليزر</DialogDescription>
@@ -7089,7 +7087,7 @@ export default function Home() {
                       </div>
                       <div className="max-h-[200px] overflow-y-auto divide-y divide-teal-50 dark:divide-teal-900/30">
                         {laserPatientSuggestions.map(p => (
-                          <motion.button key={p.id} whileHover={{ x: -4 }} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-teal-50 dark:hover:bg-teal-950/30 text-right transition-colors">
+                          <button key={p.id} onClick={() => { setLaserFormPatientId(p.id); setLaserFormPatientSearch(p.name) }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-teal-50 dark:hover:bg-teal-950/30 text-right transition-colors hover:-translate-x-1 transition-transform duration-150">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center font-bold text-white text-sm flex-shrink-0 shadow-md">{p.name?.charAt(0)}</div>
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-sm">{p.name}</p>
@@ -7099,7 +7097,7 @@ export default function Home() {
                                 {p.age && <span>{p.age} سنة</span>}
                               </div>
                             </div>
-                          </motion.button>
+                          </button>
                         ))}
                       </div>
                     </motion.div>
@@ -7270,15 +7268,15 @@ export default function Home() {
                         <p className="text-sm text-white font-bold">إجمالي الباقة ({laserFormSessions} جلسة)</p>
                         <p className="text-[10px] text-teal-100 mt-0.5">يُسجّل تلقائياً في النظام المالي</p>
                       </div>
-                      <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-2xl font-black text-white">{formatCurrency(parseFloat(laserFormPrice) * parseInt(laserFormSessions))}</motion.div>
+                      <div className="text-2xl font-black text-white animate-pulse-scale">{formatCurrency(parseFloat(laserFormPrice) * parseInt(laserFormSessions))}</div>
                     </div>
                   </motion.div>
                 )}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-700">
                   <Label className="text-xs font-bold text-amber-700 dark:text-amber-300">حالة الدفع:</Label>
                   <div className="flex gap-2">
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLaserFormPaid(true)} className={cn('px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm', laserFormPaid ? 'bg-gradient-to-l from-emerald-500 to-green-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700')}>✅ مدفوع</motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLaserFormPaid(false)} className={cn('px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm', !laserFormPaid ? 'bg-gradient-to-l from-amber-500 to-orange-500 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700')}>⏳ غير مدفوع</motion.button>
+ <button onClick={() => setLaserFormPaid(true)} className={cn('px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', laserFormPaid ? 'bg-gradient-to-l from-emerald-500 to-green-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700')}>✅ مدفوع</button>
+ <button onClick={() => setLaserFormPaid(false)} className={cn('px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', !laserFormPaid ? 'bg-gradient-to-l from-amber-500 to-orange-500 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700')}>⏳ غير مدفوع</button>
                   </div>
                 </div>
               </div>
@@ -7394,13 +7392,13 @@ export default function Home() {
       <Dialog open={showAddMedication} onOpenChange={setShowAddMedication}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>دواء جديد</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input id="medName" placeholder="اسم الدواء" className="input-luxury rounded-xl" /></div><div><Label>الفئة</Label><Input id="medCat" placeholder="الفئة" className="input-luxury rounded-xl" /></div><div><Label>الجرعة</Label><Input id="medDosage" placeholder="الجرعة" className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { addItem('/medications', { name: (document.getElementById('medName') as HTMLInputElement)?.value, category: (document.getElementById('medCat') as HTMLInputElement)?.value, dosage: (document.getElementById('medDosage') as HTMLInputElement)?.value, active: true }, setMedications); setShowAddMedication(false) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Add Reminder - ENHANCED */}
-      <Dialog open={showAddReminder} onOpenChange={setShowAddReminder}><DialogContent className="max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><Bell size={18} className="text-rose-500" /> تذكير جديد</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>العنوان *</Label><Input id="remTitle" placeholder="عنوان التذكير" className="input-luxury rounded-xl" /></div><div><Label>النوع</Label><div className="grid grid-cols-4 gap-2 mt-1">{[{ id: 'urgent', label: 'عاجل', emoji: '🔴', bg: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' }, { id: 'important', label: 'مهم', emoji: '🟡', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' }, { id: 'followup', label: 'متابعة', emoji: '🔵', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' }, { id: 'general', label: 'عام', emoji: '🟢', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' }].map(t => (<motion.button key={t.id} whileTap={{ scale: 0.9 }} onClick={() => setReminderType(t.id)} className={cn('flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', t.bg, reminderType === t.id ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span className="text-lg">{t.emoji}</span>{t.label}</motion.button>))}</div></div><div className="grid grid-cols-2 gap-2"><div><Label>التاريخ</Label><Input id="remDate" type="date" className="input-luxury rounded-xl" /></div><div><Label>الوقت</Label><Input id="remTime" type="time" className="input-luxury rounded-xl" /></div></div><div><Label>المريض (اختياري)</Label><Select value={reminderPatientId} onValueChange={setReminderPatientId}><SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر المريض" /></SelectTrigger><SelectContent><SelectItem value="none">بدون مريض</SelectItem>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button className="btn-luxury rounded-xl" onClick={() => { const title = (document.getElementById('remTitle') as HTMLInputElement)?.value; const date = (document.getElementById('remDate') as HTMLInputElement)?.value; const time = (document.getElementById('remTime') as HTMLInputElement)?.value; const dateStr = date ? (time ? `${date}T${time}:00` : date) : cairoISO(); addItem('/reminders', { title, date: dateStr, type: reminderType, patientId: reminderPatientId === 'none' ? undefined : reminderPatientId || undefined, status: 'pending' }, setReminders); setShowAddReminder(false); setReminderType('general'); setReminderPatientId(''); toast.success('تم إضافة التذكير') }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
+ <Dialog open={showAddReminder} onOpenChange={setShowAddReminder}><DialogContent className="max-w-md active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><DialogHeader><DialogTitle className="flex items-center gap-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><Bell size={18} className="text-rose-500 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /> تذكير جديد</DialogTitle></DialogHeader><div className="space-y-3 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div><Label>العنوان *</Label><Input id="remTitle" placeholder="عنوان التذكير" className="input-luxury rounded-xl active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /></div><div><Label>النوع</Label><div className="grid grid-cols-4 gap-2 mt-1 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{[{ id: 'urgent', label: 'عاجل', emoji: '🔴', bg: 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' }, { id: 'important', label: 'مهم', emoji: '🟡', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' }, { id: 'followup', label: 'متابعة', emoji: '🔵', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' }, { id: 'general', label: 'عام', emoji: '🟢', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' }].map(t => (<button key={t.id} onClick={() => setReminderType(t.id)} className={cn('flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', t.bg, reminderType === t.id ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span className="text-lg active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">{t.emoji}</span>{t.label}</button>))}</div></div><div className="grid grid-cols-2 gap-2 active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><div><Label>التاريخ</Label><Input id="remDate" type="date" className="input-luxury rounded-xl active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /></div><div><Label>الوقت</Label><Input id="remTime" type="time" className="input-luxury rounded-xl active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" /></div></div><div><Label>المريض (اختياري)</Label><Select value={reminderPatientId} onValueChange={setReminderPatientId}><SelectTrigger className="rounded-xl active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150"><SelectValue placeholder="اختر المريض" /></SelectTrigger><SelectContent><SelectItem value="none">بدون مريض</SelectItem>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div></div><DialogFooter><Button className="btn-luxury rounded-xl active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150" onClick={() => { const title = (document.getElementById('remTitle') as HTMLInputElement)?.value; const date = (document.getElementById('remDate') as HTMLInputElement)?.value; const time = (document.getElementById('remTime') as HTMLInputElement)?.value; const dateStr = date ? (time ? `${date}T${time}:00` : date) : cairoISO(); addItem('/reminders', { title, date: dateStr, type: reminderType, patientId: reminderPatientId === 'none' ? undefined : reminderPatientId || undefined, status: 'pending' }, setReminders); setShowAddReminder(false); setReminderType('general'); setReminderPatientId(''); toast.success('تم إضافة التذكير') }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Add/Edit Inventory - Enhanced */}
       <Dialog open={showAddInventory} onOpenChange={setShowAddInventory}><DialogContent className="max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><Package size={18} className="text-amber-500" /> {editingInventoryId ? 'تعديل عنصر المخزون' : 'عنصر مخزون جديد'}</DialogTitle></DialogHeader><div className="space-y-3"><div><Label>الاسم *</Label><Input value={editInventoryForm.name} onChange={e => setEditInventoryForm(prev => ({ ...prev, name: e.target.value }))} placeholder="اسم العنصر" className="input-luxury rounded-xl" /></div><div><Label>الفئة</Label><Select value={editInventoryForm.category || 'عام'} onValueChange={v => setEditInventoryForm(prev => ({ ...prev, category: v }))}><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="عام">📌 عام</SelectItem><SelectItem value="أدوية">💊 أدوية</SelectItem><SelectItem value="مستلزمات طبية">🏥 مستلزمات طبية</SelectItem><SelectItem value="مستلزمات ليزر">💎 مستلزمات ليزر</SelectItem><SelectItem value="كريمات">🧴 كريمات</SelectItem><SelectItem value="أدوات">🔧 أدوات</SelectItem></SelectContent></Select></div><div className="grid grid-cols-3 gap-3"><div><Label>الكمية</Label><Input type="number" value={editInventoryForm.quantity} onChange={e => setEditInventoryForm(prev => ({ ...prev, quantity: e.target.value }))} placeholder="0" className="input-luxury rounded-xl" /></div><div><Label>الحد الأدنى</Label><Input type="number" value={editInventoryForm.minQuantity} onChange={e => setEditInventoryForm(prev => ({ ...prev, minQuantity: e.target.value }))} placeholder="5" className="input-luxury rounded-xl" /></div><div><Label>السعر</Label><Input type="number" value={editInventoryForm.unitPrice} onChange={e => setEditInventoryForm(prev => ({ ...prev, unitPrice: e.target.value }))} placeholder="0" className="input-luxury rounded-xl" /></div></div><div><Label>ملاحظات</Label><Input value={editInventoryForm.notes} onChange={e => setEditInventoryForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 text-white" onClick={async () => { if (!editInventoryForm.name.trim()) return toast.error('الاسم مطلوب'); if (editingInventoryId) { try { await apiFetch(`/inventory/items/${editingInventoryId}`, { method: 'PUT', body: JSON.stringify({ name: editInventoryForm.name, category: editInventoryForm.category || null, quantity: parseInt(editInventoryForm.quantity) || 0, minQuantity: parseInt(editInventoryForm.minQuantity) || 5, unitPrice: parseFloat(editInventoryForm.unitPrice) || 0, notes: editInventoryForm.notes || null }) }); setInventoryItems(prev => prev.map(i => i.id === editingInventoryId ? { ...i, name: editInventoryForm.name, category: editInventoryForm.category, quantity: parseInt(editInventoryForm.quantity) || 0, minQuantity: parseInt(editInventoryForm.minQuantity) || 5, unitPrice: parseFloat(editInventoryForm.unitPrice) || 0, notes: editInventoryForm.notes } : i)); toast.success('تم تعديل العنصر') } catch { toast.error('خطأ في التعديل') } } else { await addItem('/inventory/items', { name: editInventoryForm.name, category: editInventoryForm.category || null, quantity: parseInt(editInventoryForm.quantity) || 0, minQuantity: parseInt(editInventoryForm.minQuantity) || 5, unitPrice: parseFloat(editInventoryForm.unitPrice) || 0, notes: editInventoryForm.notes || null }, setInventoryItems) } setShowAddInventory(false); setEditingInventoryId(null); setEditInventoryForm({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' }) }}>حفظ</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Stock Transaction Dialog */}
-      <Dialog open={showStockTransaction} onOpenChange={setShowStockTransaction}><DialogContent className="max-w-sm"><DialogHeader><DialogTitle className="flex items-center gap-2">{stockTransactionType === 'in' ? <FileUp size={18} className="text-emerald-500" /> : <FileDown size={18} className="text-orange-500" />} {stockTransactionType === 'in' ? 'توريد مخزون' : 'صرف مخزون'}</DialogTitle></DialogHeader><div className="space-y-3"><div className="flex gap-2">{[{ type: 'in' as const, label: 'توريد', emoji: '📥', color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' }, { type: 'out' as const, label: 'صرف', emoji: '📤', color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300' }].map(t => (<motion.button key={t.type} whileTap={{ scale: 0.95 }} onClick={() => setStockTransactionType(t.type)} className={cn('flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', t.color, stockTransactionType === t.type ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{t.emoji}</span>{t.label}</motion.button>))}</div><div><Label>الكمية *</Label><Input type="number" value={stockTransactionQty} onChange={e => setStockTransactionQty(e.target.value)} placeholder="الكمية" className="input-luxury rounded-xl" /></div><div><Label>ملاحظات</Label><Input value={stockTransactionNotes} onChange={e => setStockTransactionNotes(e.target.value)} placeholder="سبب التوريد/الصرف..." className="input-luxury rounded-xl" /></div></div><DialogFooter><Button className={cn('btn-luxury rounded-xl text-white', stockTransactionType === 'in' ? 'bg-gradient-to-l from-emerald-500 to-emerald-600' : 'bg-gradient-to-l from-orange-500 to-orange-600')} onClick={async () => { const qty = parseInt(stockTransactionQty); if (!qty || qty <= 0) return toast.error('أدخل كمية صحيحة'); try { await apiFetch('/inventory/transactions', { method: 'POST', body: JSON.stringify({ itemId: stockTransactionItemId, type: stockTransactionType, quantity: qty, notes: stockTransactionNotes || null, date: cairoISO() }) }); const item = inventoryItems.find(i => i.id === stockTransactionItemId); if (item) { const newQty = stockTransactionType === 'in' ? item.quantity + qty : Math.max(0, item.quantity - qty); setInventoryItems(prev => prev.map(i => i.id === stockTransactionItemId ? { ...i, quantity: newQty } : i)) } toast.success(stockTransactionType === 'in' ? `تم توريد ${qty} وحدة` : `تم صرف ${qty} وحدة`); setShowStockTransaction(false) } catch { toast.error('خطأ في العملية') } }}>تأكيد</Button></DialogFooter></DialogContent></Dialog>
+ <Dialog open={showStockTransaction} onOpenChange={setShowStockTransaction}><DialogContent className="max-w-sm active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><DialogHeader><DialogTitle className="flex items-center gap-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{stockTransactionType === 'in' ? <FileUp size={18} className="text-emerald-500 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /> : <FileDown size={18} className="text-orange-500 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" />} {stockTransactionType === 'in' ? 'توريد مخزون' : 'صرف مخزون'}</DialogTitle></DialogHeader><div className="space-y-3 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><div className="flex gap-2 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">{[{ type: 'in' as const, label: 'توريد', emoji: '📥', color: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' }, { type: 'out' as const, label: 'صرف', emoji: '📤', color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300' }].map(t => (<button key={t.type} onClick={() => setStockTransactionType(t.type)} className={cn('flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', t.color, stockTransactionType === t.type ? 'ring-2 ring-primary shadow-lg scale-105' : 'opacity-50 hover:opacity-80')}><span>{t.emoji}</span>{t.label}</button>))}</div><div><Label>الكمية *</Label><Input type="number" value={stockTransactionQty} onChange={e => setStockTransactionQty(e.target.value)} placeholder="الكمية" className="input-luxury rounded-xl active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /></div><div><Label>ملاحظات</Label><Input value={stockTransactionNotes} onChange={e => setStockTransactionNotes(e.target.value)} placeholder="سبب التوريد/الصرف..." className="input-luxury rounded-xl active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /></div></div><DialogFooter><Button className={cn('btn-luxury rounded-xl text-white', stockTransactionType === 'in' ? 'bg-gradient-to-l from-emerald-500 to-emerald-600' : 'bg-gradient-to-l from-orange-500 to-orange-600')} onClick={async () => { const qty = parseInt(stockTransactionQty); if (!qty || qty <= 0) return toast.error('أدخل كمية صحيحة'); try { await apiFetch('/inventory/transactions', { method: 'POST', body: JSON.stringify({ itemId: stockTransactionItemId, type: stockTransactionType, quantity: qty, notes: stockTransactionNotes || null, date: cairoISO() }) }); const item = inventoryItems.find(i => i.id === stockTransactionItemId); if (item) { const newQty = stockTransactionType === 'in' ? item.quantity + qty : Math.max(0, item.quantity - qty); setInventoryItems(prev => prev.map(i => i.id === stockTransactionItemId ? { ...i, quantity: newQty } : i)) } toast.success(stockTransactionType === 'in' ? `تم توريد ${qty} وحدة` : `تم صرف ${qty} وحدة`); setShowStockTransaction(false) } catch { toast.error('خطأ في العملية') } }}>تأكيد</Button></DialogFooter></DialogContent></Dialog>
 
       {/* Add/Edit Partner Doctor Dialog */}
       <Dialog open={showAddDoctor} onOpenChange={setShowAddDoctor}><DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -7453,7 +7451,7 @@ export default function Home() {
         <div className="space-y-3">
           <div><Label className="text-xs font-bold">اسم المريض أو اختر من القائمة</Label><Select value={waitingFormName} onValueChange={v => { const p = patients.find(pp => pp.id === v); if (p) { setWaitingFormName(p.name); setWaitingFormPatientId(p.id) } }}><SelectTrigger className="rounded-xl mt-1"><SelectValue placeholder="اختر مريض موجود..." /></SelectTrigger><SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name}{p.phone ? ` (${p.phone})` : ''}</SelectItem>)}</SelectContent></Select></div>
           <div><Label className="text-xs font-bold">أو اكتب اسم المريض</Label><Input value={waitingFormName} onChange={e => { setWaitingFormName(e.target.value); setWaitingFormPatientId(undefined) }} placeholder="اسم المريض..." className="input-luxury rounded-xl mt-1" /></div>
-          <div><Label className="text-xs font-bold">الأولوية</Label><div className="grid grid-cols-2 gap-2 mt-1"><motion.button whileTap={{ scale: 0.95 }} onClick={() => setWaitingFormPriority('normal')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', waitingFormPriority === 'normal' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}>🟢 عادي</motion.button><motion.button whileTap={{ scale: 0.95 }} onClick={() => setWaitingFormPriority('urgent')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', waitingFormPriority === 'urgent' ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}>🔴 عاجل</motion.button></div></div>
+ <div><Label className="text-xs font-bold active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150">الأولوية</Label><div className="grid grid-cols-2 gap-2 mt-1 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150"><button onClick={() => setWaitingFormPriority('normal')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', waitingFormPriority === 'normal' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}>🟢 عادي</button><button onClick={() => setWaitingFormPriority('urgent')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', waitingFormPriority === 'urgent' ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}>🔴 عاجل</button></div></div>
           <div><Label className="text-xs font-bold">ملاحظات</Label><Input value={waitingFormNotes} onChange={e => setWaitingFormNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="input-luxury rounded-xl mt-1" /></div>
         </div>
         <DialogFooter><Button className="btn-luxury rounded-xl bg-gradient-to-l from-red-500 to-red-600 text-white" onClick={async () => { if (!waitingFormName.trim()) return toast.error('اسم المريض مطلوب'); const priority = waitingFormPriority === 'urgent' ? 2 : 1; await addItem('/waiting', { patientId: waitingFormPatientId || undefined, patientName: waitingFormName, priority, status: 'waiting', notes: waitingFormNotes || undefined }, setWaitingQueue); setWaitingFormName(''); setWaitingFormPriority('normal'); setWaitingFormNotes(''); setWaitingFormPatientId(undefined); setShowAddWaiting(false) }}>إضافة للقائمة</Button></DialogFooter>
@@ -7486,8 +7484,8 @@ export default function Home() {
           <div className="space-y-3">
             <div><Label className="text-xs font-bold">نوع المعاملة</Label>
               <div className="grid grid-cols-2 gap-2 mt-1">
-                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setTxnFormType('income')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', txnFormType === 'income' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}><TrendingUp size={16} /> إيراد</motion.button>
-                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setTxnFormType('expense')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', txnFormType === 'expense' ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}><TrendingUp size={16} className="rotate-180" /> مصروف</motion.button>
+ <button onClick={() => setTxnFormType('income')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150', txnFormType === 'income' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}><TrendingUp size={16} /> إيراد</button>
+ <button onClick={() => setTxnFormType('expense')} className={cn('flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-bold transition-all', txnFormType === 'expense' ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-lg' : 'border-transparent bg-muted/50 text-muted-foreground')}><TrendingUp size={16} className="rotate-180 active:scale-[0.95] hover:scale-[1.05] transition-transform duration-150" /> مصروف</button>
               </div>
             </div>
             <div><Label className="text-xs font-bold">الفئة</Label>

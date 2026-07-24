@@ -125,6 +125,162 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
   }
+  /* ── Performance-optimized CSS animations (replace framer-motion infinite loops) ── */
+  --animate-wiggle: wiggle 2s ease-in-out infinite;
+  --animate-wiggle-wide: wiggle-wide 1.5s ease-in-out infinite;
+  --animate-bounce-y: bounce-y 2s ease-in-out infinite;
+  --animate-bounce-y-sm: bounce-y-sm 2s ease-in-out infinite;
+  --animate-pulse-scale: pulse-scale 2s ease-in-out infinite;
+  --animate-pulse-scale-lg: pulse-scale-lg 1.5s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 8s linear infinite;
+  --animate-drift-a: drift-a 18s ease-in-out infinite;
+  --animate-drift-b: drift-b 14s ease-in-out infinite;
+  --animate-drift-c: drift-c 20s ease-in-out infinite;
+  --animate-fade-slide-up: fade-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scale-in-fast: scale-in-fast 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(10deg); }
+    75% { transform: rotate(-10deg); }
+  }
+
+  @keyframes wiggle-wide {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(15deg); }
+    75% { transform: rotate(-15deg); }
+  }
+
+  @keyframes bounce-y {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes bounce-y-sm {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @keyframes pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  @keyframes pulse-scale-lg {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes drift-a {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(60px, -30px); }
+    66% { transform: translate(120px, -60px); }
+  }
+
+  @keyframes drift-b {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(-45px, 35px); }
+    66% { transform: translate(-90px, 70px); }
+  }
+
+  @keyframes drift-c {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(30px, 20px); }
+    66% { transform: translate(60px, 40px); }
+  }
+
+  @keyframes fade-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scale-in-fast {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  /* ── Performance-optimized CSS animations (replace framer-motion infinite loops) ── */
+  --animate-wiggle: wiggle 2s ease-in-out infinite;
+  --animate-wiggle-wide: wiggle-wide 1.5s ease-in-out infinite;
+  --animate-bounce-y: bounce-y 2s ease-in-out infinite;
+  --animate-bounce-y-sm: bounce-y-sm 2s ease-in-out infinite;
+  --animate-pulse-scale: pulse-scale 2s ease-in-out infinite;
+  --animate-pulse-scale-lg: pulse-scale-lg 1.5s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 8s linear infinite;
+  --animate-drift-a: drift-a 18s ease-in-out infinite;
+  --animate-drift-b: drift-b 14s ease-in-out infinite;
+  --animate-drift-c: drift-c 20s ease-in-out infinite;
+  --animate-fade-slide-up: fade-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scale-in-fast: scale-in-fast 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(10deg); }
+    75% { transform: rotate(-10deg); }
+  }
+
+  @keyframes wiggle-wide {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(15deg); }
+    75% { transform: rotate(-15deg); }
+  }
+
+  @keyframes bounce-y {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes bounce-y-sm {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @keyframes pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  @keyframes pulse-scale-lg {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes drift-a {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(60px, -30px); }
+    66% { transform: translate(120px, -60px); }
+  }
+
+  @keyframes drift-b {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(-45px, 35px); }
+    66% { transform: translate(-90px, 70px); }
+  }
+
+  @keyframes drift-c {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(30px, 20px); }
+    66% { transform: translate(60px, 40px); }
+  }
+
+  @keyframes fade-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scale-in-fast {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
 }
 
 /* ──────────────────────────────────────────────────────────
