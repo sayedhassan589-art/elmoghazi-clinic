@@ -581,6 +581,14 @@ export default function Home() {
   const [waitingFormPatientId, setWaitingFormPatientId] = useState<string | undefined>(undefined)
   const [waitingFormNotes, setWaitingFormNotes] = useState('')
 
+  // Broadcast Message
+  const [showBroadcast, setShowBroadcast] = useState(false)
+  const [broadcastMessage, setBroadcastMessage] = useState('')
+  const [broadcastFilter, setBroadcastFilter] = useState<'all' | 'starred' | 'dangerous' | 'today' | 'recent7' | 'recent30'>('all')
+  const [broadcastSending, setBroadcastSending] = useState(false)
+  const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0 })
+  const [broadcastSelectedIds, setBroadcastSelectedIds] = useState<string[]>([])
+
   // Enhanced Reminder form
   const [reminderType, setReminderType] = useState('general')
   const [reminderDate, setReminderDate] = useState('')
@@ -3739,6 +3747,7 @@ export default function Home() {
                     { id: 'reminders', label: 'التذكيرات', emoji: '⏰', gradient: 'from-[#F43F5E] to-[#E11D48]', glow: 'shadow-rose-500/40', ring: 'ring-rose-400/60' },
                     { id: 'templates', label: 'القوالب', emoji: '📋', gradient: 'from-[#D946EF] to-[#C026D3]', glow: 'shadow-fuchsia-500/40', ring: 'ring-fuchsia-400/60' },
                     { id: 'waiting', label: 'الانتظار', emoji: '⏳', gradient: 'from-[#EF4444] to-[#DC2626]', glow: 'shadow-red-500/40', ring: 'ring-red-400/60' },
+                    { id: 'broadcast', label: 'رسائل', emoji: '📩', gradient: 'from-[#22C55E] to-[#16A34A]', glow: 'shadow-green-500/40', ring: 'ring-green-400/60' },
                     { id: 'reports', label: 'التقارير', emoji: '📊', gradient: 'from-[#06B6D4] to-[#0284C7]', glow: 'shadow-cyan-500/40', ring: 'ring-cyan-400/60' },
                     { id: 'backup', label: 'النسخ', emoji: '💾', gradient: 'from-[#64748B] to-[#475569]', glow: 'shadow-slate-500/40', ring: 'ring-slate-400/60' },
                     { id: 'notes', label: 'الملاحظات', emoji: '📝', gradient: 'from-[#6366F1] to-[#4F46E5]', glow: 'shadow-indigo-500/40', ring: 'ring-indigo-400/60' },
@@ -4836,6 +4845,188 @@ export default function Home() {
                     )
                   })()}
                 </div>)}
+
+                {/* ═══ Broadcast Messages Sub-tab - رسائل جماعية ═══ */}
+                {moreSubTab === 'broadcast' && (() => {
+                  const patientsWithPhone = patients.filter(p => p.phone && waPhone(p.phone))
+                  const filteredBroadcastPatients = (() => {
+                    let list = patientsWithPhone
+                    if (broadcastFilter === 'starred') list = list.filter(p => p.starred)
+                    if (broadcastFilter === 'dangerous') list = list.filter(p => p.dangerous)
+                    if (broadcastFilter === 'today') { const todayISO = cairoISO().split('T')[0]; list = list.filter(p => p.createdAt && p.createdAt.startsWith(todayISO)) }
+                    if (broadcastFilter === 'recent7') { const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); list = list.filter(p => new Date(p.createdAt) >= cutoff) }
+                    if (broadcastFilter === 'recent30') { const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30); list = list.filter(p => new Date(p.createdAt) >= cutoff) }
+                    if (broadcastSelectedIds.length > 0) list = list.filter(p => broadcastSelectedIds.includes(p.id))
+                    return list
+                  })()
+
+                  const broadcastTemplates = [
+                    { id: 'reminder', label: 'تذكير موعد', emoji: '📅', message: 'مرحباً {name}، نود تذكيرك بموعدك في عيادة المغازي للأمراض الجلدية. نتطلع لرؤيتك! 🏥' },
+                    { id: 'followup', label: 'متابعة', emoji: '🔄', message: 'مرحباً {name}، كيف حالك؟ نود متابعة حالتك بعد الزيارة الأخيرة. هل يمكنك مراجعة العيادة؟ 🩺' },
+                    { id: 'promo', label: 'عرض خاص', emoji: '🎉', message: 'مرحباً {name}! عيادة المغازي تقدم عرض خاص على جلسات الليزر هذا الشهر. احجز الآن! ⚡' },
+                    { id: 'holiday', label: 'إجازة', emoji: '🌴', message: 'مرحباً {name}، عيادة المغازي ستكون مغلقة خلال الإجازة. سيتم إعادة جدولة موعدك. شكراً لتفهمكم! 🏥' },
+                    { id: 'custom', label: 'مخصص', emoji: '✏️', message: '' },
+                  ]
+
+                  const sendBroadcast = async () => {
+                    if (!broadcastMessage.trim()) { toast.error('اكتب الرسالة أولاً'); return }
+                    const targets = broadcastSelectedIds.length > 0 ? filteredBroadcastPatients : filteredBroadcastPatients
+                    if (targets.length === 0) { toast.error('لا يوجد مرضى بأرقام هاتف'); return }
+                    setBroadcastSending(true)
+                    setBroadcastProgress({ sent: 0, total: targets.length })
+                    for (let i = 0; i < targets.length; i++) {
+                      const p = targets[i]
+                      const wp = waPhone(p.phone)
+                      const personalizedMsg = broadcastMessage.replace(/\{name\}/g, p.name).replace(/\{phone\}/g, p.phone || '')
+                      const encodedMsg = encodeURIComponent(personalizedMsg)
+                      window.open(`https://wa.me/${wp}?text=${encodedMsg}`, '_blank')
+                      setBroadcastProgress({ sent: i + 1, total: targets.length })
+                      await new Promise(resolve => setTimeout(resolve, 1500))
+                    }
+                    setBroadcastSending(false)
+                    toast.success(`تم فتح واتساب ل ${targets.length} مريض ✅`)
+                  }
+
+                  const copyBroadcastInfo = () => {
+                    const targets = broadcastSelectedIds.length > 0 ? filteredBroadcastPatients : filteredBroadcastPatients
+                    const lines = targets.map(p => `${p.name}: ${p.phone}`)
+                    const info = `الرسالة:\n${broadcastMessage}\n\nالأرقام:\n${lines.join('\n')}\n\nعدد المرضى: ${targets.length}`
+                    navigator.clipboard.writeText(info)
+                    toast.success('تم نسخ البيانات ✅')
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 p-5 shadow-xl">
+                        <div className="absolute inset-0 opacity-20"><motion.div animate={{ x: [0, 60, 0] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl" /></div>
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex items-center gap-3"><motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-5xl">📩</motion.div><div><h1 className="text-2xl font-black text-white">رسائل جماعية</h1><p className="text-white/80 text-sm">إرسال رسائل واتساب لكل المرضى بضغة واحدة</p></div></div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-white/20 text-white border-white/30 text-sm">{patientsWithPhone.length} 📱</Badge>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.03 }} className="rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 p-3 text-white shadow-lg"><p className="text-2xl font-black">{patientsWithPhone.length}</p><p className="text-[10px] text-white/80 font-bold">أرقام مسجلة</p></motion.div>
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.03 }} className="rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-3 text-white shadow-lg"><p className="text-2xl font-black">{filteredBroadcastPatients.length}</p><p className="text-[10px] text-white/80 font-bold">مستهدفين</p></motion.div>
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} whileHover={{ scale: 1.03 }} className="rounded-2xl bg-gradient-to-br from-red-400 to-rose-500 p-3 text-white shadow-lg"><p className="text-2xl font-black">{patients.length - patientsWithPhone.length}</p><p className="text-[10px] text-white/80 font-bold">بدون رقم</p></motion.div>
+                      </div>
+
+                      {/* Message Template */}
+                      <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/10 dark:to-emerald-950/10">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Sparkles size={14} className="text-green-500" /> قوالب رسائل سريعة</CardTitle></CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            {broadcastTemplates.map(t => (
+                              <motion.button key={t.id} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setBroadcastMessage(t.message)} className={cn('flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', broadcastMessage === t.message ? 'bg-green-100 dark:bg-green-900/30 border-green-400 text-green-700 dark:text-green-300 shadow-lg' : 'bg-white/60 dark:bg-gray-800/60 border-border text-muted-foreground hover:border-green-300')}>
+                                <span className="text-lg">{t.emoji}</span>{t.label}
+                              </motion.button>
+                            ))}
+                          </div>
+                          <div><Label className="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1"><Send size={12} /> نص الرسالة</Label><Textarea value={broadcastMessage} onChange={e => setBroadcastMessage(e.target.value)} placeholder="اكتب رسالتك هنا... استخدم {name} لاسم المريض..." className="mt-1 rounded-xl min-h-[100px] border-2 border-green-200 dark:border-green-800 bg-white dark:bg-black/20 text-sm" /></div>
+                          {broadcastMessage.includes('{name}') && <p className="text-[10px] text-green-600 mt-1">✨ {'{name}'} سيتم استبداله باسم كل مريض تلقائياً</p>}
+                        </CardContent>
+                      </Card>
+
+                      {/* Filter & Selection */}
+                      <Card className="border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-amber-950/10 dark:to-yellow-950/10">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Filter size={14} className="text-amber-500" /> تحديد المستهدفين</CardTitle></CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            {[
+                              { id: 'all', label: 'الكل', emoji: '👥', count: patientsWithPhone.length },
+                              { id: 'starred', label: 'المميزة', emoji: '⭐', count: patientsWithPhone.filter(p => p.starred).length },
+                              { id: 'dangerous', label: 'خطر', emoji: '💀', count: patientsWithPhone.filter(p => p.dangerous).length },
+                              { id: 'today', label: 'اليوم', emoji: '📅', count: patientsWithPhone.filter(p => { const todayISO = cairoISO().split('T')[0]; return p.createdAt?.startsWith(todayISO) }).length },
+                              { id: 'recent7', label: '7 أيام', emoji: '📆', count: patientsWithPhone.filter(p => { const c = new Date(); c.setDate(c.getDate() - 7); return new Date(p.createdAt) >= c }).length },
+                              { id: 'recent30', label: '30 يوم', emoji: '🗓️', count: patientsWithPhone.filter(p => { const c = new Date(); c.setDate(c.getDate() - 30); return new Date(p.createdAt) >= c }).length },
+                            ].map(f => (
+                              <motion.button key={f.id} whileTap={{ scale: 0.9 }} onClick={() => { setBroadcastFilter(f.id as any); setBroadcastSelectedIds([]) }} className={cn('flex flex-col items-center gap-0.5 p-2.5 rounded-xl border-2 transition-all text-xs font-bold', broadcastFilter === f.id && broadcastSelectedIds.length === 0 ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-400 text-amber-700 dark:text-amber-300 shadow-lg' : 'bg-white/60 dark:bg-gray-800/60 border-border text-muted-foreground hover:border-amber-300')}>
+                                <span className="text-lg">{f.emoji}</span><span>{f.label}</span><Badge variant="outline" className="text-[8px]">{f.count}</Badge>
+                              </motion.button>
+                            ))}
+                          </div>
+                          {/* Manual patient selection */}
+                          <div className="border-t border-border pt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-bold text-muted-foreground">اختيار يدوي ({broadcastSelectedIds.length} مريض)</p>
+                              {broadcastSelectedIds.length > 0 && <Button variant="ghost" size="sm" className="text-xs" onClick={() => setBroadcastSelectedIds([])}>إلغاء الاختيار</Button>}
+                            </div>
+                            <div className="max-h-32 overflow-y-auto space-y-1">
+                              {patientsWithPhone.slice(0, 30).map(p => (
+                                <motion.button key={p.id} whileTap={{ scale: 0.95 }} onClick={() => { setBroadcastFilter('all'); setBroadcastSelectedIds(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]) }} className={cn('w-full flex items-center gap-2 p-2 rounded-lg transition-all text-xs', broadcastSelectedIds.includes(p.id) ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700' : 'bg-muted/30 hover:bg-muted/50')}>
+                                  <div className={cn('w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all', broadcastSelectedIds.includes(p.id) ? 'bg-green-500 border-green-600 text-white' : 'border-muted-foreground/30')}><CheckCircle size={10} /></div>
+                                  <span className="font-bold">{p.name}</span>
+                                  <span dir="ltr" className="text-muted-foreground ml-auto">{p.phone}</span>
+                                </motion.button>
+                              ))}
+                              {patientsWithPhone.length > 30 && <p className="text-center text-[10px] text-muted-foreground">و {patientsWithPhone.length - 30} مريض آخر...</p>}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Preview & Send */}
+                      <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-emerald-950/10 dark:to-teal-950/10">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Eye size={14} className="text-emerald-500" /> معاينة الرسالة</CardTitle></CardHeader>
+                        <CardContent>
+                          {filteredBroadcastPatients.length > 0 ? (
+                            <div className="space-y-3">
+                              {/* Preview for first patient */}
+                              {(() => {
+                                const firstP = filteredBroadcastPatients[0]
+                                const previewMsg = broadcastMessage.replace(/\{name\}/g, firstP.name).replace(/\{phone\}/g, firstP.phone || '')
+                                return (
+                                  <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                                    <p className="text-[10px] text-emerald-600 font-bold mb-1">معاينة (لـ {firstP.name}):</p>
+                                    <p className="text-sm whitespace-pre-wrap">{previewMsg || 'اكتب رسالتك...'}</p>
+                                  </div>
+                                )
+                              })()}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>📱 سيتم الإرسال لـ {filteredBroadcastPatients.length} مريض</span>
+                                <span>|</span>
+                                <span>⏱ ~{Math.ceil(filteredBroadcastPatients.length * 1.5 / 60)} دقيقة</span>
+                              </div>
+                              {/* Send Buttons */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={sendBroadcast} disabled={broadcastSending || !broadcastMessage.trim() || filteredBroadcastPatients.length === 0} className={cn('flex items-center justify-center gap-2 p-4 rounded-2xl text-sm font-bold transition-all shadow-lg', broadcastSending ? 'bg-muted text-muted-foreground cursor-wait' : !broadcastMessage.trim() || filteredBroadcastPatients.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:shadow-xl')}>
+                                  <Send size={18} /> {broadcastSending ? `إرسال... (${broadcastProgress.sent}/${broadcastProgress.total})` : 'إرسال واتساب'}
+                                </motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={copyBroadcastInfo} disabled={!broadcastMessage.trim() || filteredBroadcastPatients.length === 0} className={cn('flex items-center justify-center gap-2 p-4 rounded-2xl text-sm font-bold transition-all', !broadcastMessage.trim() || filteredBroadcastPatients.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:shadow-xl shadow-lg')}>
+                                  <Copy size={18} /> نسخ البيانات
+                                </motion.button>
+                              </div>
+                              {broadcastSending && (
+                                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                                  <motion.div initial={{ width: 0 }} animate={{ width: `${(broadcastProgress.sent / broadcastProgress.total) * 100}%` }} className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all" />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-center text-muted-foreground text-sm py-4">لا يوجد مرضى بأرقام هاتف في هذا الفلتر</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Tip */}
+                      <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">💡</span>
+                            <div>
+                              <p className="text-xs font-bold text-blue-700 dark:text-blue-400">نصيحة للإرسال الجماعي</p>
+                              <p className="text-[10px] text-muted-foreground">سيتم فتح واتساب لكل مريض تلقائياً كل 1.5 ثانية. تأكد من إرسال الرسالة في كل نافذة قبل المتابعة. استخدم {'{name}'} لإضافة اسم المريض شخصياً.</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )
+                })()}
 
                 {/* Reports Sub-tab - التقارير المحترفة */}
                 {moreSubTab === 'reports' && (<div className="space-y-4">
