@@ -1,23 +1,24 @@
 ---
-Task ID: 2
+Task ID: 3-5
 Agent: Main Agent
-Task: Extract PatientProfile component from monolithic page.tsx
+Task: Extract MoreSection.tsx, WaitingSection.tsx, and move More-related dialogs from page.tsx
 
 Work Log:
-- Analyzed page.tsx (7396 lines) to find Patient Profile JSX boundaries (lines 1955-2612, 656 lines)
-- Identified 3 exclusive helper functions: getImprovementColor, getImprovementEmoji, getImprovementHistory
-- Identified ImprovementEntry interface exclusive to Profile
-- Identified 17 exclusive store variables (8 from uiStore, 9 from patientFormStore)
-- Identified shared helpers needed by Profile: waPhone, normalizePhone, cairoISO, cairoDateTime, apiFetch, getVisitCategory, VISIT_TYPES
-- Created /src/lib/types.ts - extracted all 24 interfaces from page.tsx with export keyword
-- Created /src/lib/helpers.ts - extracted 24 module-level helper functions/constants with export keyword
-- Created /src/components/PatientProfile.tsx - 705 lines, uses Zustand stores directly, receives addItem/deleteItem/markSessionPaid as props
-- Modified page.tsx - removed interfaces (lines 47-70) and helpers (lines 71-374), added imports from types.ts and helpers.ts, replaced Profile JSX with <PatientProfile /> component
-- Build successful: ✓ Compiled successfully
-- Dev server test: HTTP 200
+- Step 3: Created Python script to extract More section JSX (~2621 lines) from page.tsx
+- Created MoreSection.tsx (3245 lines) with all imports, store destructuring, computed values, helper functions, and JSX
+- Replaced More section in page.tsx with <MoreSection />
+- Removed personal section computed values and CRUD handlers from page.tsx (they're now in MoreSection)
+- Step 4: Created WaitingSection.tsx (251 lines) - extracted waiting tab JSX and Add Waiting Queue dialog
+- Replaced Waiting section in page.tsx with <WaitingSection />
+- Step 5: Moved all More-related dialogs (420 lines) from page.tsx to MoreSection.tsx
+- Follow-up dialogs, Medication, Reminder, Inventory, Stock Transaction, Doctor, Template, Service, Booking, Personal Transaction/Reminder/Note dialogs all moved
+- Fixed duplicate </div> closing tag issue in page.tsx
+- Fixed Fragment wrapper issue in MoreSection.tsx (added <>...</> wrapper for multiple root elements)
 
 Stage Summary:
-- page.tsx reduced from 7396 → 6427 lines (saved 969 lines, -13%)
-- 3 new shared utility files created for future component extraction reuse
-- PatientProfile.tsx component is fully functional with Zustand stores
-- All UI/UX preserved - no functional changes
+- page.tsx reduced from 5113 lines → 1530 lines (70% reduction!)
+- MoreSection.tsx created: 3245 lines (self-contained with all dialogs)
+- WaitingSection.tsx created: 251 lines (self-contained with Add Waiting dialog)
+- Build successful ✅
+- Dev server HTTP 200 ✅
+- All components are self-contained using Zustand stores (no props passing)
