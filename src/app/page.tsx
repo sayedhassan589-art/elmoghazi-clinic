@@ -51,6 +51,7 @@ import FinanceCenter from '@/components/FinanceCenter'
 import MoreSection from '@/components/MoreSection'
 import WaitingSection from '@/components/WaitingSection'
 import CairoClock from '@/components/CairoClock'
+import DashboardSection from '@/components/DashboardSection'
 
 // ─── Smart Search Helpers ────────────────────────────────────────────
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -1017,114 +1018,8 @@ export default function Home() {
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
 
-            {/* ═══ DASHBOARD ═══ */}
-            {activeTab === 'dashboard' && (
-              <div className="space-y-5">
-                <div className="section-header-animated rounded-2xl bg-emerald-50 dark:bg-emerald-950/30">
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><div className="text-4xl animate-wiggle-wide">🏥</div><div><h1 className="text-2xl font-bold">لوحة التحكم</h1><p className="text-muted-foreground text-sm">مرحباً، {safeName(user?.name)}</p></div></div>
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-l from-amber-500/90 to-orange-600/90 dark:from-amber-600/90 dark:to-orange-700/90 shadow-lg shadow-amber-500/20">
-                        <Clock size={20} className="text-white animate-pulse" />
-                        <span className="text-white font-black text-xl tracking-wide font-mono"><CairoClock className="text-white font-black text-xl tracking-wide font-mono" /></span>
-                      </div>
-                      <Badge className="badge-gold text-xs"><CairoClock dateClassName="" /></Badge>
-                    </div>
-                  </div>
-                </div>
-                {/* Quick Actions - AT TOP */}
-                <Card className="card-luxury border-2 border-emerald-200 dark:border-emerald-800"><CardHeader className="pb-2"><CardTitle className="text-lg flex items-center gap-2"><span className="animate-wiggle-wide">⚡</span> إجراءات سريعة</CardTitle></CardHeader><CardContent><div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                  {[
-                    ...(canAddPatient ? [{ label: 'مريض جديد', icon: <UserPlus size={22} />, color: 'bg-gradient-to-br from-blue-500 to-blue-700', action: () => setShowAddPatient(true) }] : []),
-                    { label: 'سجل ليزر', icon: <Zap size={22} />, color: 'bg-gradient-to-br from-cyan-500 to-cyan-700', action: () => setShowAddLaserRecord(true) },
-                    { label: 'معاملة', icon: <DollarSign size={22} />, color: 'bg-gradient-to-br from-amber-500 to-amber-700', action: () => { setActiveTab('finance'); setTxnFormDate(cairoTodayInput()); setShowAddTransaction(true) } },
-                    { label: 'موعد', icon: <Calendar size={22} />, color: 'bg-gradient-to-br from-purple-500 to-purple-700', action: () => setShowAddAppointment(true) },
-                    { label: 'بحث ذكي', icon: <Search size={22} />, color: 'bg-gradient-to-br from-indigo-500 to-indigo-700', action: () => setSmartSearchOpen(true) },
-                  ].map((a, i) => (
- <button key={i} onClick={a.action} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-muted/50 transition-all group active:scale-[0.9] hover:scale-[1.08] transition-transform duration-150"><div className={cn('p-3.5 rounded-2xl text-white shadow-xl group-hover:shadow-2xl transition-shadow animate-bounce-y-sm', a.color)}>{a.icon}</div><span className="text-[11px] font-bold active:scale-[0.9] hover:scale-[1.08] transition-transform duration-150">{a.label}</span></button>
-                  ))}
-                </div></CardContent></Card>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { icon: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${patients.filter(p => getLocalDateStr(p.createdAt) === todayStr).length} اليوم`, gradient: 'from-blue-500 to-blue-700', anim: { scale: [1, 1.15, 1] } },
-                    { icon: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف`, gradient: 'from-emerald-500 to-emerald-700', anim: { rotate: [0, 10, -10, 0] } },
-                    { icon: '💰', label: 'إيراد اليوم', value: formatCurrency(todayIncome), sub: `${transactions.filter(t => t.type === 'income').length} معاملة`, gradient: 'from-amber-500 to-amber-700', anim: { scale: [1, 1.2, 1] } },
-                    { icon: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${appointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-purple-500 to-purple-700', anim: { y: [0, -5, 0] } },
-                    { icon: '⚡', label: 'جلسات اليوم', value: sessions.filter(s => getLocalDateStr(s.date) === todayStr).length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-700', anim: { rotate: [0, 15, -15, 0] } },
-                    { icon: '💎', label: 'سجلات الليزر', value: laserRecords.filter(r => r.status === 'active').length, sub: `${new Set(laserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-700', anim: { scale: [1, 1.1, 1] } },
-                  ].map((s, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, type: 'spring' }} className={cn('relative overflow-hidden rounded-2xl p-5 text-white shadow-xl bg-gradient-to-br', s.gradient)}>
-                      <div className="text-5xl mb-2 drop-shadow-lg animate-pulse-scale">{s.icon}</div>
-                      <p className="text-sm font-medium text-white/80">{s.label}</p>
-                      <p className="text-2xl font-black mt-1">{s.value}</p>
-                      {s.sub && <p className="text-xs text-white/60 mt-1">{s.sub}</p>}
-                      <div className="absolute top-0 left-0 w-20 h-20 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-                    </motion.div>
-                  ))}
-                </div>
-                {/* ═══ End-of-Day Summary ═══ */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                  <Card className="card-luxury border-2 border-amber-300 dark:border-amber-700 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-l from-amber-50/50 via-orange-50/30 to-yellow-50/50 dark:from-amber-950/20 dark:via-orange-950/10 dark:to-yellow-950/20 pointer-events-none" />
-                    <CardHeader className="pb-2 relative z-10">
-                      <CardTitle className="text-lg flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <span className="animate-wiggle-wide">📊</span>
-                          ملخص نهاية اليوم
-                        </span>
- <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-shadow active:scale-[0.9] hover:scale-[1.05] transition-transform duration-150">
-                          <Download size={14} /> طباعة الملخص
-                        </button>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="relative z-10">
-                      {(() => {
-                        const todayCheckupRev = transactions.filter(t => t.type === 'income' && t.category === 'كشف' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-                        const todayRevisitRev = transactions.filter(t => t.type === 'income' && t.category === 'إعادة' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-                        const todaySessionRev = transactions.filter(t => t.type === 'income' && (t.category === 'جلسات' || t.category === 'ليزر' || t.category === 'متابعة') && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + t.amount, 0)
-                        const todayUnpaid = sessions.filter(s => !s.paid && getLocalDateStr(s.date) === todayStr).reduce((s, ses) => s + ses.price, 0)
-                        const todaySessionsCompleted = sessions.filter(s => s.status === 'completed' && getLocalDateStr(s.date) === todayStr).length
-                        return (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg">
-                              <div className="text-2xl mb-1 animate-bounce-y-sm">👥</div>
-                              <p className="text-xs text-white/70">إجمالي المرضى اليوم</p>
-                              <p className="text-2xl font-black">{todayVisits.length}</p>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg">
-                              <div className="text-2xl mb-1 animate-pulse-scale-lg">💰</div>
-                              <p className="text-xs text-white/70">إجمالي الإيرادات</p>
-                              <p className="text-xl font-black">{formatCurrency(todayIncome)}</p>
-                              <div className="mt-1.5 space-y-0.5">
-                                <p className="text-[9px] text-white/60">🩺 كشف: {formatCurrency(todayCheckupRev)}</p>
-                                <p className="text-[9px] text-white/60">🔄 إعادة: {formatCurrency(todayRevisitRev)}</p>
-                                <p className="text-[9px] text-white/60">⚡ جلسات: {formatCurrency(todaySessionRev)}</p>
-                              </div>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-lg">
-                              <div className="text-2xl mb-1 animate-wiggle-wide">⚡</div>
-                              <p className="text-xs text-white/70">جلسات مكتملة</p>
-                              <p className="text-2xl font-black">{todaySessionsCompleted}</p>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.03 }} className="p-4 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg">
-                              <div className="text-2xl mb-1 animate-pulse-scale">⚠️</div>
-                              <p className="text-xs text-white/70">مبالغ غير مدفوعة</p>
-                              <p className="text-xl font-black">{formatCurrency(todayUnpaid)}</p>
-                            </motion.div>
-                          </div>
-                        )
-                      })()}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <Card className="card-luxury lg:col-span-2"><CardHeader><CardTitle className="text-lg">الإيرادات والمصروفات</CardTitle></CardHeader><CardContent><ResponsiveContainer width="100%" height={260}><BarChart data={revenueChartData}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" /><XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} /><YAxis stroke="var(--muted-foreground)" fontSize={12} /><RechartsTooltip /><Bar dataKey="إيراد" fill="#047857" radius={[4,4,0,0]} /><Bar dataKey="مصروف" fill="#D4A843" radius={[4,4,0,0]} /></BarChart></ResponsiveContainer></CardContent></Card>
-                  <Card className="card-luxury"><CardHeader><CardTitle className="text-lg">توزيع المرضى</CardTitle></CardHeader><CardContent className="flex items-center justify-center"><ResponsiveContainer width="100%" height={220}><PieChart><Pie data={genderData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>{genderData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer></CardContent></Card>
-                </div>
-                {renderQuickNotes('dashboard')}
-              </div>
-            )}
+            {/* ═══ DASHBOARD — Professional Design ═══ */}
+            {activeTab === 'dashboard' && <DashboardSection />}
 
             {/* ═══ PATIENTS ═══ */}
             {activeTab === 'patients' && !selectedPatient && (
