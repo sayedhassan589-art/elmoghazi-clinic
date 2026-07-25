@@ -41,7 +41,7 @@ import { Progress } from '@/components/ui/progress'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
-import { useAppointmentFormStore, useFinanceFormStore, useFollowUpFormStore, usePatientFormStore, usePersonalFormStore, useUIStore } from '@/store'
+import { useAppointmentFormStore, useFinanceFormStore, usePatientFormStore, useUIStore } from '@/store'
 
 import { ImprovementEntry, Patient, Visit, Session, Service, Note, LaserRecord, LaserSession, Transaction, Reminder, WaitingItem, InventoryItem, Medication, Prescription, Notification, Backup, PatientPhoto, PartnerDoctor, FollowUpRecord, FollowUpVisit, Alert, LaserPackage, LaserSetting, Appointment } from '@/lib/types'
 import { CHART_COLORS, normalizePhone, waPhone, getLocalDateStr, getCairoWeekday, getCairoDateLabel, getCairoDateParts, getEgyptianWeekDays, cairoISO, cairoTodayInput, cairoTimeInput, cairoDateTime, apiFetch, BODY_AREAS, SKIN_TYPES, HAIR_COLORS, getImprovementColor, getImprovementEmoji, getImprovementHistory, normalizeArabic, fuzzyMatch, smartSearch, getVisitCategory, VISIT_TYPES } from '@/lib/helpers'
@@ -50,7 +50,6 @@ import LaserCenter from '@/components/LaserCenter'
 import FinanceCenter from '@/components/FinanceCenter'
 import MoreSection from '@/components/MoreSection'
 import WaitingSection from '@/components/WaitingSection'
-
 
 // ─── Smart Search Helpers ────────────────────────────────────────────
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -62,7 +61,6 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
   return debounced
 }
 
-
 // ─── Isolated Cairo Clock (re-renders only itself every second, NOT the whole app) ──
 function CairoClock({ className, dateClassName }: { className?: string; dateClassName?: string }) {
   const [, setTick] = useState(0)
@@ -72,18 +70,16 @@ function CairoClock({ className, dateClassName }: { className?: string; dateClas
   return <>{className && <span className={className} dir="ltr">{time}</span>}{dateClassName !== undefined && <span className={dateClassName || undefined}>{date}</span>}</>
 }
 
-
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
-  const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords, defaultCheckupPrice, defaultRevisitPrice, setDefaultCheckupPrice, setDefaultRevisitPrice } = useClinicStore()
-  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, setLaserSettings, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, loading, setLoading, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes, patientPhotos, setPatientPhotos, loadAllData, refreshPatientPhotos } = useDataStore()
-  const { waitingFormName, setWaitingFormName, waitingFormPriority, setWaitingFormPriority, waitingFormPatientId, setWaitingFormPatientId, waitingFormNotes, setWaitingFormNotes, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId } = useAppointmentFormStore()
-  const { txnFormType, setTxnFormType, txnFormCategory, setTxnFormCategory, txnFormAmount, setTxnFormAmount, txnFormDescription, setTxnFormDescription, txnFormDate, setTxnFormDate, serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, editingServiceId, setEditingServiceId, editingServicePrice, setEditingServicePrice, editingServiceName, setEditingServiceName, editingDoctorId, setEditingDoctorId, doctorForm, setDoctorForm, reminderType, setReminderType, reminderDate, setReminderDate, reminderTime, setReminderTime, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
-  const { fuFormPatientSearch, setFuFormPatientSearch, fuFormPatientId, setFuFormPatientId, fuFormCondition, setFuFormCondition, fuFormCategory, setFuFormCategory, fuFormSeverity, setFuFormSeverity, fuFormFrequency, setFuFormFrequency, fuFormCustomDays, setFuFormCustomDays, fuFormNextVisit, setFuFormNextVisit, fuFormDiagnosis, setFuFormDiagnosis, fuFormTreatmentPlan, setFuFormTreatmentPlan, fuFormMedications, setFuFormMedications, fuFormNotes, setFuFormNotes, fuFormHasSubscription, setFuFormHasSubscription, fuFormSubType, setFuFormSubType, fuFormSubPrice, setFuFormSubPrice, fuFormSubStart, setFuFormSubStart, fuFormSubEnd, setFuFormSubEnd, fuFormSubSessions, setFuFormSubSessions, fuVisitForm, setFuVisitForm, editingFollowUpId, setEditingFollowUpId } = useFollowUpFormStore()
-  const { newPatientName, setNewPatientName, newPatientPhone, setNewPatientPhone, newPatientPhone2, setNewPatientPhone2, newPatientAddress, setNewPatientAddress, newPatientAge, setNewPatientAge, newPatientDiagnosis, setNewPatientDiagnosis, newPatientNotes, setNewPatientNotes, selectedVisitType, setSelectedVisitType, selectedServiceIds, setSelectedServiceIds, customServicePrice, setCustomServicePrice, visitPrice, setVisitPrice, quickNote, setQuickNote, editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent, photoType, setPhotoType, photoDescription, setPhotoDescription, profileSessionServiceId, setProfileSessionServiceId, profileSessionPrice, setProfileSessionPrice, profileSessionNotes, setProfileSessionNotes, profileVisitType, setProfileVisitType, profileVisitPrice, setProfileVisitPrice, profileVisitNotes, setProfileVisitNotes, profileVisitDate, setProfileVisitDate, profileSessionDate, setProfileSessionDate, editPatientForm, setEditPatientForm, editingVisitId, setEditingVisitId, editVisitForm, setEditVisitForm, editingSessionId, setEditingSessionId, editSessionForm, setEditSessionForm, newNoteContent, setNewNoteContent, newNoteSection, setNewNoteSection, newNoteImportant, setNewNoteImportant, editingNoteIdMore, setEditingNoteIdMore, editingNoteContentMore, setEditingNoteContentMore, editingNoteSectionMore, setEditingNoteSectionMore, newPatientDate, setNewPatientDate, improvementSliderValue, setImprovementSliderValue, improvementNote, setImprovementNote, patientImportData, setPatientImportData, patientImportPreview, setPatientImportPreview, patientImportFile, setPatientImportFile, patientImportLoading, setPatientImportLoading, patientImportProgress, setPatientImportProgress, patientImportDragOver, setPatientImportDragOver } = usePatientFormStore()
-  const { personalTxnForm, setPersonalTxnForm, editingPersonalTxnId, setEditingPersonalTxnId, personalReminderForm, setPersonalReminderForm, editingPersonalReminderId, setEditingPersonalReminderId, personalNoteForm, setPersonalNoteForm, editingPersonalNoteId, setEditingPersonalNoteId, editingPersonalNoteContent, setEditingPersonalNoteContent } = usePersonalFormStore()
-  const { darkMode, setDarkMode, smartSearchOpen, setSmartSearchOpen, smartSearchQuery, setSmartSearchQuery, searchQuery, setSearchQuery, searchField, setSearchField, patientDisplayCount, setPatientDisplayCount, selectedPatient, setSelectedPatient, moreSubTab, setMoreSubTab, showAddPatient, setShowAddPatient, showAddService, setShowAddService, showAddTransaction, setShowAddTransaction, expandedFinanceDay, setExpandedFinanceDay, showAddAppointment, setShowAddAppointment, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showAddInventory, setShowAddInventory, loginRole, setLoginRole, loginPassword, setLoginPassword, loginLoading, setLoginLoading, seeded, setSeeded, restoreConfirmOpen, setRestoreConfirmOpen, pendingRestoreData, setPendingRestoreData, patientFilter, setPatientFilter, patientDetailTab, setPatientDetailTab, showAddSessionProfile, setShowAddSessionProfile, showAddVisitProfile, setShowAddVisitProfile, showAddDoctor, setShowAddDoctor, editingPatient, setEditingPatient, deletePatientConfirmOpen, setDeletePatientConfirmOpen, noteSearch, setNoteSearch, noteFilter, setNoteFilter, passwordDialogOpen, setPasswordDialogOpen, passwordTarget, setPasswordTarget, passwordInput, setPasswordInput, pendingTab, setPendingTab, sliderPos, setSliderPos, isDragging, setIsDragging, showAddWaiting, setShowAddWaiting, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, celebratingId, setCelebratingId, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, showStockTransaction, setShowStockTransaction, deleteInventoryConfirmId, setDeleteInventoryConfirmId, showAddBooking, setShowAddBooking, bookingFilterStatus, setBookingFilterStatus, bookingFilterDate, setBookingFilterDate, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, reportPeriod, setReportPeriod, celebratingPersonalId, setCelebratingPersonalId, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, patientCopySearch, setPatientCopySearch, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, showPatientImport, setShowPatientImport } = useUIStore()
+  const { activeTab, setActiveTab, theme, setTheme, autoBackup, setAutoBackup, backupInterval, setBackupInterval, setLastBackup, sectionPasswords, setSectionPasswords, defaultCheckupPrice, defaultRevisitPrice, setDefaultCheckupPrice, setDefaultRevisitPrice } = useClinicStore()
+  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, laserRecords, setLaserRecords, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, loading, setLoading, patientPhotos, setPatientPhotos, loadAllData, refreshPatientPhotos } = useDataStore()
+  const { bookingFormPatientSearch, setBookingFormPatientSearch } = useAppointmentFormStore()
+  const { setTxnFormDate } = useFinanceFormStore()
 
+  const { newPatientName, setNewPatientName, newPatientPhone, setNewPatientPhone, newPatientAddress, setNewPatientAddress, newPatientAge, setNewPatientAge, newPatientDiagnosis, setNewPatientDiagnosis, newPatientNotes, setNewPatientNotes, selectedVisitType, setSelectedVisitType, selectedServiceIds, setSelectedServiceIds, customServicePrice, setCustomServicePrice, visitPrice, setVisitPrice, quickNote, setQuickNote, setEditingVisitId, setEditingSessionId, newPatientDate, setNewPatientDate, patientImportData, setPatientImportData, patientImportPreview, setPatientImportPreview, patientImportFile, setPatientImportFile, patientImportLoading, setPatientImportLoading, patientImportProgress, setPatientImportProgress, patientImportDragOver, setPatientImportDragOver } = usePatientFormStore()
+
+  const { darkMode, setDarkMode, smartSearchOpen, setSmartSearchOpen, smartSearchQuery, setSmartSearchQuery, searchQuery, setSearchQuery, searchField, setSearchField, patientDisplayCount, setPatientDisplayCount, selectedPatient, setSelectedPatient, showAddPatient, setShowAddPatient, showAddTransaction, setShowAddTransaction, showAddLaserRecord, setShowAddLaserRecord, setShowAddAppointment, loginRole, setLoginRole, loginPassword, setLoginPassword, loginLoading, setLoginLoading, seeded, setSeeded, restoreConfirmOpen, setRestoreConfirmOpen, pendingRestoreData, setPendingRestoreData, patientFilter, setPatientFilter, editingPatient, setEditingPatient, deletePatientConfirmOpen, setDeletePatientConfirmOpen, passwordDialogOpen, setPasswordDialogOpen, passwordTarget, setPasswordTarget, passwordInput, setPasswordInput, pendingTab, setPendingTab, selectedFollowUpId } = useUIStore()
   // Login
   const patientImportInputRef = useRef<HTMLInputElement>(null)
   // Full restore from backup file — uses dedicated import endpoint
@@ -148,15 +144,12 @@ export default function Home() {
     return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
   }, [newPatientName, patients])
 
-
   // Booking patient search
   const bookingPatientSuggestions = useMemo(() => {
     if (!bookingFormPatientSearch) return []
     const q = bookingFormPatientSearch.toLowerCase()
     return patients.filter(p => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.fileNumber?.toLowerCase().includes(q)).slice(0, 5)
   }, [bookingFormPatientSearch, patients])
-
-  
 
   // ─── CRUD ─────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -536,7 +529,6 @@ export default function Home() {
     return Object.values(countMap).sort((a, b) => (b.visitCount + b.sessionCount) - (a.visitCount + a.sessionCount)).slice(0, 5)
   }, [patients, visits, sessions, transactions])
 
-
   // ─── WhatsApp Daily Summary ───
   const shareDailySummary = () => {
     const cairoNow = getCairoDateParts()
@@ -567,7 +559,6 @@ export default function Home() {
     } catch { return false }
   }), [sessions, services])
 
-
   // Smart search
   const smartSearchResults = useMemo(() => {
     if (!smartSearchQuery.trim()) return []
@@ -582,7 +573,6 @@ export default function Home() {
     return r.slice(0, 20)
   }, [smartSearchQuery, patients, services, visits])
   useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setSmartSearchOpen(true) } if (e.key === 'Escape') setSmartSearchOpen(false) }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [])
-
 
   // ─── Patient Import Parser (supports JSON, CSV, TSV, XLSX) ───
   const parsePatientFile = async (file: File): Promise<any[]> => {
@@ -1307,9 +1297,6 @@ export default function Home() {
 
       {/* ─── Global Confirmation Dialogs (work across all tabs) ─── */}
       
-
-      
-
       {/* Restore Backup Confirmation Dialog */}
       <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
         <AlertDialogContent>
@@ -1355,7 +1342,6 @@ export default function Home() {
           {smartSearchResults.map((r, i) => (<button key={`${r.type}-${r.id}`} onClick={() => { if (r.type === 'patient') { const p = patients.find(pt => pt.id === r.id); if (p) { setSelectedPatient(p); setActiveTab('patients') } } setSmartSearchOpen(false); setSmartSearchQuery('') }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-right"><div className="p-1.5 rounded-lg bg-muted">{r.icon}</div><div className="flex-1 min-w-0"><p className="font-medium text-sm truncate">{r.label}</p><p className="text-xs text-muted-foreground truncate">{r.sub}</p></div><Badge variant="outline" className="text-[9px]">{r.type === 'patient' ? 'مريض' : 'خدمة'}</Badge></button>))}
         </ScrollArea>
       </Card></div></motion.div>)}</AnimatePresence>
-
 
       {/* ═══ SMART PATIENT REGISTRATION DIALOG - REDESIGNED — Doctor Only ═══ */}
       {canAddPatient && <Dialog open={showAddPatient} onOpenChange={setShowAddPatient}>
@@ -1524,7 +1510,6 @@ export default function Home() {
         </DialogContent>
       </Dialog>}
       
-
     </div>
   )
 }

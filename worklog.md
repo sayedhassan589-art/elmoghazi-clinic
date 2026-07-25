@@ -1,24 +1,19 @@
 ---
-Task ID: 3-5
+Task ID: 6
 Agent: Main Agent
-Task: Extract MoreSection.tsx, WaitingSection.tsx, and move More-related dialogs from page.tsx
+Task: Fix runtime bugs in all extracted components and clean up page.tsx
 
 Work Log:
-- Step 3: Created Python script to extract More section JSX (~2621 lines) from page.tsx
-- Created MoreSection.tsx (3245 lines) with all imports, store destructuring, computed values, helper functions, and JSX
-- Replaced More section in page.tsx with <MoreSection />
-- Removed personal section computed values and CRUD handlers from page.tsx (they're now in MoreSection)
-- Step 4: Created WaitingSection.tsx (251 lines) - extracted waiting tab JSX and Add Waiting Queue dialog
-- Replaced Waiting section in page.tsx with <WaitingSection />
-- Step 5: Moved all More-related dialogs (420 lines) from page.tsx to MoreSection.tsx
-- Follow-up dialogs, Medication, Reminder, Inventory, Stock Transaction, Doctor, Template, Service, Booking, Personal Transaction/Reminder/Note dialogs all moved
-- Fixed duplicate </div> closing tag issue in page.tsx
-- Fixed Fragment wrapper issue in MoreSection.tsx (added <>...</> wrapper for multiple root elements)
+- Identified missing references in WaitingSection.tsx (9 missing refs), MoreSection.tsx (18 missing refs), LaserCenter.tsx (4 missing refs), and page.tsx (3 missing refs)
+- Fixed WaitingSection.tsx: Added `canDelete`, `deleteItem`, 6 `useMemo` computations for waiting items/totals, and `Sparkles` import
+- Fixed LaserCenter.tsx: Added `usePatientFormStore` import and destructured `editingNoteId`, `setEditingNoteId`, `editingNoteContent`, `setEditingNoteContent`
+- Fixed MoreSection.tsx: Added `setActiveTab` to useClinicStore, `deleteInventoryConfirmId/setDeleteInventoryConfirmId/setSelectedPatient` to useUIStore, `editingServiceId/setEditingServiceId/editingServiceName/setEditingServiceName/editingServicePrice/setEditingServicePrice` to useFinanceFormStore, `editingNoteId/setEditingNoteId/editingNoteContent/setEditingNoteContent/editingNoteSectionMore/setEditingNoteSectionMore` to usePatientFormStore, plus `canDelete`, `servicesByCategory` useMemo, `markSessionPaid` local function
+- Fixed page.tsx: Added `laserRecords/setLaserRecords` to useDataStore, `showAddLaserRecord/setShowAddLaserRecord` to useUIStore
+- Cleaned up page.tsx: Removed entire useFollowUpFormStore (40 items), usePersonalFormStore (14 items), trimmed useAppointmentFormStore (kept only 2 items), useFinanceFormStore (kept only 1 item), useUIStore (reduced from 172 to ~51), removed `personalTransactions/setPersonalTransactions`, `personalReminders/setPersonalReminders`, `personalNotes/setPersonalNotes`, `setLaserSettings`, `statusColors/setStatusColors`, `lastBackup` from stores
 
 Stage Summary:
-- page.tsx reduced from 5113 lines → 1530 lines (70% reduction!)
-- MoreSection.tsx created: 3245 lines (self-contained with all dialogs)
-- WaitingSection.tsx created: 251 lines (self-contained with Add Waiting dialog)
-- Build successful ✅
-- Dev server HTTP 200 ✅
-- All components are self-contained using Zustand stores (no props passing)
+- All runtime bugs fixed in 5 extracted components
+- Build successful, dev server HTTP 200
+- page.tsx reduced from 1531 → 1515 lines (with much cleaner destructuring)
+- Original file was ~7396 lines, now page.tsx is ~1515 lines
+- Total component files: 5996 lines (6 separate self-contained components)

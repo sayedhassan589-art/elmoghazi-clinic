@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useAuthStore, useClinicStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { useUIStore, useLaserFormStore } from '@/store'
+import { useUIStore, useLaserFormStore, usePatientFormStore } from '@/store'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { LaserRecord, LaserSession, LaserPackage, LaserSetting, Session, Service, Transaction, Patient } from '@/lib/types'
 import { apiFetch, getLocalDateStr, cairoISO, cairoDateTime, BODY_AREAS } from '@/lib/helpers'
@@ -53,6 +53,7 @@ export default function LaserCenter() {
     laserFinanceNotes, setLaserFinanceNotes,
     treatmentTemplates, resetLaserForm
   } = useLaserFormStore()
+  const { editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent } = usePatientFormStore()
 
   // ─── Role-based access ─────────────────────────────────────────
   const isDoctor = userRole === 'doctor'

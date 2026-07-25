@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Clock, Plus, Trash2, Edit3, CheckCircle, Timer, Users, Phone, X, ChevronDown,
-  Star, Hash, Badge as BadgeIcon
+  Star, Hash, Badge as BadgeIcon, Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,11 +29,26 @@ export default function WaitingSection() {
   const { showAddWaiting, setShowAddWaiting, waitingFormName, setWaitingFormName, waitingFormPriority, setWaitingFormPriority, waitingFormPatientId, setWaitingFormPatientId, waitingFormNotes, setWaitingFormNotes, setSelectedPatient } = useUIStore()
 
   const isDoctor = userRole === 'doctor'
+  const canDelete = isDoctor
+
+  // ─── CRUD helpers ────────────────────────────────────────────
+  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
+    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
+  }
 
   // ─── Helper functions ────────────────────────────────────────────
   const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
     try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.item || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
   }
+
+
+  // ─── Computed values ────────────────────────────────────────────
+  const waitingItems = useMemo(() => waitingQueue.filter(w => w.status === 'waiting').sort((a, b) => b.priority - a.priority || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [waitingQueue])
+  const inProgressItems = useMemo(() => waitingQueue.filter(w => w.status === 'in-progress').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [waitingQueue])
+  const doneItems = useMemo(() => waitingQueue.filter(w => w.status === 'done' || w.status === 'left'), [waitingQueue])
+  const totalWaiting = waitingItems.length
+  const totalInProgress = inProgressItems.length
+  const totalDone = doneItems.length
 
   return (
     <>

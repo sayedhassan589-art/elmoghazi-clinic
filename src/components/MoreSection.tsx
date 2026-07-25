@@ -42,25 +42,55 @@ import { ImprovementEntry, Patient, Visit, Session, Service, Note, LaserRecord, 
 
 export default function MoreSection() {
   const { userRole } = useAuthStore()
-  const { theme, setTheme, THEME_CONFIGS: _TC } = useClinicStore()
+  const { theme, setTheme, THEME_CONFIGS: _TC, setActiveTab } = useClinicStore()
   const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, laserRecords, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes } = useDataStore()
-  const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement } = useUIStore()
-  const { serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, doctorForm, setDoctorForm, editingDoctorId, setEditingDoctorId, reminderType, setReminderType, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
+  const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, deleteInventoryConfirmId, setDeleteInventoryConfirmId, setSelectedPatient } = useUIStore()
+  const { serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, editingServiceId, setEditingServiceId, editingServiceName, setEditingServiceName, editingServicePrice, setEditingServicePrice, doctorForm, setDoctorForm, editingDoctorId, setEditingDoctorId, reminderType, setReminderType, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
   const { fuFormPatientSearch, setFuFormPatientSearch, fuFormPatientId, setFuFormPatientId, fuFormCondition, setFuFormCondition, fuFormCategory, setFuFormCategory, fuFormSeverity, setFuFormSeverity, fuFormFrequency, setFuFormFrequency, fuFormCustomDays, setFuFormCustomDays, fuFormNextVisit, setFuFormNextVisit, fuFormDiagnosis, setFuFormDiagnosis, fuFormTreatmentPlan, setFuFormTreatmentPlan, fuFormMedications, setFuFormMedications, fuFormNotes, setFuFormNotes, fuFormHasSubscription, setFuFormHasSubscription, fuFormSubType, setFuFormSubType, fuFormSubPrice, setFuFormSubPrice, fuFormSubStart, setFuFormSubStart, fuFormSubEnd, setFuFormSubEnd, fuFormSubSessions, setFuFormSubSessions, fuVisitForm, setFuVisitForm, editingFollowUpId, setEditingFollowUpId } = useFollowUpFormStore()
-  const { quickNote, setQuickNote } = usePatientFormStore()
+  const { quickNote, setQuickNote, editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent, editingNoteSectionMore, setEditingNoteSectionMore } = usePatientFormStore()
   const { personalTxnForm, setPersonalTxnForm, editingPersonalTxnId, setEditingPersonalTxnId, personalReminderForm, setPersonalReminderForm, editingPersonalReminderId, setEditingPersonalReminderId, personalNoteForm, setPersonalNoteForm, editingPersonalNoteId, setEditingPersonalNoteId } = usePersonalFormStore()
 
   const isDoctor = userRole === 'doctor'
   const canDelete = isDoctor
-  const canEditPatientFull = isDoctor
 
-  // ─── Helper functions ────────────────────────────────────────────
+  // ─── Services grouped by category ────────────────────────────────────
+  const servicesByCategory = useMemo(() => {
+    const cats: Record<string, Service[]> = {}
+    services.filter(s => s.active).forEach(s => { const cat = s.category || 'عام'; if (!cats[cat]) cats[cat] = []; cats[cat].push(s) })
+    return cats
+  }, [services])
+
+  // ─── CRUD helpers ──────────────────────────────────────────────
   const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
-    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.package || res?.setting || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
+    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
   }
   const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
     try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
   }
+
+  // ─── Mark session as paid + create finance transaction ──────────────
+  const markSessionPaid = async (s: Session) => {
+    try {
+      await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) })
+      const patientName = patients.find(p => p.id === s.patientId)?.name || 'مريض'
+      const svc = services.find(sv => sv.id === s.serviceId)
+      const category = s.notes?.includes('ليزر') ? 'ليزر' : 'جلسات'
+      const description = `${svc?.name || (category === 'ليزر' ? 'جلسة ليزر' : 'جلسة')} - ${patientName}`
+      const txnDate = s.date || cairoISO()
+      try {
+        const txnRes = await apiFetch('/finance/transactions', { method: 'POST', body: JSON.stringify({ type: 'income', category, amount: s.price, description, date: txnDate }) })
+        const newTxn = txnRes?.transaction || txnRes?.data || txnRes
+        if (newTxn?.id) {
+          setTransactions(prev => [newTxn, ...prev])
+        } else {
+          setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: txnDate }])
+        }
+      } catch { setTransactions(prev => [...prev, { id: 'sp-' + Date.now(), type: 'income', category, amount: s.price, description, date: txnDate }]) }
+      setSessions(prev => prev.map(ss => ss.id === s.id ? { ...ss, paid: true } : ss))
+      toast.success('تم الدفع ✅')
+    } catch { toast.error('خطأ') }
+  }
+  const canEditPatientFull = isDoctor
 
   // ─── Computed values (local to MoreSection) ──────────────────────────
   const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])
