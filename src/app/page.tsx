@@ -41,6 +41,7 @@ import { Progress } from '@/components/ui/progress'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { useAppointmentFormStore, useFinanceFormStore, useFollowUpFormStore, useLaserFormStore, usePatientFormStore, usePersonalFormStore, useUIStore } from '@/store'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface ImprovementEntry { score: number; date: string; note?: string }
@@ -386,77 +387,16 @@ export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
   const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords, defaultCheckupPrice, defaultRevisitPrice, setDefaultCheckupPrice, setDefaultRevisitPrice } = useClinicStore()
   const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, laserRecords, setLaserRecords, laserPackages, setLaserPackages, laserSettings, setLaserSettings, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, loading, setLoading, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes, patientPhotos, setPatientPhotos, loadAllData, refreshPatientPhotos } = useDataStore()
-  const [darkMode, setDarkMode] = useState(false)
-  const [smartSearchOpen, setSmartSearchOpen] = useState(false)
-  const [smartSearchQuery, setSmartSearchQuery] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchField, setSearchField] = useState<'all' | 'name' | 'address' | 'diagnosis' | 'phone' | 'notes'>('all')
-  const [patientDisplayCount, setPatientDisplayCount] = useState(50)
-
-  // UI
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
-  const [moreSubTab, setMoreSubTab] = useState('services')
-  const [laserSubTab, setLaserSubTab] = useState('records')
-
-  // Smart Patient Form
-  const [newPatientName, setNewPatientName] = useState('')
-  const [newPatientPhone, setNewPatientPhone] = useState('')
-  const [newPatientPhone2, setNewPatientPhone2] = useState('')
-  const [newPatientAddress, setNewPatientAddress] = useState('')
-  const [newPatientAge, setNewPatientAge] = useState('')
-  const [newPatientDiagnosis, setNewPatientDiagnosis] = useState('')
-  const [newPatientNotes, setNewPatientNotes] = useState('')
-  const [selectedVisitType, setSelectedVisitType] = useState<string>('')
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
-  const [showAddPatient, setShowAddPatient] = useState(false)
-  const [showAddService, setShowAddService] = useState(false)
-  const [showAddTransaction, setShowAddTransaction] = useState(false)
-  const [expandedFinanceDay, setExpandedFinanceDay] = useState<string | null>(null)
-  const [showAddAppointment, setShowAddAppointment] = useState(false)
-  // Transaction form
-  const [txnFormType, setTxnFormType] = useState<'income' | 'expense'>('income')
-  const [txnFormCategory, setTxnFormCategory] = useState('كشف')
-  const [txnFormAmount, setTxnFormAmount] = useState('')
-  const [txnFormDescription, setTxnFormDescription] = useState('')
-  const [txnFormDate, setTxnFormDate] = useState('')
-  // Service form
-  const [serviceFormName, setServiceFormName] = useState('')
-  const [serviceFormCategory, setServiceFormCategory] = useState('عام')
-  const [serviceFormPrice, setServiceFormPrice] = useState('')
-  const [serviceFormDuration, setServiceFormDuration] = useState('')
-  const [showAddLaserRecord, setShowAddLaserRecord] = useState(false)
-  const [showAddLaserPackage, setShowAddLaserPackage] = useState(false)
-  const [showAddMedication, setShowAddMedication] = useState(false)
-  const [showAddReminder, setShowAddReminder] = useState(false)
-  const [showAddInventory, setShowAddInventory] = useState(false)
-
-  // Laser form
-  const [laserFormArea, setLaserFormArea] = useState('')
-  const [laserFormSkinType, setLaserFormSkinType] = useState('')
-  const [laserFormHairColor, setLaserFormHairColor] = useState('')
-  const [laserFormHairDensity, setLaserFormHairDensity] = useState('')
-  const [laserFormSessions, setLaserFormSessions] = useState('6')
-  const [laserFormNotes, setLaserFormNotes] = useState('')
-  const [laserFormPatientId, setLaserFormPatientId] = useState('')
-  const [laserFormPatientSearch, setLaserFormPatientSearch] = useState('')
-  const [laserFormPrice, setLaserFormPrice] = useState('')
-  const [laserFormPaid, setLaserFormPaid] = useState(false)
-  const [laserFormMachine, setLaserFormMachine] = useState('')
-  const [laserFormEnergy, setLaserFormEnergy] = useState('')
-  const [laserFormPulse, setLaserFormPulse] = useState('')
-  const [laserFormDoctorId, setLaserFormDoctorId] = useState('')
-
+  const { waitingFormName, setWaitingFormName, waitingFormPriority, setWaitingFormPriority, waitingFormPatientId, setWaitingFormPatientId, waitingFormNotes, setWaitingFormNotes, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId } = useAppointmentFormStore()
+  const { txnFormType, setTxnFormType, txnFormCategory, setTxnFormCategory, txnFormAmount, setTxnFormAmount, txnFormDescription, setTxnFormDescription, txnFormDate, setTxnFormDate, serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, editingServiceId, setEditingServiceId, editingServicePrice, setEditingServicePrice, editingServiceName, setEditingServiceName, editingDoctorId, setEditingDoctorId, doctorForm, setDoctorForm, reminderType, setReminderType, reminderDate, setReminderDate, reminderTime, setReminderTime, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
+  const { fuFormPatientSearch, setFuFormPatientSearch, fuFormPatientId, setFuFormPatientId, fuFormCondition, setFuFormCondition, fuFormCategory, setFuFormCategory, fuFormSeverity, setFuFormSeverity, fuFormFrequency, setFuFormFrequency, fuFormCustomDays, setFuFormCustomDays, fuFormNextVisit, setFuFormNextVisit, fuFormDiagnosis, setFuFormDiagnosis, fuFormTreatmentPlan, setFuFormTreatmentPlan, fuFormMedications, setFuFormMedications, fuFormNotes, setFuFormNotes, fuFormHasSubscription, setFuFormHasSubscription, fuFormSubType, setFuFormSubType, fuFormSubPrice, setFuFormSubPrice, fuFormSubStart, setFuFormSubStart, fuFormSubEnd, setFuFormSubEnd, fuFormSubSessions, setFuFormSubSessions, fuVisitForm, setFuVisitForm, editingFollowUpId, setEditingFollowUpId } = useFollowUpFormStore()
+  const { laserFormArea, setLaserFormArea, laserFormSkinType, setLaserFormSkinType, laserFormHairColor, setLaserFormHairColor, laserFormHairDensity, setLaserFormHairDensity, laserFormSessions, setLaserFormSessions, laserFormNotes, setLaserFormNotes, laserFormPatientId, setLaserFormPatientId, laserFormPatientSearch, setLaserFormPatientSearch, laserFormPrice, setLaserFormPrice, laserFormPaid, setLaserFormPaid, laserFormMachine, setLaserFormMachine, laserFormEnergy, setLaserFormEnergy, laserFormPulse, setLaserFormPulse, laserFormDoctorId, setLaserFormDoctorId, laserFinancePatientId, setLaserFinancePatientId, laserFinancePrice, setLaserFinancePrice, laserFinanceNotes, setLaserFinanceNotes, editingLaserSessionId, setEditingLaserSessionId, editLaserSessionForm, setEditLaserSessionForm, newLaserSessionForm, setNewLaserSessionForm, editingLaserRecordId, setEditingLaserRecordId, editLaserRecordForm, setEditLaserRecordForm, treatmentTemplates, setTreatmentTemplates } = useLaserFormStore()
+  const { newPatientName, setNewPatientName, newPatientPhone, setNewPatientPhone, newPatientPhone2, setNewPatientPhone2, newPatientAddress, setNewPatientAddress, newPatientAge, setNewPatientAge, newPatientDiagnosis, setNewPatientDiagnosis, newPatientNotes, setNewPatientNotes, selectedVisitType, setSelectedVisitType, selectedServiceIds, setSelectedServiceIds, customServicePrice, setCustomServicePrice, visitPrice, setVisitPrice, quickNote, setQuickNote, editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent, photoType, setPhotoType, photoDescription, setPhotoDescription, profileSessionServiceId, setProfileSessionServiceId, profileSessionPrice, setProfileSessionPrice, profileSessionNotes, setProfileSessionNotes, profileVisitType, setProfileVisitType, profileVisitPrice, setProfileVisitPrice, profileVisitNotes, setProfileVisitNotes, profileVisitDate, setProfileVisitDate, profileSessionDate, setProfileSessionDate, editPatientForm, setEditPatientForm, editingVisitId, setEditingVisitId, editVisitForm, setEditVisitForm, editingSessionId, setEditingSessionId, editSessionForm, setEditSessionForm, newNoteContent, setNewNoteContent, newNoteSection, setNewNoteSection, newNoteImportant, setNewNoteImportant, editingNoteIdMore, setEditingNoteIdMore, editingNoteContentMore, setEditingNoteContentMore, editingNoteSectionMore, setEditingNoteSectionMore, newPatientDate, setNewPatientDate, improvementSliderValue, setImprovementSliderValue, improvementNote, setImprovementNote, patientImportData, setPatientImportData, patientImportPreview, setPatientImportPreview, patientImportFile, setPatientImportFile, patientImportLoading, setPatientImportLoading, patientImportProgress, setPatientImportProgress, patientImportDragOver, setPatientImportDragOver } = usePatientFormStore()
+  const { personalTxnForm, setPersonalTxnForm, editingPersonalTxnId, setEditingPersonalTxnId, personalReminderForm, setPersonalReminderForm, editingPersonalReminderId, setEditingPersonalReminderId, personalNoteForm, setPersonalNoteForm, editingPersonalNoteId, setEditingPersonalNoteId, editingPersonalNoteContent, setEditingPersonalNoteContent } = usePersonalFormStore()
+  const { darkMode, setDarkMode, smartSearchOpen, setSmartSearchOpen, smartSearchQuery, setSmartSearchQuery, searchQuery, setSearchQuery, searchField, setSearchField, patientDisplayCount, setPatientDisplayCount, selectedPatient, setSelectedPatient, moreSubTab, setMoreSubTab, laserSubTab, setLaserSubTab, showAddPatient, setShowAddPatient, showAddService, setShowAddService, showAddTransaction, setShowAddTransaction, expandedFinanceDay, setExpandedFinanceDay, showAddAppointment, setShowAddAppointment, showAddLaserRecord, setShowAddLaserRecord, showAddLaserPackage, setShowAddLaserPackage, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showAddInventory, setShowAddInventory, loginRole, setLoginRole, loginPassword, setLoginPassword, loginLoading, setLoginLoading, seeded, setSeeded, restoreConfirmOpen, setRestoreConfirmOpen, pendingRestoreData, setPendingRestoreData, patientFilter, setPatientFilter, patientDetailTab, setPatientDetailTab, showAddSessionProfile, setShowAddSessionProfile, showAddVisitProfile, setShowAddVisitProfile, showAddDoctor, setShowAddDoctor, editingPatient, setEditingPatient, deletePatientConfirmOpen, setDeletePatientConfirmOpen, noteSearch, setNoteSearch, noteFilter, setNoteFilter, selectedLaserRecordId, setSelectedLaserRecordId, showAddLaserSessionForm, setShowAddLaserSessionForm, laserDetailTab, setLaserDetailTab, passwordDialogOpen, setPasswordDialogOpen, passwordTarget, setPasswordTarget, passwordInput, setPasswordInput, pendingTab, setPendingTab, sliderPos, setSliderPos, isDragging, setIsDragging, showAddWaiting, setShowAddWaiting, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, celebratingId, setCelebratingId, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, showStockTransaction, setShowStockTransaction, deleteInventoryConfirmId, setDeleteInventoryConfirmId, showAddBooking, setShowAddBooking, bookingFilterStatus, setBookingFilterStatus, bookingFilterDate, setBookingFilterDate, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, deleteLaserRecordConfirmId, setDeleteLaserRecordConfirmId, deleteLaserSessionConfirmId, setDeleteLaserSessionConfirmId, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, reportPeriod, setReportPeriod, celebratingPersonalId, setCelebratingPersonalId, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, patientCopySearch, setPatientCopySearch, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, showPatientImport, setShowPatientImport } = useUIStore()
 
   // Login
-  const [loginRole, setLoginRole] = useState<'doctor' | 'secretary' | null>(null)
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [seeded, setSeeded] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const patientImportInputRef = useRef<HTMLInputElement>(null)
-  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false)
-  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null)
-
   // Full restore from backup file — uses dedicated import endpoint
   const restoreFromBackup = async (backupData: any) => {
     try {
@@ -474,225 +414,7 @@ export default function Home() {
     }
   }
 
-  // Service price editing & quick notes
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
-  const [editingServicePrice, setEditingServicePrice] = useState('')
-  const [editingServiceName, setEditingServiceName] = useState('')
-  const [customServicePrice, setCustomServicePrice] = useState('')
-  const [visitPrice, setVisitPrice] = useState('')
-  const [quickNote, setQuickNote] = useState('')
-
-  // Patient filters & detail
-  const [patientFilter, setPatientFilter] = useState<'all' | 'starred' | 'improved' | 'publishable' | 'dangerous'>('all')
-  const [patientDetailTab, setPatientDetailTab] = useState('overview')
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
-  const [editingNoteContent, setEditingNoteContent] = useState('')
-
-  // Patient photos
-  const [photoType, setPhotoType] = useState('general')
-  const [photoDescription, setPhotoDescription] = useState('')
-
-  // Add session/visit in patient profile
-  const [showAddSessionProfile, setShowAddSessionProfile] = useState(false)
-  const [profileSessionServiceId, setProfileSessionServiceId] = useState('')
-  const [profileSessionPrice, setProfileSessionPrice] = useState('')
-  const [profileSessionNotes, setProfileSessionNotes] = useState('')
-  const [showAddVisitProfile, setShowAddVisitProfile] = useState(false)
-  const [profileVisitType, setProfileVisitType] = useState('checkup')
-  const [profileVisitPrice, setProfileVisitPrice] = useState('')
-  const [profileVisitNotes, setProfileVisitNotes] = useState('')
-  const [profileVisitDate, setProfileVisitDate] = useState('')
-  const [profileSessionDate, setProfileSessionDate] = useState('')
-
-  // Partner Doctors
-  const [showAddDoctor, setShowAddDoctor] = useState(false)
-  const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
-  const [doctorForm, setDoctorForm] = useState({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' })
-
-  // Patient edit/delete
-  const [editingPatient, setEditingPatient] = useState(false)
-  const [deletePatientConfirmOpen, setDeletePatientConfirmOpen] = useState(false)
-  const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', phone2: '', age: '', gender: '', address: '', bloodType: '', medicalHistory: '', notes: '' })
-  const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
-  const [editVisitForm, setEditVisitForm] = useState({ type: '', notes: '', price: '' })
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
-  const [editSessionForm, setEditSessionForm] = useState({ price: '', notes: '', status: '', paid: false })
-  const [laserFinancePatientId, setLaserFinancePatientId] = useState('')
-  const [laserFinancePrice, setLaserFinancePrice] = useState('')
-  const [laserFinanceNotes, setLaserFinanceNotes] = useState('')
-  const [noteSearch, setNoteSearch] = useState('')
-  const [noteFilter, setNoteFilter] = useState<'all' | 'important' | 'dashboard' | 'patients' | 'laser' | 'finance' | 'general'>('all')
-
-  // Laser Record Detail View
-  const [selectedLaserRecordId, setSelectedLaserRecordId] = useState<string | null>(null)
-  const [showAddLaserSessionForm, setShowAddLaserSessionForm] = useState(false)
-  const [editingLaserSessionId, setEditingLaserSessionId] = useState<string | null>(null)
-  const [editLaserSessionForm, setEditLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false })
-  const [newLaserSessionForm, setNewLaserSessionForm] = useState({ energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false })
-  const [laserDetailTab, setLaserDetailTab] = useState<'overview' | 'sessions' | 'payments' | 'notes'>('overview')
-  const [editingLaserRecordId, setEditingLaserRecordId] = useState<string | null>(null)
-  const [editLaserRecordForm, setEditLaserRecordForm] = useState({ bodyArea: '', skinType: '', hairColor: '', hairDensity: '', totalSessions: '', price: '', totalPrice: '', paid: false, machineName: '', energy: '', pulse: '', status: '', notes: '' })
-
-  // Role & Password system (userRole is now persisted in auth store, sectionPasswords in clinic store)
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
-  const [passwordTarget, setPasswordTarget] = useState('')
-  const [passwordInput, setPasswordInput] = useState('')
-  const [pendingTab, setPendingTab] = useState('')
-
-  // Treatment Templates
-  const [treatmentTemplates, setTreatmentTemplates] = useState<any[]>([
-    { id: '1', name: 'علاج حب الشباب', description: 'بروتوكول علاجي كامل لحب الشباب', sessions: 6, estimatedPrice: 1500, category: 'جلدية' },
-    { id: '2', name: 'تبييض البشرة', description: 'جلسات تبييض وتوحيد لون البشرة', sessions: 4, estimatedPrice: 2000, category: 'تجميل' },
-    { id: '3', name: 'إزالة شعر كامل', description: 'إزالة شعر بالليزر - جسم كامل', sessions: 8, estimatedPrice: 4000, category: 'ليزر' },
-    { id: '4', name: 'علاج التصبغات', description: 'علاج بقع وتصبغات البشرة', sessions: 5, estimatedPrice: 1800, category: 'جلدية' },
-    { id: '5', name: 'تجديد البشرة', description: 'جلسات تجديد وتنضيج البشرة', sessions: 4, estimatedPrice: 2500, category: 'تجميل' },
-  ])
-
-  // Before/After Slider
-  const [sliderPos, setSliderPos] = useState(50)
-  const sliderRef = useRef<HTMLDivElement>(null)
-  const [isDragging, setIsDragging] = useState(false)
-
-  // Waiting Queue form
-  const [showAddWaiting, setShowAddWaiting] = useState(false)
-  const [waitingFormName, setWaitingFormName] = useState('')
-  const [waitingFormPriority, setWaitingFormPriority] = useState<'normal' | 'urgent'>('normal')
-  const [waitingFormPatientId, setWaitingFormPatientId] = useState<string | undefined>(undefined)
-  const [waitingFormNotes, setWaitingFormNotes] = useState('')
-
-  // Broadcast Message
-  const [showBroadcast, setShowBroadcast] = useState(false)
-  const [broadcastMessage, setBroadcastMessage] = useState('')
-  const [broadcastFilter, setBroadcastFilter] = useState<'all' | 'starred' | 'dangerous' | 'today' | 'recent7' | 'recent30'>('all')
-  const [broadcastSending, setBroadcastSending] = useState(false)
-  const [broadcastProgress, setBroadcastProgress] = useState({ sent: 0, total: 0 })
-  const [broadcastSelectedIds, setBroadcastSelectedIds] = useState<string[]>([])
-
-  // Enhanced Reminder form
-  const [reminderType, setReminderType] = useState('general')
-  const [reminderDate, setReminderDate] = useState('')
-  const [reminderTime, setReminderTime] = useState('')
-  const [reminderPatientId, setReminderPatientId] = useState('')
-  const [celebratingId, setCelebratingId] = useState<string | null>(null)
-
-  // Template apply dialog
-  const [showApplyTemplate, setShowApplyTemplate] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
-  const [templatePatientId, setTemplatePatientId] = useState('')
-
-  // More tab - Notes section
-  const [notesSearch, setNotesSearch] = useState('')
-  const [notesFilterSection, setNotesFilterSection] = useState('all')
-  const [notesFilterImportant, setNotesFilterImportant] = useState(false)
-  const [showAddNote, setShowAddNote] = useState(false)
-  const [newNoteContent, setNewNoteContent] = useState('')
-  const [newNoteSection, setNewNoteSection] = useState('general')
-  const [newNoteImportant, setNewNoteImportant] = useState(false)
-  const [editingNoteIdMore, setEditingNoteIdMore] = useState<string | null>(null)
-  const [editingNoteContentMore, setEditingNoteContentMore] = useState('')
-  const [editingNoteSectionMore, setEditingNoteSectionMore] = useState('general')
-
-  // Inventory enhanced states
-  const [inventorySearch, setInventorySearch] = useState('')
-  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'low' | 'normal'>('all')
-  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('all')
-  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null)
-  const [editInventoryForm, setEditInventoryForm] = useState({ name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' })
-  const [showStockTransaction, setShowStockTransaction] = useState(false)
-  const [stockTransactionItemId, setStockTransactionItemId] = useState('')
-  const [stockTransactionType, setStockTransactionType] = useState<'in' | 'out'>('in')
-  const [stockTransactionQty, setStockTransactionQty] = useState('')
-  const [stockTransactionNotes, setStockTransactionNotes] = useState('')
-  const [deleteInventoryConfirmId, setDeleteInventoryConfirmId] = useState<string | null>(null)
-
-  // Booking system states
-  const [showAddBooking, setShowAddBooking] = useState(false)
-  const [bookingFormPatientSearch, setBookingFormPatientSearch] = useState('')
-  const [bookingFormPatientId, setBookingFormPatientId] = useState('')
-  const [bookingFormDate, setBookingFormDate] = useState('')
-  const [bookingFormTime, setBookingFormTime] = useState('')
-  const [bookingFormType, setBookingFormType] = useState('checkup')
-  const [bookingFormStatus, setBookingFormStatus] = useState('scheduled')
-  const [bookingFormNotes, setBookingFormNotes] = useState('')
-  const [bookingFilterStatus, setBookingFilterStatus] = useState('all')
-  const [bookingFilterDate, setBookingFilterDate] = useState<'all' | 'today' | 'week' | 'month'>('all')
-  const [editingBookingId, setEditingBookingId] = useState<string | null>(null)
-
-  // Visits enhanced states
-  const [visitFilterType, setVisitFilterType] = useState('all')
-  const [deleteVisitConfirmId, setDeleteVisitConfirmId] = useState<string | null>(null)
-  const [deleteLaserRecordConfirmId, setDeleteLaserRecordConfirmId] = useState<string | null>(null)
-  const [deleteLaserSessionConfirmId, setDeleteLaserSessionConfirmId] = useState<string | null>(null)
-
-  // Personal Section States
-  const [personalSubTab, setPersonalSubTab] = useState<'finance' | 'reminders' | 'notes' | 'reports'>('finance')
-  const [personalReportPeriod, setPersonalReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
-  const [personalSearchQuery, setPersonalSearchQuery] = useState('')
-  const [showAddPersonalTxn, setShowAddPersonalTxn] = useState(false)
-  const [personalTxnForm, setPersonalTxnForm] = useState({ type: 'income' as 'income'|'expense', category: '', amount: '', description: '', date: '' })
-  const [editingPersonalTxnId, setEditingPersonalTxnId] = useState<string | null>(null)
-  const [showAddPersonalReminder, setShowAddPersonalReminder] = useState(false)
-  const [personalReminderForm, setPersonalReminderForm] = useState({ title: '', description: '', date: '', type: 'شخصي' })
-  const [editingPersonalReminderId, setEditingPersonalReminderId] = useState<string | null>(null)
-  const [showAddPersonalNote, setShowAddPersonalNote] = useState(false)
-  const [personalNoteForm, setPersonalNoteForm] = useState({ content: '', important: false })
-  const [editingPersonalNoteId, setEditingPersonalNoteId] = useState<string | null>(null)
-  const [editingPersonalNoteContent, setEditingPersonalNoteContent] = useState('')
-  const [personalTxnFilter, setPersonalTxnFilter] = useState<'all' | 'income' | 'expense'>('all')
-  const [personalTxnCategoryFilter, setPersonalTxnCategoryFilter] = useState('all')
-  const [personalDateFrom, setPersonalDateFrom] = useState('')
-  const [personalDateTo, setPersonalDateTo] = useState('')
-  const [reportPeriod, setReportPeriod] = useState<'all' | 'weekly' | 'monthly'>('all')
-  const [celebratingPersonalId, setCelebratingPersonalId] = useState<string | null>(null)
-
-  // Follow-up System States
-  const [followUpSearch, setFollowUpSearch] = useState('')
-  const [followUpFilter, setFollowUpFilter] = useState<'all' | 'active' | 'paused' | 'completed' | 'discharged'>('all')
-  const [selectedFollowUpId, setSelectedFollowUpId] = useState<string | null>(null)
-  const [followUpDetailTab, setFollowUpDetailTab] = useState<'overview' | 'visits' | 'subscription'>('overview')
-  const [showAddFollowUp, setShowAddFollowUp] = useState(false)
-  const [fuFormPatientSearch, setFuFormPatientSearch] = useState('')
-  const [fuFormPatientId, setFuFormPatientId] = useState('')
-  const [fuFormCondition, setFuFormCondition] = useState('')
-  const [fuFormCategory, setFuFormCategory] = useState('جلدية')
-  const [fuFormSeverity, setFuFormSeverity] = useState('moderate')
-  const [fuFormFrequency, setFuFormFrequency] = useState('monthly')
-  const [fuFormCustomDays, setFuFormCustomDays] = useState('')
-  const [fuFormNextVisit, setFuFormNextVisit] = useState('')
-  const [fuFormDiagnosis, setFuFormDiagnosis] = useState('')
-  const [fuFormTreatmentPlan, setFuFormTreatmentPlan] = useState('')
-  const [fuFormMedications, setFuFormMedications] = useState('')
-  const [fuFormNotes, setFuFormNotes] = useState('')
-  const [fuFormHasSubscription, setFuFormHasSubscription] = useState(false)
-  const [fuFormSubType, setFuFormSubType] = useState('monthly')
-  const [fuFormSubPrice, setFuFormSubPrice] = useState('')
-  const [fuFormSubStart, setFuFormSubStart] = useState('')
-  const [fuFormSubEnd, setFuFormSubEnd] = useState('')
-  const [fuFormSubSessions, setFuFormSubSessions] = useState('')
-  const [showAddFollowUpVisit, setShowAddFollowUpVisit] = useState(false)
-  const [fuVisitForm, setFuVisitForm] = useState({ findings: '', vitals: '', diagnosis: '', treatmentNotes: '', medications: '', instructions: '', paid: false, price: '', nextVisitDate: '', notes: '', type: 'followup', date: '' })
-  const [deleteFollowUpConfirmId, setDeleteFollowUpConfirmId] = useState<string | null>(null)
-  const [editingFollowUpId, setEditingFollowUpId] = useState<string | null>(null)
-
-  // Patient registration date override
-  const [newPatientDate, setNewPatientDate] = useState('')
-
-  // Patient Copy Search
-  const [patientCopySearch, setPatientCopySearch] = useState('')
-  const [showImprovementSlider, setShowImprovementSlider] = useState(false)
-  const [improvementSliderValue, setImprovementSliderValue] = useState(5)
-  const [improvementNote, setImprovementNote] = useState('')
-  const [celebratingImprovement, setCelebratingImprovement] = useState(false)
-
   // Patient Import
-  const [showPatientImport, setShowPatientImport] = useState(false)
-  const [patientImportData, setPatientImportData] = useState<any[]>([])
-  const [patientImportPreview, setPatientImportPreview] = useState(false)
-  const [patientImportFile, setPatientImportFile] = useState<File | null>(null)
-  const [patientImportLoading, setPatientImportLoading] = useState(false)
-  const [patientImportProgress, setPatientImportProgress] = useState('')
-  const [patientImportDragOver, setPatientImportDragOver] = useState(false)
-
   // ─── Password is verified server-side via /auth/login API ─────────────
   // No password stored on client - all verification is server-side
 
@@ -1528,7 +1250,6 @@ export default function Home() {
     return r.slice(0, 20)
   }, [smartSearchQuery, patients, services, visits])
   useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setSmartSearchOpen(true) } if (e.key === 'Escape') setSmartSearchOpen(false) }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [])
-
 
 
   // ─── Patient Import Parser (supports JSON, CSV, TSV, XLSX) ───
@@ -6653,7 +6374,6 @@ export default function Home() {
           {smartSearchResults.map((r, i) => (<button key={`${r.type}-${r.id}`} onClick={() => { if (r.type === 'patient') { const p = patients.find(pt => pt.id === r.id); if (p) { setSelectedPatient(p); setActiveTab('patients') } } setSmartSearchOpen(false); setSmartSearchQuery('') }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-right"><div className="p-1.5 rounded-lg bg-muted">{r.icon}</div><div className="flex-1 min-w-0"><p className="font-medium text-sm truncate">{r.label}</p><p className="text-xs text-muted-foreground truncate">{r.sub}</p></div><Badge variant="outline" className="text-[9px]">{r.type === 'patient' ? 'مريض' : 'خدمة'}</Badge></button>))}
         </ScrollArea>
       </Card></div></motion.div>)}</AnimatePresence>
-
 
 
       {/* ═══ SMART PATIENT REGISTRATION DIALOG - REDESIGNED — Doctor Only ═══ */}
