@@ -1,12 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useAuthStore, useClinicStore } from '@/lib/store'
+import { useAuthStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { useUIStore, useLaserFormStore, usePatientFormStore } from '@/store'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { LaserRecord, LaserSession, LaserPackage, LaserSetting, Session, Service, Transaction, Patient } from '@/lib/types'
 import { apiFetch, getLocalDateStr, cairoISO, cairoDateTime, BODY_AREAS } from '@/lib/helpers'
+import { addItem, deleteItem } from '@/lib/crud-helpers'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import {
@@ -32,7 +33,6 @@ import { Progress } from '@/components/ui/progress'
 export default function LaserCenter() {
   // ─── Stores ────────────────────────────────────────────────────
   const { userRole } = useAuthStore()
-  const { activeTab } = useClinicStore()
   const { patients, setPatients, visits, sessions, setSessions, services, laserRecords, setLaserRecords, laserPackages, setLaserPackages, laserSettings, transactions, setTransactions, notes, setNotes } = useDataStore()
   const { laserSubTab, setLaserSubTab, laserDetailTab, setLaserDetailTab, selectedLaserRecordId, setSelectedLaserRecordId, showAddLaserRecord, setShowAddLaserRecord, showAddLaserPackage, setShowAddLaserPackage, showAddLaserSessionForm, setShowAddLaserSessionForm, deleteLaserRecordConfirmId, setDeleteLaserRecordConfirmId, deleteLaserSessionConfirmId, setDeleteLaserSessionConfirmId } = useUIStore()
   const {
@@ -59,13 +59,7 @@ export default function LaserCenter() {
   const isDoctor = userRole === 'doctor'
   const canDelete = isDoctor
 
-  // ─── Internal Helpers ──────────────────────────────────────────
-  const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
-    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.package || res?.setting || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
-  }
-  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
-  }
+
   const markSessionPaid = async (s: Session) => {
     try {
       await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) })
@@ -136,7 +130,7 @@ export default function LaserCenter() {
   }, [laserRecords, laserPackages])
 
   // ─── Render ────────────────────────────────────────────────────
-  if (activeTab !== 'laser') return null
+  // activeTab guard is handled by parent page.tsx conditional rendering
 
   return (
     <>

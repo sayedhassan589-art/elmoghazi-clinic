@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useAuthStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { useUIStore, useFinanceFormStore, usePatientFormStore } from '@/store'
@@ -22,16 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { Transaction, Session, Patient, Visit } from '@/lib/types'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-
-
-// ─── Isolated Cairo Clock (re-renders only itself every second, NOT the whole app) ──
-function CairoClock({ className, dateClassName }: { className?: string; dateClassName?: string }) {
-  const [, setTick] = useState(0)
-  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 1000); return () => clearInterval(t) }, [])
-  const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Cairo', hour12: true })
-  const date = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })
-  return <>{className && <span className={className} dir="ltr">{time}</span>}{dateClassName !== undefined && <span className={dateClassName || undefined}>{date}</span>}</>
-}
+import { addItem, deleteItem } from '@/lib/crud-helpers'
+import CairoClock from '@/components/CairoClock'
 
 
 // ─── FinanceCenter Component (self-contained) ──────────────────────────────────
@@ -45,14 +37,6 @@ export default function FinanceCenter() {
   const { showAddTransaction, setShowAddTransaction, expandedFinanceDay, setExpandedFinanceDay } = useUIStore()
   const { txnFormType, setTxnFormType, txnFormCategory, setTxnFormCategory, txnFormAmount, setTxnFormAmount, txnFormDescription, setTxnFormDescription, txnFormDate, setTxnFormDate } = useFinanceFormStore()
   const { quickNote, setQuickNote } = usePatientFormStore()
-
-  // ─── Helper functions ────────────────────────────────────────────
-  const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
-    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.package || res?.setting || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
-  }
-  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
-  }
 
   // ─── Financial Computed Values ──────────────────────────────────
   const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])

@@ -7,6 +7,7 @@ import { useMemo } from 'react'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { ImprovementEntry, Patient, Visit, Session, Service, Note, LaserRecord, Transaction, Reminder } from '@/lib/types'
 import { apiFetch, waPhone, normalizePhone, cairoISO, cairoDateTime, getImprovementColor, getImprovementEmoji, getImprovementHistory, getVisitCategory, VISIT_TYPES } from '@/lib/helpers'
+import { addItem, deleteItem } from '@/lib/crud-helpers'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Activity, AlertTriangle, Bell, Calendar, CheckCircle, ChevronDown, ClipboardCheck, Clock, DollarSign, Edit3, FileText, Hash, Heart, Lock, MapPin, Phone, Plus, Receipt, Send, Shield, Sparkles, Star, Stethoscope, StickyNote, ThumbsUp, Timer, Trash2, Zap, X } from 'lucide-react'
@@ -27,7 +28,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 export default function PatientProfile() {
   // ─── Stores ────────────────────────────────────────────────────
   const { userRole } = useAuthStore()
-  const { defaultCheckupPrice, defaultRevisitPrice, activeTab, setActiveTab } = useClinicStore()
+  const { defaultCheckupPrice, defaultRevisitPrice, setActiveTab } = useClinicStore()
   const { patients, setPatients, visits, setVisits, sessions, setSessions, services, notes, setNotes, laserRecords, setLaserRecords, transactions, setTransactions, reminders, setReminders, waitingQueue, setWaitingQueue, patientPhotos, setPatientPhotos, refreshPatientPhotos } = useDataStore()
   const { selectedPatient, setSelectedPatient, patientDetailTab, setPatientDetailTab, editingPatient, setEditingPatient, deletePatientConfirmOpen, setDeletePatientConfirmOpen, showAddSessionProfile, setShowAddSessionProfile, showAddVisitProfile, setShowAddVisitProfile, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, showAddLaserRecord, setShowAddLaserRecord, laserFormPatientId, setLaserFormPatientId, laserFormPatientSearch, setLaserFormPatientSearch } = useUIStore()
   const { editPatientForm, setEditPatientForm, profileSessionServiceId, setProfileSessionServiceId, profileSessionPrice, setProfileSessionPrice, profileSessionNotes, setProfileSessionNotes, profileSessionDate, setProfileSessionDate, profileVisitType, setProfileVisitType, profileVisitPrice, setProfileVisitPrice, profileVisitNotes, setProfileVisitNotes, profileVisitDate, setProfileVisitDate, quickNote, setQuickNote, editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent, editingVisitId, setEditingVisitId, editVisitForm, setEditVisitForm, editingSessionId, setEditingSessionId, editSessionForm, setEditSessionForm, improvementSliderValue, setImprovementSliderValue, improvementNote, setImprovementNote } = usePatientFormStore()
@@ -37,13 +38,7 @@ export default function PatientProfile() {
   const canDelete = isDoctor
   const canEditPatientFull = isDoctor
 
-  // ─── Internal Helpers (self-contained) ─────────────────────────────
-  const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
-    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.package || res?.setting || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
-  }
-  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
-  }
+
   const markSessionPaid = async (s: Session) => {
     try {
       await apiFetch(`/sessions/${s.id}`, { method: 'PUT', body: JSON.stringify({ paid: true }) })
@@ -108,7 +103,8 @@ export default function PatientProfile() {
   const pLaserSessions = useMemo(() => pLaser.flatMap(r => r.laserSessions || []), [pLaser])
 
   // ─── Render ────────────────────────────────────────────────────
-  if (activeTab !== 'patients' || !selectedPatient) return null
+  // activeTab guard is handled by parent page.tsx conditional rendering
+  if (!selectedPatient) return null
 
   return (
   <div className="space-y-4">

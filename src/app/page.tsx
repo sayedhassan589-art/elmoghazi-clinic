@@ -50,6 +50,7 @@ import LaserCenter from '@/components/LaserCenter'
 import FinanceCenter from '@/components/FinanceCenter'
 import MoreSection from '@/components/MoreSection'
 import WaitingSection from '@/components/WaitingSection'
+import CairoClock from '@/components/CairoClock'
 
 // ─── Smart Search Helpers ────────────────────────────────────────────
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -61,14 +62,7 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
   return debounced
 }
 
-// ─── Isolated Cairo Clock (re-renders only itself every second, NOT the whole app) ──
-function CairoClock({ className, dateClassName }: { className?: string; dateClassName?: string }) {
-  const [, setTick] = useState(0)
-  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 1000); return () => clearInterval(t) }, [])
-  const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Cairo', hour12: true })
-  const date = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Cairo' })
-  return <>{className && <span className={className} dir="ltr">{time}</span>}{dateClassName !== undefined && <span className={dateClassName || undefined}>{date}</span>}</>
-}
+
 
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
@@ -517,14 +511,27 @@ export default function Home() {
     return { thisWeekTotal, lastWeekTotal, changePercent, isUp: thisWeekTotal >= lastWeekTotal }
   }, [clinicTransactions])
 
-  // ─── Top Patients by Visits ───
+  // ─── Top Patients by Visits (O(N) using lookup maps instead of O(N²) filter-per-patient) ───
   const topPatientsByVisits = useMemo(() => {
+    // Build O(1) lookup maps once
+    const visitCountByPatient: Record<string, number> = {}
+    for (const v of visits) visitCountByPatient[v.patientId] = (visitCountByPatient[v.patientId] || 0) + 1
+    const sessionCountByPatient: Record<string, number> = {}
+    for (const s of sessions) sessionCountByPatient[s.patientId] = (sessionCountByPatient[s.patientId] || 0) + 1
+    const spentByPatient: Record<string, number> = {}
+    for (const t of transactions) {
+      if (t.type === 'income' && t.category !== 'personal' && t.description) {
+        // Match patient by name — fragile but preserves existing logic
+        const matched = patients.find(p => t.description?.includes(p.name))
+        if (matched) spentByPatient[matched.id] = (spentByPatient[matched.id] || 0) + t.amount
+      }
+    }
+    // Build result using O(1) lookups
     const countMap: Record<string, { patient: Patient; visitCount: number; sessionCount: number; totalSpent: number }> = {}
     patients.forEach(p => {
-      const pVisits = visits.filter(v => v.patientId === p.id).length
-      const pSessions = sessions.filter(s => s.patientId === p.id).length
-      const pSpent = transactions.filter(t => t.type === 'income' && t.category !== 'personal' && t.description?.includes(p.name)).reduce((s, t) => s + t.amount, 0)
-      if (pVisits + pSessions > 0) countMap[p.id] = { patient: p, visitCount: pVisits, sessionCount: pSessions, totalSpent: pSpent }
+      const vc = visitCountByPatient[p.id] || 0
+      const sc = sessionCountByPatient[p.id] || 0
+      if (vc + sc > 0) countMap[p.id] = { patient: p, visitCount: vc, sessionCount: sc, totalSpent: spentByPatient[p.id] || 0 }
     })
     return Object.values(countMap).sort((a, b) => (b.visitCount + b.sessionCount) - (a.visitCount + a.sessionCount)).slice(0, 5)
   }, [patients, visits, sessions, transactions])
@@ -1272,24 +1279,23 @@ export default function Home() {
               </div>
             )}
 
-            {/* ═══ PATIENT DETAIL - DEDICATED PROFILE ═══ */}
-            <PatientProfile />
+            {/* ═══ PATIENT DETAIL - only mounted when patients tab + selected patient ═══ */}
+            {activeTab === 'patients' && selectedPatient && <PatientProfile />}
             
-            {/* ═══ LASER ═══ */}
-            <LaserCenter />
-            {renderQuickNotes('laser')}
+            {/* ═══ LASER - only mounted when laser tab ═══ */}
+            {activeTab === 'laser' && <><LaserCenter />{renderQuickNotes('laser')}</>}
 
-                        {/* ═══ FINANCE ═══ */}
-            <FinanceCenter />
+            {/* ═══ FINANCE - only mounted when finance tab ═══ */}
+            {activeTab === 'finance' && <FinanceCenter />}
 
-                        {/* ═══ MORE ═══ - ALL SUB-TABS WORKING */}
-            <MoreSection />
+            {/* ═══ MORE / SETTINGS - only mounted when more/settings tab ═══ */}
+            {['more', 'settings'].includes(activeTab) && <MoreSection />}
 
-{/* ═══ SETTINGS direct ═══ */}
- {activeTab === 'settings' && (<div className="space-y-4 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><div className="section-header-animated rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><div className="relative z-10 flex items-center gap-3 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><div className="text-4xl animate-spin-slow active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">🎨</div><div><h1 className="text-2xl font-bold active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">الإعدادات</h1></div></div></div><Card className="card-luxury active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150"><CardHeader><CardTitle>ألوان التطبيق</CardTitle></CardHeader><CardContent><div className="grid grid-cols-5 gap-3 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{THEME_CONFIGS.map(tc => <button key={tc.id} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1 active:scale-[0.9] hover:scale-[1.1] transition-transform duration-150" size={14} />}</button>)}</div></CardContent></Card></div>)}
+            {/* ═══ SETTINGS direct (quick theme picker) ═══ */}
+            {activeTab === 'settings' && (<div className="space-y-4"><div className="section-header-animated rounded-2xl bg-indigo-50 dark:bg-indigo-950/30"><div className="relative z-10 flex items-center gap-3"><div className="text-4xl animate-spin-slow">🎨</div><div><h1 className="text-2xl font-bold">الإعدادات</h1></div></div></div><Card className="card-luxury"><CardHeader><CardTitle>ألوان التطبيق</CardTitle></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <button key={tc.id} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</button>)}</div></CardContent></Card></div>)}
 
-                        {/* ═══ WAITING TAB - Professional Secretary Queue Management ═══ */}
-            <WaitingSection />
+            {/* ═══ WAITING - only mounted when waiting tab (secretary) ═══ */}
+            {activeTab === 'waiting' && <WaitingSection />}
 
           </motion.div>
         </AnimatePresence>

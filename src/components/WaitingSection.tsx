@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { WaitingItem } from '@/lib/types'
+import { addItem, deleteItem } from '@/lib/crud-helpers'
 
 export default function WaitingSection() {
   const { userRole } = useAuthStore()
@@ -30,16 +31,6 @@ export default function WaitingSection() {
 
   const isDoctor = userRole === 'doctor'
   const canDelete = isDoctor
-
-  // ─── CRUD helpers ────────────────────────────────────────────
-  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
-  }
-
-  // ─── Helper functions ────────────────────────────────────────────
-  const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
-    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.item || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
-  }
 
 
   // ─── Computed values ────────────────────────────────────────────

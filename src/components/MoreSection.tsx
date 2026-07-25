@@ -6,6 +6,7 @@ import { useDataStore } from '@/lib/data-store'
 import { useUIStore, useFinanceFormStore, useFollowUpFormStore, usePatientFormStore, usePersonalFormStore, useAppointmentFormStore } from '@/store'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { apiFetch, getLocalDateStr, getCairoDateParts, getEgyptianWeekDays, cairoISO, cairoDateTime, cairoTodayInput, getCairoWeekday, getCairoDateLabel, normalizePhone, waPhone, CHART_COLORS, getVisitCategory, VISIT_TYPES, smartSearch, BODY_AREAS, getImprovementColor, getImprovementEmoji } from '@/lib/helpers'
+import { addItem, deleteItem } from '@/lib/crud-helpers'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -60,13 +61,7 @@ export default function MoreSection() {
     return cats
   }, [services])
 
-  // ─── CRUD helpers ──────────────────────────────────────────────
-  const addItem = async <T,>(path: string, body: any, setter: React.Dispatch<React.SetStateAction<T[]>>, silent = false) => {
-    try { const res = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) }); const item = res?.data || res?.patient || res?.visit || res?.session || res?.service || res?.note || res?.alert || res?.reminder || res?.record || res?.transaction || res?.appointment || res?.item || res?.plan || res?.medication || res?.prescription || res?.backup || res; if (item?.id) setter(prev => [item, ...prev]); if (!silent) toast.success('تمت الإضافة بنجاح'); return item } catch (e: any) { if (!silent) toast.error(e.message || 'خطأ'); return null }
-  }
-  const deleteItem = async <T,>(path: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-    try { await apiFetch(`${path}/${id}`, { method: 'DELETE' }); setter(prev => prev.filter((item: any) => item.id !== id)); toast.success('تم الحذف') } catch (e: any) { toast.error(e.message || 'خطأ') }
-  }
+
 
   // ─── Mark session as paid + create finance transaction ──────────────
   const markSessionPaid = async (s: Session) => {
