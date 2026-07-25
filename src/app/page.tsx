@@ -1640,7 +1640,7 @@ export default function Home() {
             )}
 
             {/* ═══ PATIENT DETAIL - DEDICATED PROFILE ═══ */}
-            <PatientProfile addItem={addItem} deleteItem={deleteItem} markSessionPaid={markSessionPaid} />
+            <PatientProfile />
             {/* ═══ LASER ═══ - Professional Laser Center Management */}
             {activeTab === 'laser' && (
               <div className="space-y-5">
