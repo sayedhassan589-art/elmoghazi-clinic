@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuthStore, useClinicStore, THEME_CONFIGS } from '@/lib/store'
-import { useDataStore } from '@/lib/data-store'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -385,13 +384,33 @@ function CairoClock({ className, dateClassName }: { className?: string; dateClas
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
   const { activeTab, setActiveTab, theme, setTheme, statusColors, setStatusColors, autoBackup, setAutoBackup, backupInterval, setBackupInterval, lastBackup, setLastBackup, sectionPasswords, setSectionPasswords, defaultCheckupPrice, defaultRevisitPrice, setDefaultCheckupPrice, setDefaultRevisitPrice } = useClinicStore()
-  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, laserRecords, setLaserRecords, laserPackages, setLaserPackages, laserSettings, setLaserSettings, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, loading, setLoading, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes, patientPhotos, setPatientPhotos, loadAllData, refreshPatientPhotos } = useDataStore()
   const [darkMode, setDarkMode] = useState(false)
   const [smartSearchOpen, setSmartSearchOpen] = useState(false)
   const [smartSearchQuery, setSmartSearchQuery] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchField, setSearchField] = useState<'all' | 'name' | 'address' | 'diagnosis' | 'phone' | 'notes'>('all')
   const [patientDisplayCount, setPatientDisplayCount] = useState(50)
+
+  // Data
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [visits, setVisits] = useState<Visit[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [services, setServices] = useState<Service[]>([])
+  const [notes, setNotes] = useState<Note[]>([])
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [laserRecords, setLaserRecords] = useState<LaserRecord[]>([])
+  const [laserPackages, setLaserPackages] = useState<LaserPackage[]>([])
+  const [laserSettings, setLaserSettings] = useState<LaserSetting[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [waitingQueue, setWaitingQueue] = useState<WaitingItem[]>([])
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
+  const [backups, setBackups] = useState<Backup[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
 
   // UI
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
@@ -489,6 +508,7 @@ export default function Home() {
   const [editingNoteContent, setEditingNoteContent] = useState('')
 
   // Patient photos
+  const [patientPhotos, setPatientPhotos] = useState<PatientPhoto[]>([])
   const [photoType, setPhotoType] = useState('general')
   const [photoDescription, setPhotoDescription] = useState('')
 
@@ -505,6 +525,7 @@ export default function Home() {
   const [profileSessionDate, setProfileSessionDate] = useState('')
 
   // Partner Doctors
+  const [doctors, setDoctors] = useState<PartnerDoctor[]>([])
   const [showAddDoctor, setShowAddDoctor] = useState(false)
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null)
   const [doctorForm, setDoctorForm] = useState({ name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' })
@@ -627,6 +648,9 @@ export default function Home() {
   // Personal Section States
   const [personalSubTab, setPersonalSubTab] = useState<'finance' | 'reminders' | 'notes' | 'reports'>('finance')
   const [personalReportPeriod, setPersonalReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [personalTransactions, setPersonalTransactions] = useState<Transaction[]>([])
+  const [personalReminders, setPersonalReminders] = useState<Reminder[]>([])
+  const [personalNotes, setPersonalNotes] = useState<Note[]>([])
   const [personalSearchQuery, setPersonalSearchQuery] = useState('')
   const [showAddPersonalTxn, setShowAddPersonalTxn] = useState(false)
   const [personalTxnForm, setPersonalTxnForm] = useState({ type: 'income' as 'income'|'expense', category: '', amount: '', description: '', date: '' })
@@ -646,6 +670,7 @@ export default function Home() {
   const [celebratingPersonalId, setCelebratingPersonalId] = useState<string | null>(null)
 
   // Follow-up System States
+  const [followUpRecords, setFollowUpRecords] = useState<FollowUpRecord[]>([])
   const [followUpSearch, setFollowUpSearch] = useState('')
   const [followUpFilter, setFollowUpFilter] = useState<'all' | 'active' | 'paused' | 'completed' | 'discharged'>('all')
   const [selectedFollowUpId, setSelectedFollowUpId] = useState<string | null>(null)
@@ -716,14 +741,39 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [autoBackup, backupInterval, setLastBackup])
 
-  // Data loading is now handled by useDataStore().loadAllData
+  const loadAllData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const results = await Promise.allSettled([
+        apiFetch('/patients?limit=5000'), apiFetch('/visits?limit=10000'), apiFetch('/sessions?limit=10000'),
+        apiFetch('/services?limit=500'), apiFetch('/notes?limit=5000'), apiFetch('/alerts?limit=1000'),
+        apiFetch('/reminders?limit=1000'), apiFetch('/laser/records?limit=5000'), apiFetch('/laser/packages?limit=500'),
+        apiFetch('/laser/settings?limit=500'), apiFetch('/finance/transactions?limit=10000'), apiFetch('/appointments?limit=5000'),
+        apiFetch('/waiting?limit=500'), apiFetch('/inventory/items?limit=1000'), apiFetch('/medications?limit=1000'),
+        apiFetch('/prescriptions?limit=5000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=1000'),
+        apiFetch('/doctors?limit=100'),
+        apiFetch('/follow-up/records?limit=5000'),
+      ])
+      const u = (r: PromiseSettledResult<any>) => { if (r.status !== 'fulfilled') return []; const v = r.value; return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : []) }
+      setPatients(u(results[0])); setVisits(u(results[1])); setSessions(u(results[2])); setServices(u(results[3])); setNotes(u(results[4])); setAlerts(u(results[5])); setReminders(u(results[6])); setLaserRecords(u(results[7])); setLaserPackages(u(results[8])); setLaserSettings(u(results[9])); setTransactions(u(results[10])); setAppointments(u(results[11])); setWaitingQueue(u(results[12])); setInventoryItems(u(results[13])); setMedications(u(results[14])); setPrescriptions(u(results[15])); setBackups(u(results[16])); setNotifications(u(results[17])); setDoctors(u(results[18]))
+      setFollowUpRecords(u(results[19]))
+      // Derive personal data from main datasets (no duplicate API calls)
+      const allTxns = u(results[10]); setPersonalTransactions(allTxns.filter((t: any) => t.category === 'personal'))
+      const allNotes = u(results[4]); setPersonalNotes(allNotes.filter((n: any) => n.section === 'personal'))
+      const allReminders = u(results[6]); setPersonalReminders(allReminders.filter((r: any) => r.type === 'شخصي' || r.type === 'personal'))
+    } catch (e) { console.error(e) }
+    setLoading(false)
+  }, [])
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (isAuthenticated) loadAllData() }, [isAuthenticated, loadAllData])
 
   // Load patient photos when selectedPatient changes
   useEffect(() => {
     if (selectedPatient) {
-      refreshPatientPhotos(selectedPatient.id)
+      apiFetch(`/photos?patientId=${selectedPatient.id}`).then((res: any) => {
+        const photos = res?.data || res?.photos || (Array.isArray(res) ? res : [])
+        setPatientPhotos(photos)
+      }).catch(() => setPatientPhotos([]))
     } else {
       setPatientPhotos([])
     }

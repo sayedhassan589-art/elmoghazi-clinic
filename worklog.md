@@ -111,3 +111,25 @@ Stage Summary:
 - Secretary can only: enter data (add patients, appointments, waiting queue, transactions) and edit names/dates
 - Secretary edit form already existed with limited fields (name, phone, age, address only)
 - Doctor edit form shows full fields including diagnosis, blood type, medical history
+
+---
+Task ID: Zustand-Migration
+Agent: Main Agent
+Task: Create Zustand data store and migrate data useState hooks from page.tsx
+
+Work Log:
+- Created `/home/z/my-project/src/lib/data-store.ts` with Zustand store containing all 25 data arrays
+- Store includes: patients, visits, sessions, services, notes, alerts, reminders, laserRecords, laserPackages, laserSettings, transactions, appointments, waitingQueue, inventoryItems, medications, prescriptions, backups, notifications, doctors, followUpRecords, loading, personalTransactions, personalReminders, personalNotes, patientPhotos
+- Added loadAllData and refreshPatientPhotos as async actions in the store
+- Modified page.tsx: Added import for useDataStore, destructured all data+setter from store
+- Removed 25 useState data declarations from page.tsx (no duplicates)
+- Removed local loadAllData useCallback (now comes from store)
+- Replaced patient photos useEffect with store's refreshPatientPhotos
+- Fixed duplicate declaration of doctors and followUpRecords
+- Build compiles successfully
+
+Stage Summary:
+- 25 data state variables moved from useState to Zustand store
+- Key performance benefit: single batch set() call in loadAllData instead of 25 individual setState calls
+- Data changes now go through Zustand which supports fine-grained subscriptions (selectors)
+- Next step: add useMemo/useCallback optimizations and potentially extract components
