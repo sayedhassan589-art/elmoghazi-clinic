@@ -1864,6 +1864,365 @@ export default function MoreSection() {
                     </CardContent>
                   </Card>
 
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      MONTHLY NET REVENUE COMPARISON — Last 6 Months
+                      ═══════════════════════════════════════════════════════════════════ */}
+                  <Card className="card-luxury border-2 border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/40 dark:from-emerald-950/20 dark:via-card dark:to-teal-950/20">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white"><TrendingUp size={16} /></div>
+                          مقارنة الإيراد الشهري الصافي — آخر ٦ شهور
+                        </CardTitle>
+                        <Badge className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[10px] border border-emerald-200 dark:border-emerald-700">شهري</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(() => {
+                        const _cairoNow = getCairoDateParts()
+                        // Build 6-month data
+                        const months: { label: string; monthNum: number; year: number; income: number; expense: number; net: number; categories: Record<string, number> }[] = []
+                        for (let i = 5; i >= 0; i--) {
+                          const m = _cairoNow.month - i
+                          const year = _cairoNow.year + Math.floor((m - 1) / 12)
+                          const month = ((m - 1) % 12 + 12) % 12 + 1
+                          const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('ar-EG', { month: 'long', timeZone: 'Africa/Cairo' })
+                          const monthTxns = clinicTransactions.filter(t => { const td = getCairoDateParts(t.date); return td.year === year && td.month === month })
+                          const income = monthTxns.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0)
+                          const expense = monthTxns.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0)
+                          const categories: Record<string, number> = {}
+                          monthTxns.filter(t => t.type === 'income').forEach(t => { categories[t.category] = (categories[t.category] || 0) + (t.amount || 0) })
+                          months.push({ label: monthLabel, monthNum: month, year, income, expense, net: income - expense, categories })
+                        }
+                        const totalIncome6m = months.reduce((s, m) => s + m.income, 0)
+                        const totalExpense6m = months.reduce((s, m) => s + m.expense, 0)
+                        const totalNet6m = totalIncome6m - totalExpense6m
+                        const avgNetMonthly = totalNet6m / 6
+                        const bestMonth = [...months].sort((a, b) => b.net - a.net)[0]
+                        const worstMonth = [...months].sort((a, b) => a.net - b.net)[0]
+                        const chartData = months.map(m => ({ name: m.label, الإيراد: m.income, المصروفات: m.expense, 'صافي الربح': m.net }))
+
+                        return (
+                          <>
+                            {/* ── Hero Stats Row ── */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200/60 dark:border-emerald-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">إجمالي الإيرادات</p>
+                                <p className="text-lg font-black text-emerald-600">{formatCurrency(totalIncome6m)}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-red-100 to-rose-100 dark:from-red-900/30 dark:to-rose-900/30 border border-red-200/60 dark:border-red-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">إجمالي المصروفات</p>
+                                <p className="text-lg font-black text-red-600">{formatCurrency(totalExpense6m)}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-100 to-sky-100 dark:from-cyan-900/30 dark:to-sky-900/30 border border-cyan-200/60 dark:border-cyan-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">صافي الربح الكلي</p>
+                                <p className={cn('text-lg font-black', totalNet6m >= 0 ? 'text-cyan-600' : 'text-red-600')}>{formatCurrency(totalNet6m)}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200/60 dark:border-amber-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">متوسط صافي الشهر</p>
+                                <p className={cn('text-lg font-black', avgNetMonthly >= 0 ? 'text-amber-600' : 'text-red-600')}>{formatCurrency(avgNetMonthly)}</p>
+                              </div>
+                            </div>
+
+                            {/* ── Area Chart ── */}
+                            <div className="p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-emerald-100 dark:border-emerald-900/40">
+                              <ResponsiveContainer width="100%" height={280}>
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                  <defs>
+                                    <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#047857" stopOpacity={0.35} />
+                                      <stop offset="95%" stopColor="#047857" stopOpacity={0.02} />
+                                    </linearGradient>
+                                    <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#DC2626" stopOpacity={0.25} />
+                                      <stop offset="95%" stopColor="#DC2626" stopOpacity={0.02} />
+                                    </linearGradient>
+                                    <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.35} />
+                                      <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0.02} />
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} />
+                                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} />
+                                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} width={60} />
+                                  <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }} formatter={(v: number) => formatCurrency(v)} />
+                                  <Area type="monotone" dataKey="الإيراد" stroke="#047857" strokeWidth={2.5} fill="url(#incomeGrad)" dot={{ r: 4, fill: '#047857', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 2 }} />
+                                  <Area type="monotone" dataKey="المصروفات" stroke="#DC2626" strokeWidth={2} fill="url(#expenseGrad)" dot={{ r: 3, fill: '#DC2626', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 5 }} />
+                                  <Area type="monotone" dataKey="صافي الربح" stroke="#0EA5E9" strokeWidth={3} fill="url(#netGrad)" dot={{ r: 4, fill: '#0EA5E9', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 2 }} />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+
+                            {/* ── Best/Worst Month Badges ── */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-l from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200/50 dark:border-emerald-800/40">
+                                <div className="p-1.5 rounded-lg bg-emerald-500 text-white"><Award size={14} /></div>
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground">أفضل شهر</p>
+                                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{bestMonth.label} — {formatCurrency(bestMonth.net)}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-l from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200/50 dark:border-red-800/40">
+                                <div className="p-1.5 rounded-lg bg-red-500 text-white"><TrendingDown size={14} /></div>
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground">أضعف شهر</p>
+                                  <p className="text-xs font-bold text-red-700 dark:text-red-300">{worstMonth.label} — {formatCurrency(worstMonth.net)}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* ── Detailed Monthly Breakdown Table ── */}
+                            <div className="rounded-xl border border-border overflow-hidden">
+                              <div className="grid grid-cols-5 gap-0 bg-muted/60 text-[10px] font-bold text-muted-foreground p-2">
+                                <span>الشهر</span>
+                                <span className="text-center">الإيراد</span>
+                                <span className="text-center">المصروفات</span>
+                                <span className="text-center">صافي الربح</span>
+                                <span className="text-center">التغير</span>
+                              </div>
+                              {months.map((m, idx) => {
+                                const prevNet = idx > 0 ? months[idx - 1].net : null
+                                const change = prevNet !== null && prevNet !== 0 ? ((m.net - prevNet) / Math.abs(prevNet) * 100) : null
+                                const isCurrentMonth = m.monthNum === _cairoNow.month && m.year === _cairoNow.year
+                                return (
+                                  <div key={`${m.year}-${m.monthNum}`} className={cn('grid grid-cols-5 gap-0 p-2 text-xs border-t border-border items-center', isCurrentMonth ? 'bg-emerald-50/60 dark:bg-emerald-900/15' : 'bg-card')}>
+                                    <span className="font-bold flex items-center gap-1">
+                                      {m.label}
+                                      {isCurrentMonth && <Badge className="bg-emerald-500 text-white text-[7px] px-1 py-0">الحالي</Badge>}
+                                    </span>
+                                    <span className="text-center font-bold text-emerald-600">{formatCurrency(m.income)}</span>
+                                    <span className="text-center font-bold text-red-600">{formatCurrency(m.expense)}</span>
+                                    <span className={cn('text-center font-black', m.net >= 0 ? 'text-cyan-600' : 'text-red-600')}>{formatCurrency(m.net)}</span>
+                                    <span className="text-center">
+                                      {change !== null ? (
+                                        <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-bold', change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-600' : 'text-muted-foreground')}>
+                                          {change > 0 ? <TrendingUp size={10} /> : change < 0 ? <TrendingDown size={10} /> : null}
+                                          {change !== 0 ? `${Math.abs(change).toFixed(0)}%` : '—'}
+                                        </span>
+                                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+
+                            {/* ── Category Breakdown per Month ── */}
+                            <div className="space-y-2">
+                              <p className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Layers size={12} /> تفصيل الإيرادات حسب النوع لكل شهر</p>
+                              {months.map(m => {
+                                const cats = Object.entries(m.categories).sort((a, b) => b[1] - a[1])
+                                if (cats.length === 0) return null
+                                const maxCat = Math.max(...cats.map(c => c[1]), 1)
+                                const catColors: Record<string, string> = { 'كشف': 'bg-emerald-500', 'إعادة': 'bg-blue-500', 'جلسات': 'bg-violet-500', 'ليزر': 'bg-amber-500', 'متابعة': 'bg-cyan-500' }
+                                return (
+                                  <div key={`${m.year}-${m.monthNum}`} className="p-2.5 rounded-xl bg-muted/40 border border-border/50">
+                                    <p className="text-[10px] font-bold mb-2 text-muted-foreground">{m.label}</p>
+                                    <div className="space-y-1.5">
+                                      {cats.map(([cat, amount]) => (
+                                        <div key={cat} className="flex items-center gap-2">
+                                          <span className="text-[10px] font-medium w-14 truncate">{cat}</span>
+                                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                                            <motion.div initial={{ width: 0 }} animate={{ width: `${(amount / maxCat) * 100}%` }} transition={{ duration: 0.7 }} className={cn('h-full rounded-full', catColors[cat] || 'bg-gray-500')} />
+                                          </div>
+                                          <span className="text-[10px] font-bold w-16 text-left">{formatCurrency(amount)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      WEEKLY NET REVENUE COMPARISON — Last 6 Weeks
+                      ═══════════════════════════════════════════════════════════════════ */}
+                  <Card className="card-luxury border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50/40 via-white to-indigo-50/40 dark:from-blue-950/20 dark:via-card dark:to-indigo-950/20">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white"><BarChart3 size={16} /></div>
+                          مقارنة الإيراد الأسبوعي الصافي — آخر ٦ أسابيع
+                        </CardTitle>
+                        <Badge className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] border border-blue-200 dark:border-blue-700">أسبوعي</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(() => {
+                        const _cairoNow = getCairoDateParts()
+                        // Build 6-week data (Egyptian week: Saturday–Friday)
+                        const weeks: { label: string; startDate: string; endDate: string; income: number; expense: number; net: number; dayDetails: { dateStr: string; dayName: string; income: number; expense: number }[] }[] = []
+                        const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+                        const dayOfWeek = nowCairo.getDay()
+                        const daysSinceSaturday = (dayOfWeek + 1) % 7
+
+                        for (let i = 5; i >= 0; i--) {
+                          const weekEndDate = new Date(nowCairo)
+                          weekEndDate.setDate(nowCairo.getDate() - (i * 7) + (6 - daysSinceSaturday))
+                          const weekStartDate = new Date(weekEndDate)
+                          weekStartDate.setDate(weekEndDate.getDate() - 6)
+                          const weekDaysSet = new Set<string>()
+                          const dayDetails: { dateStr: string; dayName: string; income: number; expense: number }[] = []
+                          for (let d = 0; d < 7; d++) {
+                            const day = new Date(weekStartDate)
+                            day.setDate(weekStartDate.getDate() + d)
+                            const dateStr = day.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
+                            weekDaysSet.add(dateStr)
+                            const dayName = day.toLocaleDateString('ar-EG', { weekday: 'short', timeZone: 'Africa/Cairo' })
+                            const dayIncome = clinicTransactions.filter(t => t.type === 'income' && getLocalDateStr(t.date) === dateStr).reduce((s, t) => s + (t.amount || 0), 0)
+                            const dayExpense = clinicTransactions.filter(t => t.type === 'expense' && getLocalDateStr(t.date) === dateStr).reduce((s, t) => s + (t.amount || 0), 0)
+                            dayDetails.push({ dateStr, dayName, income: dayIncome, expense: dayExpense })
+                          }
+                          const weekIncome = clinicTransactions.filter(t => t.type === 'income' && weekDaysSet.has(getLocalDateStr(t.date))).reduce((s, t) => s + (t.amount || 0), 0)
+                          const weekExpense = clinicTransactions.filter(t => t.type === 'expense' && weekDaysSet.has(getLocalDateStr(t.date))).reduce((s, t) => s + (t.amount || 0), 0)
+                          const startLabel = weekStartDate.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', timeZone: 'Africa/Cairo' })
+                          const endLabel = weekEndDate.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', timeZone: 'Africa/Cairo' })
+                          weeks.push({ label: `${startLabel} → ${endLabel}`, startDate: weekStartDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), endDate: weekEndDate.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), income: weekIncome, expense: weekExpense, net: weekIncome - weekExpense, dayDetails })
+                        }
+                        const totalIncome6w = weeks.reduce((s, w) => s + w.income, 0)
+                        const totalExpense6w = weeks.reduce((s, w) => s + w.expense, 0)
+                        const totalNet6w = totalIncome6w - totalExpense6w
+                        const avgNetWeekly = totalNet6w / 6
+                        const bestWeek = [...weeks].sort((a, b) => b.net - a.net)[0]
+                        const worstWeek = [...weeks].sort((a, b) => a.net - b.net)[0]
+                        const chartData = weeks.map(w => ({ name: w.label.split(' → ')[0], الإيراد: w.income, المصروفات: w.expense, 'صافي الربح': w.net }))
+
+                        return (
+                          <>
+                            {/* ── Hero Stats Row ── */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200/60 dark:border-blue-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">إجمالي الإيرادات</p>
+                                <p className="text-lg font-black text-blue-600">{formatCurrency(totalIncome6w)}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-red-100 to-rose-100 dark:from-red-900/30 dark:to-rose-900/30 border border-red-200/60 dark:border-red-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">إجمالي المصروفات</p>
+                                <p className="text-lg font-black text-red-600">{formatCurrency(totalExpense6w)}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-100 to-sky-100 dark:from-cyan-900/30 dark:to-sky-900/30 border border-cyan-200/60 dark:border-cyan-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">صافي الربح الكلي</p>
+                                <p className={cn('text-lg font-black', totalNet6w >= 0 ? 'text-cyan-600' : 'text-red-600')}>{formatCurrency(totalNet6w)}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200/60 dark:border-amber-800/40 text-center">
+                                <p className="text-[10px] text-muted-foreground mb-1">متوسط صافي الأسبوع</p>
+                                <p className={cn('text-lg font-black', avgNetWeekly >= 0 ? 'text-amber-600' : 'text-red-600')}>{formatCurrency(avgNetWeekly)}</p>
+                              </div>
+                            </div>
+
+                            {/* ── Bar Chart ── */}
+                            <div className="p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-blue-100 dark:border-blue-900/40">
+                              <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={2}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} />
+                                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
+                                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} width={60} />
+                                  <RechartsTooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }} formatter={(v: number) => formatCurrency(v)} />
+                                  <Bar dataKey="الإيراد" fill="#047857" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                                  <Bar dataKey="المصروفات" fill="#DC2626" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                                  <Bar dataKey="صافي الربح" fill="#0EA5E9" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+
+                            {/* ── Best/Worst Week Badges ── */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-l from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-800/40">
+                                <div className="p-1.5 rounded-lg bg-blue-500 text-white"><Award size={14} /></div>
+                                <div className="min-w-0">
+                                  <p className="text-[10px] text-muted-foreground">أفضل أسبوع</p>
+                                  <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 truncate">{bestWeek.label} — {formatCurrency(bestWeek.net)}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-l from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200/50 dark:border-red-800/40">
+                                <div className="p-1.5 rounded-lg bg-red-500 text-white"><TrendingDown size={14} /></div>
+                                <div className="min-w-0">
+                                  <p className="text-[10px] text-muted-foreground">أضعف أسبوع</p>
+                                  <p className="text-[10px] font-bold text-red-700 dark:text-red-300 truncate">{worstWeek.label} — {formatCurrency(worstWeek.net)}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* ── Detailed Weekly Breakdown Table ── */}
+                            <div className="rounded-xl border border-border overflow-hidden">
+                              <div className="grid grid-cols-5 gap-0 bg-muted/60 text-[10px] font-bold text-muted-foreground p-2">
+                                <span>الأسبوع</span>
+                                <span className="text-center">الإيراد</span>
+                                <span className="text-center">المصروفات</span>
+                                <span className="text-center">صافي الربح</span>
+                                <span className="text-center">التغير</span>
+                              </div>
+                              {weeks.map((w, idx) => {
+                                const prevNet = idx > 0 ? weeks[idx - 1].net : null
+                                const change = prevNet !== null && prevNet !== 0 ? ((w.net - prevNet) / Math.abs(prevNet) * 100) : null
+                                const isCurrentWeek = idx === weeks.length - 1
+                                return (
+                                  <div key={w.startDate} className={cn('grid grid-cols-5 gap-0 p-2 text-xs border-t border-border items-center', isCurrentWeek ? 'bg-blue-50/60 dark:bg-blue-900/15' : 'bg-card')}>
+                                    <span className="font-bold text-[10px] flex items-center gap-1">
+                                      {w.label}
+                                      {isCurrentWeek && <Badge className="bg-blue-500 text-white text-[7px] px-1 py-0">الحالي</Badge>}
+                                    </span>
+                                    <span className="text-center font-bold text-emerald-600">{formatCurrency(w.income)}</span>
+                                    <span className="text-center font-bold text-red-600">{formatCurrency(w.expense)}</span>
+                                    <span className={cn('text-center font-black', w.net >= 0 ? 'text-cyan-600' : 'text-red-600')}>{formatCurrency(w.net)}</span>
+                                    <span className="text-center">
+                                      {change !== null ? (
+                                        <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-bold', change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-600' : 'text-muted-foreground')}>
+                                          {change > 0 ? <TrendingUp size={10} /> : change < 0 ? <TrendingDown size={10} /> : null}
+                                          {change !== 0 ? `${Math.abs(change).toFixed(0)}%` : '—'}
+                                        </span>
+                                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+
+                            {/* ── Daily Breakdown per Week ── */}
+                            <div className="space-y-2">
+                              <p className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Calendar size={12} /> تفصيل يومي لكل أسبوع</p>
+                              {weeks.map(w => {
+                                const maxDayIncome = Math.max(...w.dayDetails.map(d => d.income), 1)
+                                const isCurrentWeek = w === weeks[weeks.length - 1]
+                                return (
+                                  <div key={w.startDate} className={cn('p-2.5 rounded-xl border border-border/50', isCurrentWeek ? 'bg-blue-50/50 dark:bg-blue-900/15 border-blue-200/60 dark:border-blue-800/40' : 'bg-muted/40')}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <p className="text-[10px] font-bold text-muted-foreground">{w.label}</p>
+                                      <span className={cn('text-[10px] font-black', w.net >= 0 ? 'text-cyan-600' : 'text-red-600')}>صافي: {formatCurrency(w.net)}</span>
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-1">
+                                      {w.dayDetails.map(d => {
+                                        const dayProfit = d.income - d.expense
+                                        const barHeight = maxDayIncome > 0 ? Math.max((d.income / maxDayIncome) * 100, 4) : 4
+                                        return (
+                                          <div key={d.dateStr} className="flex flex-col items-center gap-0.5">
+                                            <span className="text-[8px] text-muted-foreground font-bold">{d.dayName}</span>
+                                            <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                                              <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${barHeight}%` }}
+                                                transition={{ duration: 0.5 }}
+                                                className={cn('h-full rounded-full', dayProfit >= 0 ? 'bg-emerald-500' : 'bg-red-400')}
+                                              />
+                                            </div>
+                                            <span className={cn('text-[7px] font-bold', dayProfit >= 0 ? 'text-emerald-600' : 'text-red-500')}>{d.income > 0 ? formatCurrency(d.income) : '—'}</span>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </CardContent>
+                  </Card>
+
                   {/* ═══ NEW: Patient Age Distribution ═══ */}
                   <Card className="card-luxury border-2 border-amber-200 dark:border-amber-800">
                     <CardHeader><CardTitle className="flex items-center gap-2"><Activity size={18} className="text-amber-600" /> توزيع المرضى حسب العمر</CardTitle></CardHeader>
