@@ -49,6 +49,7 @@ import PatientProfile from '@/components/PatientProfile'
 import LaserCenter from '@/components/LaserCenter'
 import FinanceCenter from '@/components/FinanceCenter'
 import MoreSection from '@/components/MoreSection'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import WaitingSection from '@/components/WaitingSection'
 import CairoClock from '@/components/CairoClock'
 import DashboardSection from '@/components/DashboardSection'
@@ -1021,10 +1022,10 @@ export default function Home() {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
 
             {/* ═══ DASHBOARD — Professional Design ═══ */}
-            {activeTab === 'dashboard' && <DashboardSection />}
+            {activeTab === 'dashboard' && <ErrorBoundary><DashboardSection /></ErrorBoundary>}
 
             {/* ═══ MESSAGES ═══ */}
-            {activeTab === 'messages' && <MessageSection />}
+            {activeTab === 'messages' && <ErrorBoundary><MessageSection /></ErrorBoundary>}
 
             {/* ═══ PATIENTS ═══ */}
             {activeTab === 'patients' && !selectedPatient && (
@@ -1180,16 +1181,16 @@ export default function Home() {
             )}
 
             {/* ═══ PATIENT DETAIL - only mounted when patients tab + selected patient ═══ */}
-            {activeTab === 'patients' && selectedPatient && <PatientProfile />}
+            {activeTab === 'patients' && selectedPatient && <ErrorBoundary><PatientProfile /></ErrorBoundary>}
             
             {/* ═══ LASER - only mounted when laser tab ═══ */}
-            {activeTab === 'laser' && <><LaserCenter />{renderQuickNotes('laser')}</>}
+            {activeTab === 'laser' && <ErrorBoundary><><LaserCenter />{renderQuickNotes('laser')}</></ErrorBoundary>}
 
             {/* ═══ FINANCE - only mounted when finance tab ═══ */}
-            {activeTab === 'finance' && <FinanceCenter />}
+            {activeTab === 'finance' && <ErrorBoundary><FinanceCenter /></ErrorBoundary>}
 
             {/* ═══ MORE / SETTINGS - only mounted when more/settings tab ═══ */}
-            {['more', 'settings'].includes(activeTab) && <MoreSection />}
+            {['more', 'settings'].includes(activeTab) && <ErrorBoundary><MoreSection /></ErrorBoundary>}
 
             {/* ═══ SETTINGS direct (quick theme picker) ═══ */}
             {activeTab === 'settings' && (<div className="space-y-4"><div className="section-header-animated rounded-2xl bg-indigo-50 dark:bg-indigo-950/30"><div className="relative z-10 flex items-center gap-3"><div className="text-4xl animate-spin-slow">🎨</div><div><h1 className="text-2xl font-bold">الإعدادات</h1></div></div></div><Card className="card-luxury"><CardHeader><CardTitle>ألوان التطبيق</CardTitle></CardHeader><CardContent><div className="grid grid-cols-5 gap-3">{THEME_CONFIGS.map(tc => <button key={tc.id} onClick={() => setTheme(tc.id)} className={cn('theme-swatch flex flex-col items-center justify-center gap-1 p-2', theme === tc.id && 'selected')} style={{ background: `linear-gradient(135deg, ${tc.primary}, ${tc.primaryDark})` }}><span className="text-xl">{tc.icon}</span><span className="text-[9px] font-bold text-white/90 truncate w-full text-center">{tc.name}</span>{theme === tc.id && <CheckCircle className="text-white absolute top-1 right-1" size={14} />}</button>)}</div></CardContent></Card></div>)}
