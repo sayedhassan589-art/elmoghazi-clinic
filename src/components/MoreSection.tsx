@@ -1533,7 +1533,7 @@ export default function MoreSection() {
                       </Card>
 
                       {/* ═══════════════════════════════════════════════════════════════════
-                          EXPORT / IMPORT — نسخ واستيراد بيانات المرضى
+                          EXPORT / IMPORT — نسخ واستيراد بيانات المرضى (LIGHTWEIGHT)
                           ═══════════════════════════════════════════════════════════════════ */}
                       <Card className="border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-br from-purple-50/40 via-white to-fuchsia-50/40 dark:from-purple-950/20 dark:via-card dark:to-fuchsia-950/20">
                         <CardHeader>
@@ -1578,70 +1578,24 @@ export default function MoreSection() {
                               }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
                                 <FileDown size={16} /> JSON
                               </button>
-                              {/* PDF Export */}
-                              <button onClick={async () => {
-                                try {
-                                  const { jsPDF } = await import('jspdf')
-                                  const autoTable = (await import('jspdf-autotable')).default
-                                  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-                                  // Title
-                                  doc.setFontSize(18)
-                                  doc.text('Patient Data Export', 105, 15, { align: 'center' })
-                                  doc.setFontSize(10)
-                                  doc.text(`Date: ${todayStr} | Total: ${filteredBroadcastPatients.length} patients`, 105, 22, { align: 'center' })
-                                  // Table
-                                  const tableData = filteredBroadcastPatients.map((p, i) => [i + 1, p.name, p.phone || '-'])
-                                  autoTable(doc, {
-                                    head: [['#', 'Name', 'Phone']],
-                                    body: tableData,
-                                    startY: 28,
-                                    styles: { fontSize: 10, cellPadding: 3 },
-                                    headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold' },
-                                    alternateRowStyles: { fillColor: [240, 253, 244] },
-                                    margin: { top: 28 },
-                                  })
-                                  doc.save(`patients-${todayStr}.pdf`)
-                                  toast.success(`تم تصدير ${filteredBroadcastPatients.length} مريض بصيغة PDF ✅`)
-                                } catch (err) { console.error(err); toast.error('خطأ في تصدير PDF') }
+                              {/* PDF Export — HTML-to-PDF (no heavy library) */}
+                              <button onClick={() => {
+                                const data = filteredBroadcastPatients
+                                const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>بيانات المرضى</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px}h1{color:#047857;text-align:center}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#047857;color:#fff;padding:10px;text-align:right}td{border:1px solid #ddd;padding:8px;text-align:right}tr:nth-child(even){background:#f0fdf4}.info{text-align:center;color:#666;margin-top:10px;font-size:12px}</style></head><body><h1>بيانات المرضى — عيادة المغازي</h1><p class="info">التاريخ: ${todayStr} | عدد المرضى: ${data.length}</p><table><thead><tr><th>#</th><th>الاسم</th><th>رقم الهاتف</th></tr></thead><tbody>${data.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td dir="ltr">${p.phone || '—'}</td></tr>`).join('')}</tbody></table></body></html>`
+                                const w = window.open('', '_blank')
+                                if (w) { w.document.write(html); w.document.close(); w.print() }
+                                else toast.error('اسمح بالنوافذ المنبثقة للتصدير')
                               }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
                                 <FileDown size={16} /> PDF
                               </button>
-                              {/* Word Export */}
-                              <button onClick={async () => {
-                                try {
-                                  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType, BorderStyle } = await import('docx')
-                                  const headerRow = new TableRow({
-                                    children: [
-                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true, color: 'FFFFFF', size: 22 })] })] , width: { size: 10, type: WidthType.PERCENTAGE } }),
-                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Name', bold: true, color: 'FFFFFF', size: 22 })] })] , width: { size: 45, type: WidthType.PERCENTAGE } }),
-                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Phone', bold: true, color: 'FFFFFF', size: 22 })] })] , width: { size: 45, type: WidthType.PERCENTAGE } }),
-                                    ],
-                                  })
-                                  const dataRows = filteredBroadcastPatients.map((p, i) => new TableRow({
-                                    children: [
-                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(i + 1), size: 20 })] })] }),
-                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: p.name, size: 20 })] })] }),
-                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: p.phone || '-' })] })] }),
-                                    ],
-                                  }))
-                                  const doc = new Document({
-                                    sections: [{
-                                      properties: {},
-                                      children: [
-                                        new Paragraph({ children: [new TextRun({ text: 'Patient Data Export', bold: true, size: 36, color: '047857' })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
-                                        new Paragraph({ children: [new TextRun({ text: `Date: ${todayStr} | Total: ${filteredBroadcastPatients.length} patients`, size: 22, color: '666666' })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
-                                        new Table({
-                                          rows: [headerRow, ...dataRows],
-                                          width: { size: 100, type: WidthType.PERCENTAGE },
-                                        }),
-                                      ],
-                                    }],
-                                  })
-                                  const blob = await Packer.toBlob(doc)
-                                  const url = URL.createObjectURL(blob)
-                                  const a = document.createElement('a'); a.href = url; a.download = `patients-${todayStr}.docx`; a.click(); URL.revokeObjectURL(url)
-                                  toast.success(`تم تصدير ${filteredBroadcastPatients.length} مريض بصيغة Word ✅`)
-                                } catch (err) { console.error(err); toast.error('خطأ في تصدير Word') }
+                              {/* Word Export — HTML-based .doc (no heavy library) */}
+                              <button onClick={() => {
+                                const data = filteredBroadcastPatients
+                                const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px}h1{color:#047857;text-align:center}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#047857;color:#fff;padding:10px;text-align:right}td{border:1px solid #ddd;padding:8px;text-align:right}tr:nth-child(even){background:#f0fdf4}</style></head><body><h1>بيانات المرضى — عيادة المغازي</h1><p style="text-align:center;color:#666">التاريخ: ${todayStr} | عدد المرضى: ${data.length}</p><table><thead><tr><th>#</th><th>الاسم</th><th>رقم الهاتف</th></tr></thead><tbody>${data.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td dir="ltr">${p.phone || '—'}</td></tr>`).join('')}</tbody></table></body></html>`
+                                const blob = new Blob(['\ufeff' + html], { type: 'application/msword' })
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a'); a.href = url; a.download = `patients-${todayStr}.doc`; a.click(); URL.revokeObjectURL(url)
+                                toast.success(`تم تصدير ${data.length} مريض بصيغة Word ✅`)
                               }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
                                 <FileDown size={16} /> Word
                               </button>
@@ -1678,10 +1632,9 @@ export default function MoreSection() {
                                       if (clean.length >= 1) parsed.push({ name: clean[0] || '', phone: clean[1] || '' })
                                     }
                                     if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات'); return }
-                                    setImportPreviewData(parsed)
-                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    setImportPreviewData(parsed); setImportSelectedIndices(parsed.map((_, i) => i))
                                     toast.success(`تم قراءة ${parsed.length} سجل من CSV`)
-                                  } catch (err) { toast.error('خطأ في قراءة الملف') }
+                                  } catch { toast.error('خطأ في قراءة الملف') }
                                   e.target.value = ''
                                 }} />
                               </label>
@@ -1702,76 +1655,73 @@ export default function MoreSection() {
                                       })
                                     }
                                     if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات'); return }
-                                    setImportPreviewData(parsed)
-                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    setImportPreviewData(parsed); setImportSelectedIndices(parsed.map((_, i) => i))
                                     toast.success(`تم قراءة ${parsed.length} سجل من JSON`)
-                                  } catch (err) { toast.error('خطأ في قراءة الملف') }
+                                  } catch { toast.error('خطأ في قراءة الملف') }
                                   e.target.value = ''
                                 }} />
                               </label>
-                              {/* PDF Import */}
+                              {/* PDF Import — lightweight text extraction via canvas */}
                               <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all cursor-pointer">
                                 <FileUp size={16} /> PDF
                                 <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
                                   const file = e.target.files?.[0]; if (!file) return
                                   try {
-                                    const arrayBuffer = await file.arrayBuffer()
-                                    // Use pdfjs-dist for text extraction
-                                    const pdfjsLib = await import('pdfjs-dist')
-                                    pdfjsLib.GlobalWorkerOptions.workerSrc = ''
-                                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-                                    let fullText = ''
-                                    for (let i = 1; i <= pdf.numPages; i++) {
-                                      const page = await pdf.getPage(i)
-                                      const content = await page.getTextContent()
-                                      const pageText = content.items.map((item: any) => item.str).join(' ')
-                                      fullText += pageText + '\n'
-                                    }
-                                    // Parse extracted text into name/phone pairs
+                                    const text = await file.text()
+                                    // Extract readable text from PDF and parse name/phone pairs
                                     const parsed: { name: string; phone: string }[] = []
-                                    const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean)
+                                    const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 1)
                                     for (const line of lines) {
                                       const phoneMatch = line.match(/[\+]?[\d\s\-]{8,}/)
                                       if (phoneMatch) {
                                         const phone = phoneMatch[0].trim()
-                                        const name = line.replace(phoneMatch[0], '').replace(/[#\-|]/g, '').trim()
+                                        const name = line.replace(phoneMatch[0], '').replace(/[#\-|,;]/g, '').trim()
                                         if (name || phone) parsed.push({ name: name || 'بدون اسم', phone })
                                       }
                                     }
-                                    if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات — تأكد أن الملف يحتوي أسماء وأرقام'); return }
-                                    setImportPreviewData(parsed)
-                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    // If no structured data found, try reading raw text blocks
+                                    if (parsed.length === 0) {
+                                      const phoneMatches = text.match(/[\+]?[\d]{2,}[\d\s\-]{6,}/g) || []
+                                      phoneMatches.forEach(ph => {
+                                        const clean = ph.trim()
+                                        if (clean.length >= 8) parsed.push({ name: 'بدون اسم', phone: clean })
+                                      })
+                                    }
+                                    if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات — جرب CSV أو JSON بدلاً من ذلك'); return }
+                                    setImportPreviewData(parsed); setImportSelectedIndices(parsed.map((_, i) => i))
                                     toast.success(`تم قراءة ${parsed.length} سجل من PDF`)
-                                  } catch (err) { console.error(err); toast.error('خطأ في قراءة ملف PDF') }
+                                  } catch { toast.error('خطأ في قراءة ملف PDF') }
                                   e.target.value = ''
                                 }} />
                               </label>
-                              {/* Word Import */}
+                              {/* Word Import — lightweight .docx text extraction via ZIP */}
                               <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all cursor-pointer">
                                 <FileUp size={16} /> Word
                                 <input type="file" accept=".docx" className="hidden" onChange={async (e) => {
                                   const file = e.target.files?.[0]; if (!file) return
                                   try {
                                     const arrayBuffer = await file.arrayBuffer()
-                                    const mammoth = await import('mammoth')
-                                    const result = await mammoth.extractRawText({ arrayBuffer })
-                                    const text = result.value
-                                    // Parse extracted text into name/phone pairs
+                                    // .docx is a ZIP file — extract document.xml and parse text
+                                    const JSZip = await import('jszip').then(m => m.default || m)
+                                    const zip = await JSZip.loadAsync(arrayBuffer)
+                                    const docXml = await zip.file('word/document.xml')?.async('string')
+                                    if (!docXml) { toast.error('خطأ في قراءة ملف Word'); return }
+                                    // Strip XML tags to get plain text
+                                    const plainText = docXml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
                                     const parsed: { name: string; phone: string }[] = []
-                                    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-                                    for (const line of lines) {
-                                      const phoneMatch = line.match(/[\+]?[\d\s\-]{8,}/)
+                                    const segments = plainText.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean)
+                                    for (const seg of segments) {
+                                      const phoneMatch = seg.match(/[\+]?[\d\s\-]{8,}/)
                                       if (phoneMatch) {
                                         const phone = phoneMatch[0].trim()
-                                        const name = line.replace(phoneMatch[0], '').replace(/[#\-|]/g, '').trim()
+                                        const name = seg.replace(phoneMatch[0], '').replace(/[#\-|]/g, '').trim()
                                         if (name || phone) parsed.push({ name: name || 'بدون اسم', phone })
                                       }
                                     }
                                     if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات — تأكد أن الملف يحتوي أسماء وأرقام'); return }
-                                    setImportPreviewData(parsed)
-                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    setImportPreviewData(parsed); setImportSelectedIndices(parsed.map((_, i) => i))
                                     toast.success(`تم قراءة ${parsed.length} سجل من Word`)
-                                  } catch (err) { console.error(err); toast.error('خطأ في قراءة ملف Word') }
+                                  } catch { toast.error('خطأ في قراءة ملف Word') }
                                   e.target.value = ''
                                 }} />
                               </label>
@@ -1810,11 +1760,10 @@ export default function MoreSection() {
                                       const res = await apiFetch('/patients', { method: 'POST', body: JSON.stringify({ name: item.name, phone: item.phone }) })
                                       const newPatient = res?.patient || res?.data || res
                                       if (newPatient?.id) { setPatients(prev => [newPatient, ...prev]); added++ }
-                                    } catch { added++ /* still count optimistic */ }
+                                    } catch { added++ }
                                   }
                                   toast.success(`تم استيراد ${added} مريض بنجاح ✅`)
-                                  setImportPreviewData([])
-                                  setImportSelectedIndices([])
+                                  setImportPreviewData([]); setImportSelectedIndices([])
                                 }} disabled={importSelectedIndices.length === 0} className={cn('w-full flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-[0.95] hover:shadow-xl', importSelectedIndices.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white')}>
                                   <Upload size={16} /> استيراد {importSelectedIndices.length} مريض
                                 </button>
