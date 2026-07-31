@@ -93,6 +93,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'elmoghazi-auth',
+      version: 2,
+      migrate: (persisted: any, version: number) => {
+        if (version < 2) return { user: null, isAuthenticated: false, userRole: 'doctor' as const }
+        return persisted
+      },
     }
   )
 )
@@ -129,6 +134,23 @@ export const useClinicStore = create<ClinicSettingsState>()(
     }),
     {
       name: 'elmoghazi-clinic-settings',
+      version: 2,
+      migrate: (persisted: any, version: number) => {
+        if (version < 2) {
+          return {
+            theme: 'emerald',
+            activeTab: 'dashboard',
+            statusColors: { completed: '#10b981', active: '#3b82f6', pending: '#f59e0b', cancelled: '#ef4444', scheduled: '#8b5cf6' },
+            autoBackup: false,
+            backupInterval: 60,
+            lastBackup: null,
+            sectionPasswords: {},
+            defaultCheckupPrice: 200,
+            defaultRevisitPrice: 80,
+          }
+        }
+        return persisted
+      },
     }
   )
 )

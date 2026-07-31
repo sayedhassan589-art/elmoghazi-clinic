@@ -527,11 +527,16 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'elmoghazi-ui',
+      version: 2,
       // Only persist darkMode and login state, not temporary dialog states
       partialize: (state) => ({
         darkMode: state.darkMode,
         seeded: state.seeded,
       }),
+      migrate: (persisted: any, version: number) => {
+        if (version < 2) return { darkMode: false, seeded: false }
+        return persisted
+      },
     }
   )
 )

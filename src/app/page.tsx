@@ -899,7 +899,7 @@ export default function Home() {
   const canDelete = isDoctor
   const canEditPatientFull = isDoctor
   const canAddPatient = isDoctor
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser', 'waiting']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'messages', 'more', 'settings'] : ['patients', 'laser', 'waiting']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
