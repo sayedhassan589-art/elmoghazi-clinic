@@ -185,6 +185,12 @@ interface UIState {
   patientCopySearch: string
   setPatientCopySearch: (v: string) => void
 
+  // Import preview
+  importPreviewData: { name: string; phone: string }[]
+  setImportPreviewData: (v: { name: string; phone: string }[]) => void
+  importSelectedIndices: number[]
+  setImportSelectedIndices: (v: number[]) => void
+
   // Note filters (dashboard)
   noteSearch: string
   setNoteSearch: (v: string) => void
@@ -440,6 +446,10 @@ export const useUIStore = create<UIState>()(
       setPatientFilter: (v) => set({ patientFilter: v }),
       patientCopySearch: '',
       setPatientCopySearch: (v) => set({ patientCopySearch: v }),
+      importPreviewData: [],
+      setImportPreviewData: (v) => set({ importPreviewData: v }),
+      importSelectedIndices: [],
+      setImportSelectedIndices: (v) => set({ importSelectedIndices: v }),
 
       // Note filters (dashboard)
       noteSearch: '',

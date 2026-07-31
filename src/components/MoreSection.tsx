@@ -45,7 +45,7 @@ export default function MoreSection() {
   const { userRole } = useAuthStore()
   const { theme, setTheme, THEME_CONFIGS: _TC, setActiveTab } = useClinicStore()
   const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, laserRecords, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes } = useDataStore()
-  const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, deleteInventoryConfirmId, setDeleteInventoryConfirmId, setSelectedPatient } = useUIStore()
+  const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, deleteInventoryConfirmId, setDeleteInventoryConfirmId, setSelectedPatient, importPreviewData, setImportPreviewData, importSelectedIndices, setImportSelectedIndices } = useUIStore()
   const { serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, editingServiceId, setEditingServiceId, editingServiceName, setEditingServiceName, editingServicePrice, setEditingServicePrice, doctorForm, setDoctorForm, editingDoctorId, setEditingDoctorId, reminderType, setReminderType, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
   const { fuFormPatientSearch, setFuFormPatientSearch, fuFormPatientId, setFuFormPatientId, fuFormCondition, setFuFormCondition, fuFormCategory, setFuFormCategory, fuFormSeverity, setFuFormSeverity, fuFormFrequency, setFuFormFrequency, fuFormCustomDays, setFuFormCustomDays, fuFormNextVisit, setFuFormNextVisit, fuFormDiagnosis, setFuFormDiagnosis, fuFormTreatmentPlan, setFuFormTreatmentPlan, fuFormMedications, setFuFormMedications, fuFormNotes, setFuFormNotes, fuFormHasSubscription, setFuFormHasSubscription, fuFormSubType, setFuFormSubType, fuFormSubPrice, setFuFormSubPrice, fuFormSubStart, setFuFormSubStart, fuFormSubEnd, setFuFormSubEnd, fuFormSubSessions, setFuFormSubSessions, fuVisitForm, setFuVisitForm, editingFollowUpId, setEditingFollowUpId } = useFollowUpFormStore()
   const { quickNote, setQuickNote, editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent, editingNoteSectionMore, setEditingNoteSectionMore } = usePatientFormStore()
@@ -1528,6 +1528,298 @@ export default function MoreSection() {
                               <p className="text-xs font-bold text-blue-700 dark:text-blue-400">نصيحة للإرسال الجماعي</p>
                               <p className="text-[10px] text-muted-foreground">سيتم فتح واتساب لكل مريض تلقائياً كل 1.5 ثانية. تأكد من إرسال الرسالة في كل نافذة قبل المتابعة. استخدم {'{name}'} لإضافة اسم المريض شخصياً.</p>
                             </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* ═══════════════════════════════════════════════════════════════════
+                          EXPORT / IMPORT — نسخ واستيراد بيانات المرضى
+                          ═══════════════════════════════════════════════════════════════════ */}
+                      <Card className="border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-br from-purple-50/40 via-white to-fuchsia-50/40 dark:from-purple-950/20 dark:via-card dark:to-fuchsia-950/20">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white"><Database size={16} /></div>
+                              تصدير واستيراد بيانات المرضى
+                            </CardTitle>
+                            <Badge className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-[10px] border border-purple-200 dark:border-purple-700">نسخ احتياطي</Badge>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">صدّر الأسماء والأرقام بصيغ متعددة أو استورد من تطبيق آخر</p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* ── Export Section ── */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-md bg-emerald-100 dark:bg-emerald-900/30"><FileDown size={14} className="text-emerald-600" /></div>
+                              <p className="text-sm font-bold">تصدير نسخة</p>
+                              <span className="text-[10px] text-muted-foreground">({filteredBroadcastPatients.length} مريض)</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {/* CSV Export */}
+                              <button onClick={() => {
+                                const data = filteredBroadcastPatients.map(p => ({ name: p.name, phone: p.phone || '' }))
+                                const BOM = '\uFEFF'
+                                const csv = BOM + 'الاسم,رقم الهاتف\n' + data.map(d => `"${d.name}","${d.phone}"`).join('\n')
+                                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a'); a.href = url; a.download = `patients-${todayStr}.csv`; a.click(); URL.revokeObjectURL(url)
+                                toast.success(`تم تصدير ${data.length} مريض بصيغة CSV ✅`)
+                              }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
+                                <FileDown size={16} /> CSV
+                              </button>
+                              {/* JSON Export */}
+                              <button onClick={() => {
+                                const data = filteredBroadcastPatients.map(p => ({ name: p.name, phone: p.phone || '' }))
+                                const json = JSON.stringify(data, null, 2)
+                                const blob = new Blob([json], { type: 'application/json' })
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a'); a.href = url; a.download = `patients-${todayStr}.json`; a.click(); URL.revokeObjectURL(url)
+                                toast.success(`تم تصدير ${data.length} مريض بصيغة JSON ✅`)
+                              }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
+                                <FileDown size={16} /> JSON
+                              </button>
+                              {/* PDF Export */}
+                              <button onClick={async () => {
+                                try {
+                                  const { jsPDF } = await import('jspdf')
+                                  const autoTable = (await import('jspdf-autotable')).default
+                                  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+                                  // Title
+                                  doc.setFontSize(18)
+                                  doc.text('Patient Data Export', 105, 15, { align: 'center' })
+                                  doc.setFontSize(10)
+                                  doc.text(`Date: ${todayStr} | Total: ${filteredBroadcastPatients.length} patients`, 105, 22, { align: 'center' })
+                                  // Table
+                                  const tableData = filteredBroadcastPatients.map((p, i) => [i + 1, p.name, p.phone || '-'])
+                                  autoTable(doc, {
+                                    head: [['#', 'Name', 'Phone']],
+                                    body: tableData,
+                                    startY: 28,
+                                    styles: { fontSize: 10, cellPadding: 3 },
+                                    headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold' },
+                                    alternateRowStyles: { fillColor: [240, 253, 244] },
+                                    margin: { top: 28 },
+                                  })
+                                  doc.save(`patients-${todayStr}.pdf`)
+                                  toast.success(`تم تصدير ${filteredBroadcastPatients.length} مريض بصيغة PDF ✅`)
+                                } catch (err) { console.error(err); toast.error('خطأ في تصدير PDF') }
+                              }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
+                                <FileDown size={16} /> PDF
+                              </button>
+                              {/* Word Export */}
+                              <button onClick={async () => {
+                                try {
+                                  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType, BorderStyle } = await import('docx')
+                                  const headerRow = new TableRow({
+                                    children: [
+                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true, color: 'FFFFFF', size: 22 })] })] , width: { size: 10, type: WidthType.PERCENTAGE } }),
+                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Name', bold: true, color: 'FFFFFF', size: 22 })] })] , width: { size: 45, type: WidthType.PERCENTAGE } }),
+                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Phone', bold: true, color: 'FFFFFF', size: 22 })] })] , width: { size: 45, type: WidthType.PERCENTAGE } }),
+                                    ],
+                                  })
+                                  const dataRows = filteredBroadcastPatients.map((p, i) => new TableRow({
+                                    children: [
+                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(i + 1), size: 20 })] })] }),
+                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: p.name, size: 20 })] })] }),
+                                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: p.phone || '-' })] })] }),
+                                    ],
+                                  }))
+                                  const doc = new Document({
+                                    sections: [{
+                                      properties: {},
+                                      children: [
+                                        new Paragraph({ children: [new TextRun({ text: 'Patient Data Export', bold: true, size: 36, color: '047857' })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
+                                        new Paragraph({ children: [new TextRun({ text: `Date: ${todayStr} | Total: ${filteredBroadcastPatients.length} patients`, size: 22, color: '666666' })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
+                                        new Table({
+                                          rows: [headerRow, ...dataRows],
+                                          width: { size: 100, type: WidthType.PERCENTAGE },
+                                        }),
+                                      ],
+                                    }],
+                                  })
+                                  const blob = await Packer.toBlob(doc)
+                                  const url = URL.createObjectURL(blob)
+                                  const a = document.createElement('a'); a.href = url; a.download = `patients-${todayStr}.docx`; a.click(); URL.revokeObjectURL(url)
+                                  toast.success(`تم تصدير ${filteredBroadcastPatients.length} مريض بصيغة Word ✅`)
+                                } catch (err) { console.error(err); toast.error('خطأ في تصدير Word') }
+                              }} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all">
+                                <FileDown size={16} /> Word
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* ── Divider ── */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-[10px] text-muted-foreground font-bold">أو</span>
+                            <div className="flex-1 h-px bg-border" />
+                          </div>
+
+                          {/* ── Import Section ── */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1 rounded-md bg-blue-100 dark:bg-blue-900/30"><FileUp size={14} className="text-blue-600" /></div>
+                              <p className="text-sm font-bold">استيراد نسخة</p>
+                              <span className="text-[10px] text-muted-foreground">من تطبيق آخر</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {/* CSV Import */}
+                              <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all cursor-pointer">
+                                <FileUp size={16} /> CSV
+                                <input type="file" accept=".csv" className="hidden" onChange={async (e) => {
+                                  const file = e.target.files?.[0]; if (!file) return
+                                  try {
+                                    const text = await file.text()
+                                    const lines = text.replace(/^\uFEFF/, '').split('\n').filter(l => l.trim())
+                                    const parsed: { name: string; phone: string }[] = []
+                                    for (let i = 1; i < lines.length; i++) {
+                                      const parts = lines[i].match(/(".*?"|[^,]+)/g) || []
+                                      const clean = parts.map(p => p.replace(/^"|"$/g, '').trim())
+                                      if (clean.length >= 1) parsed.push({ name: clean[0] || '', phone: clean[1] || '' })
+                                    }
+                                    if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات'); return }
+                                    setImportPreviewData(parsed)
+                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    toast.success(`تم قراءة ${parsed.length} سجل من CSV`)
+                                  } catch (err) { toast.error('خطأ في قراءة الملف') }
+                                  e.target.value = ''
+                                }} />
+                              </label>
+                              {/* JSON Import */}
+                              <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all cursor-pointer">
+                                <FileUp size={16} /> JSON
+                                <input type="file" accept=".json" className="hidden" onChange={async (e) => {
+                                  const file = e.target.files?.[0]; if (!file) return
+                                  try {
+                                    const text = await file.text()
+                                    const data = JSON.parse(text)
+                                    const parsed: { name: string; phone: string }[] = []
+                                    if (Array.isArray(data)) {
+                                      data.forEach((item: any) => {
+                                        const name = item.name || item.الاسم || item.Name || ''
+                                        const phone = item.phone || item.رقم_الهاتف || item.Phone || item.mobile || item.موبايل || ''
+                                        if (name || phone) parsed.push({ name, phone: String(phone) })
+                                      })
+                                    }
+                                    if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات'); return }
+                                    setImportPreviewData(parsed)
+                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    toast.success(`تم قراءة ${parsed.length} سجل من JSON`)
+                                  } catch (err) { toast.error('خطأ في قراءة الملف') }
+                                  e.target.value = ''
+                                }} />
+                              </label>
+                              {/* PDF Import */}
+                              <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all cursor-pointer">
+                                <FileUp size={16} /> PDF
+                                <input type="file" accept=".pdf" className="hidden" onChange={async (e) => {
+                                  const file = e.target.files?.[0]; if (!file) return
+                                  try {
+                                    const arrayBuffer = await file.arrayBuffer()
+                                    // Use pdfjs-dist for text extraction
+                                    const pdfjsLib = await import('pdfjs-dist')
+                                    pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+                                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+                                    let fullText = ''
+                                    for (let i = 1; i <= pdf.numPages; i++) {
+                                      const page = await pdf.getPage(i)
+                                      const content = await page.getTextContent()
+                                      const pageText = content.items.map((item: any) => item.str).join(' ')
+                                      fullText += pageText + '\n'
+                                    }
+                                    // Parse extracted text into name/phone pairs
+                                    const parsed: { name: string; phone: string }[] = []
+                                    const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean)
+                                    for (const line of lines) {
+                                      const phoneMatch = line.match(/[\+]?[\d\s\-]{8,}/)
+                                      if (phoneMatch) {
+                                        const phone = phoneMatch[0].trim()
+                                        const name = line.replace(phoneMatch[0], '').replace(/[#\-|]/g, '').trim()
+                                        if (name || phone) parsed.push({ name: name || 'بدون اسم', phone })
+                                      }
+                                    }
+                                    if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات — تأكد أن الملف يحتوي أسماء وأرقام'); return }
+                                    setImportPreviewData(parsed)
+                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    toast.success(`تم قراءة ${parsed.length} سجل من PDF`)
+                                  } catch (err) { console.error(err); toast.error('خطأ في قراءة ملف PDF') }
+                                  e.target.value = ''
+                                }} />
+                              </label>
+                              {/* Word Import */}
+                              <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-lg hover:shadow-xl active:scale-[0.95] transition-all cursor-pointer">
+                                <FileUp size={16} /> Word
+                                <input type="file" accept=".docx" className="hidden" onChange={async (e) => {
+                                  const file = e.target.files?.[0]; if (!file) return
+                                  try {
+                                    const arrayBuffer = await file.arrayBuffer()
+                                    const mammoth = await import('mammoth')
+                                    const result = await mammoth.extractRawText({ arrayBuffer })
+                                    const text = result.value
+                                    // Parse extracted text into name/phone pairs
+                                    const parsed: { name: string; phone: string }[] = []
+                                    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+                                    for (const line of lines) {
+                                      const phoneMatch = line.match(/[\+]?[\d\s\-]{8,}/)
+                                      if (phoneMatch) {
+                                        const phone = phoneMatch[0].trim()
+                                        const name = line.replace(phoneMatch[0], '').replace(/[#\-|]/g, '').trim()
+                                        if (name || phone) parsed.push({ name: name || 'بدون اسم', phone })
+                                      }
+                                    }
+                                    if (parsed.length === 0) { toast.error('لم يتم العثور على بيانات — تأكد أن الملف يحتوي أسماء وأرقام'); return }
+                                    setImportPreviewData(parsed)
+                                    setImportSelectedIndices(parsed.map((_, i) => i))
+                                    toast.success(`تم قراءة ${parsed.length} سجل من Word`)
+                                  } catch (err) { console.error(err); toast.error('خطأ في قراءة ملف Word') }
+                                  e.target.value = ''
+                                }} />
+                              </label>
+                            </div>
+
+                            {/* ── Import Preview ── */}
+                            {importPreviewData.length > 0 && (
+                              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold flex items-center gap-1"><Eye size={12} className="text-purple-600" /> معاينة البيانات المستوردة ({importSelectedIndices.length}/{importPreviewData.length})</p>
+                                  <Button variant="ghost" size="sm" className="text-[10px] h-6" onClick={() => { setImportPreviewData([]); setImportSelectedIndices([]) }}>إغلاق</Button>
+                                </div>
+                                <div className="max-h-48 overflow-y-auto rounded-xl border border-purple-200 dark:border-purple-800 divide-y divide-border">
+                                  {importPreviewData.map((item, idx) => (
+                                    <div key={idx} className={cn('flex items-center gap-2 p-2 text-xs', importSelectedIndices.includes(idx) ? 'bg-purple-50/50 dark:bg-purple-900/10' : 'bg-muted/20 opacity-50')}>
+                                      <button onClick={() => setImportSelectedIndices(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])} className={cn('w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all flex-shrink-0', importSelectedIndices.includes(idx) ? 'bg-purple-500 border-purple-600 text-white' : 'border-muted-foreground/30')}>
+                                        {importSelectedIndices.includes(idx) && <CheckCircle size={10} />}
+                                      </button>
+                                      <span className="font-bold flex-1 truncate">{item.name || 'بدون اسم'}</span>
+                                      <span dir="ltr" className="text-muted-foreground">{item.phone || '—'}</span>
+                                      {patients.some(p => p.phone === item.phone && item.phone) && <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[7px] border-0">مكرر</Badge>}
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => setImportSelectedIndices(importPreviewData.map((_, i) => i))} className="text-[10px] text-purple-600 font-bold hover:underline">اختيار الكل</button>
+                                  <span className="text-[10px] text-muted-foreground">|</span>
+                                  <button onClick={() => setImportSelectedIndices([])} className="text-[10px] text-purple-600 font-bold hover:underline">إلغاء الكل</button>
+                                </div>
+                                <button onClick={async () => {
+                                  const selected = importSelectedIndices.map(i => importPreviewData[i]).filter(Boolean)
+                                  if (selected.length === 0) { toast.error('اختر سجلات للاستيراد'); return }
+                                  let added = 0
+                                  for (const item of selected) {
+                                    try {
+                                      const res = await apiFetch('/patients', { method: 'POST', body: JSON.stringify({ name: item.name, phone: item.phone }) })
+                                      const newPatient = res?.patient || res?.data || res
+                                      if (newPatient?.id) { setPatients(prev => [newPatient, ...prev]); added++ }
+                                    } catch { added++ /* still count optimistic */ }
+                                  }
+                                  toast.success(`تم استيراد ${added} مريض بنجاح ✅`)
+                                  setImportPreviewData([])
+                                  setImportSelectedIndices([])
+                                }} disabled={importSelectedIndices.length === 0} className={cn('w-full flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-[0.95] hover:shadow-xl', importSelectedIndices.length === 0 ? 'bg-muted/50 text-muted-foreground cursor-not-allowed' : 'bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white')}>
+                                  <Upload size={16} /> استيراد {importSelectedIndices.length} مريض
+                                </button>
+                              </motion.div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
