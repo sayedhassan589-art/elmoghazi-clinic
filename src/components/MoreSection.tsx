@@ -44,7 +44,7 @@ import { ImprovementEntry, Patient, Visit, Session, Service, Note, LaserRecord, 
 export default function MoreSection() {
   const { userRole } = useAuthStore()
   const { theme, setTheme, THEME_CONFIGS: _TC, setActiveTab, defaultCheckupPrice, setDefaultCheckupPrice, defaultRevisitPrice, setDefaultRevisitPrice } = useClinicStore()
-  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, laserRecords, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes } = useDataStore()
+  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, laserRecords, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes, loading } = useDataStore()
   const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, deleteInventoryConfirmId, setDeleteInventoryConfirmId, setSelectedPatient, importPreviewData, setImportPreviewData, importSelectedIndices, setImportSelectedIndices } = useUIStore()
   const { serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, editingServiceId, setEditingServiceId, editingServiceName, setEditingServiceName, editingServicePrice, setEditingServicePrice, doctorForm, setDoctorForm, editingDoctorId, setEditingDoctorId, reminderType, setReminderType, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
   const { fuFormPatientSearch, setFuFormPatientSearch, fuFormPatientId, setFuFormPatientId, fuFormCondition, setFuFormCondition, fuFormCategory, setFuFormCategory, fuFormSeverity, setFuFormSeverity, fuFormFrequency, setFuFormFrequency, fuFormCustomDays, setFuFormCustomDays, fuFormNextVisit, setFuFormNextVisit, fuFormDiagnosis, setFuFormDiagnosis, fuFormTreatmentPlan, setFuFormTreatmentPlan, fuFormMedications, setFuFormMedications, fuFormNotes, setFuFormNotes, fuFormHasSubscription, setFuFormHasSubscription, fuFormSubType, setFuFormSubType, fuFormSubPrice, setFuFormSubPrice, fuFormSubStart, setFuFormSubStart, fuFormSubEnd, setFuFormSubEnd, fuFormSubSessions, setFuFormSubSessions, fuVisitForm, setFuVisitForm, editingFollowUpId, setEditingFollowUpId } = useFollowUpFormStore()
@@ -53,6 +53,31 @@ export default function MoreSection() {
 
   const isDoctor = userRole === 'doctor'
   const canDelete = isDoctor
+
+  // ─── Financial computed values (derived from clinicFinancials) ──────
+  const totalIncome = clinicFinancials.totalIncome
+  const totalExpense = clinicFinancials.totalExpense
+  const checkupRevenue = clinicFinancials.checkupRevenue
+  const revisitRevenue = clinicFinancials.revisitRevenue
+  const laserRevenue = clinicFinancials.laserRevenue
+  const followUpRevenue = clinicFinancials.followUpRevenue
+  const sessionRevenue = clinicFinancials.sessionRevenue
+  const thisMonthIncome = clinicFinancials.thisMonthIncome
+  const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue - laserRevenue - followUpRevenue
+  const netProfit = totalIncome - totalExpense
+  const unpaidTotal = useMemo(() => sessions.filter(s => !s.paid).reduce((s, ses) => s + (ses.price || 0), 0), [sessions])
+  const todayIncome = useMemo(() => transactions.filter(t => t.type === 'income' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + (t.amount || 0), 0), [transactions, todayStr])
+  const todayExpense = useMemo(() => transactions.filter(t => t.type === 'expense' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + (t.amount || 0), 0), [transactions, todayStr])
+  const todayNetProfit = todayIncome - todayExpense
+  const thisWeekIncome = useMemo(() => { const nowCairo = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })); const dayOfWeek = nowCairo.getDay(); const daysSinceSaturday = (dayOfWeek + 1) % 7; const weekDays = new Set<string>(); for (let i = daysSinceSaturday; i >= 0; i--) { const d = new Date(nowCairo); d.setDate(d.getDate() - i); weekDays.add(d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })) } return transactions.filter(t => t.type === 'income' && t.category !== 'personal' && weekDays.has(getLocalDateStr(t.date))).reduce((s, t) => s + (t.amount || 0), 0) }, [transactions])
+  const revenueByCategory = useMemo(() => [
+    { name: 'كشف', value: checkupRevenue || 0 },
+    { name: 'إعادة', value: revisitRevenue || 0 },
+    { name: 'جلسات', value: sessionRevenue || 0 },
+    { name: 'ليزر', value: laserRevenue || 0 },
+    { name: 'متابعة', value: followUpRevenue || 0 },
+    { name: 'أخرى', value: otherRevenue || 0 },
+  ].filter(d => d.value > 0), [checkupRevenue, revisitRevenue, sessionRevenue, laserRevenue, followUpRevenue, otherRevenue])
 
   // ─── Services grouped by category ────────────────────────────────────
   const servicesByCategory = useMemo(() => {
@@ -120,7 +145,7 @@ export default function MoreSection() {
   }, [patients, visits, sessions, transactions])
 
   const laserProgressData = useMemo(() => {
-    return laserRecords.filter(r => r.status === 'active').map(r => { const total = r.laserSessions?.length || r.totalSessions || 0; const done = r.laserSessions?.filter((ls: any) => ls.status === 'completed').length || r.completedSessions || 0; const pct = total > 0 ? Math.round((done / total) * 100) : 0; return { id: r.id, name: r.patient?.name || patients.find(p => p.id === r.patientId)?.name || 'مريض', area: r.area, progress: pct, done, total } }).filter(d => d.total > 0).sort((a, b) => b.progress - a.progress)
+    return laserRecords.filter(r => r.status === 'active').map(r => { const total = r.laserSessions?.length || r.totalSessions || 0; const done = (Array.isArray(r.laserSessions) ? r.laserSessions.filter((ls: any) => ls.status === 'completed').length : 0) || r.completedSessions || 0; const pct = total > 0 ? Math.round((done / total) * 100) : 0; const patient = r.patient || patients.find(p => p.id === r.patientId) || null; return { id: r.id, name: patient?.name || 'مريض', area: r.area || r.bodyArea || '', progress: pct, done, total, record: r, patient, completedSessionsC: done, totalSessionsC: total, areaLabel: r.area || r.bodyArea || '' } }).filter(d => d.total > 0).sort((a, b) => b.progress - a.progress)
   }, [laserRecords, patients])
 
   // ─── Personal Section ──────────────────────────────────────────────
@@ -217,6 +242,18 @@ export default function MoreSection() {
     const total = targetPatients.length; let sent = 0
     for (const p of targetPatients) { if (!p.phone) continue; const url = `https://wa.me/${waPhone(p.phone)}?text=${encodeURIComponent(broadcastMessage)}`; window.open(url, '_blank'); sent++; setBroadcastProgress(Math.round((sent / total) * 100)); await new Promise(r => setTimeout(r, 500)) }
     setBroadcastSending(false); setBroadcastProgress(100); toast.success(`تم إرسال الرسالة إلى ${sent} مريض`)
+  }
+
+  // ─── Loading guard: don't render until data is ready ──────────────
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center">
+          <div className="text-4xl animate-spin mb-4">⏳</div>
+          <p className="text-muted-foreground font-medium">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -1935,7 +1972,7 @@ export default function MoreSection() {
                               </div>
                             </div>
                             <div className="text-left">
-                              <p className="text-xs font-bold text-cyan-600">{item.completedSessions}/{item.totalSessions}</p>
+                              <p className="text-xs font-bold text-cyan-600">{item.completedSessionsC}/{item.totalSessionsC}</p>
                               <p className="text-[9px] text-muted-foreground">{item.progress.toFixed(0)}%</p>
                             </div>
                           </div>
