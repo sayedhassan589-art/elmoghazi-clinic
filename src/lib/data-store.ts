@@ -134,7 +134,15 @@ interface DataState {
 
   // Actions
   loadAllData: () => Promise<void>
+  loadCoreData: () => Promise<void>        // Patients, services, doctors - needed everywhere
+  loadFinanceData: () => Promise<void>     // Transactions, sessions, visits - finance section
+  loadDashboardData: () => Promise<void>   // All data needed for dashboard
+  loadLaserData: () => Promise<void>       // Laser records, packages, settings
+  loadMoreData: () => Promise<void>        // Inventory, medications, prescriptions, reminders, notes
   refreshPatientPhotos: (patientId: string) => Promise<void>
+
+  // Track which sections are loaded (prevent duplicate loads)
+  _loadedSections: Set<string>
 }
 
 // ─── Data Store ─────────────────────────────────────────────────────────────
@@ -171,6 +179,9 @@ export const useDataStore = create<DataState>()((set, get) => ({
   // Patient photos
   patientPhotos: [],
 
+  // Track loaded sections
+  _loadedSections: new Set<string>(),
+
   // Setters - support functional updates (prev => newValue)
   setPatients: (patients) => set({ patients: applyUpdater(patients, get().patients) }),
   setVisits: (visits) => set({ visits: applyUpdater(visits, get().visits) }),
@@ -200,40 +211,197 @@ export const useDataStore = create<DataState>()((set, get) => ({
 
   setPatientPhotos: (patientPhotos) => set({ patientPhotos: applyUpdater(patientPhotos, get().patientPhotos) }),
 
-  // Load all data from API (same logic as page.tsx loadAllData)
+  // ── Core data: patients, services, doctors (needed by every section) ──
+  loadCoreData: async () => {
+    const loaded = get()._loadedSections
+    if (loaded.has('core')) return
+    try {
+      const [patientsRes, servicesRes, doctorsRes] = await Promise.allSettled([
+        apiFetch('/patients?limit=5000'),
+        apiFetch('/services?limit=500'),
+        apiFetch('/doctors?limit=100'),
+      ])
+      const update: Partial<DataState> = {
+        patients: extractData(patientsRes),
+        services: extractData(servicesRes),
+        doctors: extractData(doctorsRes),
+      }
+      set(update as any)
+      loaded.add('core')
+      set({ _loadedSections: new Set(loaded) })
+    } catch (e) { console.error('loadCoreData error:', e) }
+  },
+
+  // ── Finance data: transactions, sessions, visits (only for finance section) ──
+  loadFinanceData: async () => {
+    const loaded = get()._loadedSections
+    if (loaded.has('finance')) return
+    try {
+      // Also ensure core data is loaded first
+      await get().loadCoreData()
+      const [txnsRes, sessionsRes, visitsRes] = await Promise.allSettled([
+        apiFetch('/finance/transactions?limit=10000'),
+        apiFetch('/sessions?limit=10000'),
+        apiFetch('/visits?limit=10000'),
+      ])
+      const allTxns = extractData(txnsRes)
+      const allSessions = extractData(sessionsRes)
+      const allVisits = extractData(visitsRes)
+      const personalTxns = allTxns.filter((t: any) => t.category === 'personal')
+      set({
+        transactions: allTxns,
+        sessions: allSessions,
+        visits: allVisits,
+        personalTransactions: personalTxns,
+      } as any)
+      loaded.add('finance')
+      set({ _loadedSections: new Set(loaded) })
+    } catch (e) { console.error('loadFinanceData error:', e) }
+  },
+
+  // ── Dashboard data: all data needed for KPIs and charts ──
+  loadDashboardData: async () => {
+    const loaded = get()._loadedSections
+    if (loaded.has('dashboard')) return
+    try {
+      // Dashboard needs almost everything - load in priority order
+      // Phase 1: Core (patients, services, doctors)
+      await get().loadCoreData()
+      // Phase 2: Finance data (transactions, sessions, visits)
+      await get().loadFinanceData()
+      // Phase 3: Dashboard-specific data
+      const [appointmentsRes, notesRes, alertsRes, laserRes, waitingRes, inventoryRes] = await Promise.allSettled([
+        apiFetch('/appointments?limit=5000'),
+        apiFetch('/notes?limit=5000'),
+        apiFetch('/alerts?limit=1000'),
+        apiFetch('/laser/records?limit=5000'),
+        apiFetch('/waiting?limit=500'),
+        apiFetch('/inventory/items?limit=1000'),
+      ])
+      const allNotes = extractData(notesRes)
+      const allAlerts = extractData(alertsRes)
+      const allReminders = get().reminders.length ? get().reminders : extractData((await Promise.allSettled([apiFetch('/reminders?limit=1000')]))[0])
+      const personalNotes = allNotes.filter((n: any) => n.section === 'personal')
+      const personalReminders = allReminders.filter((r: any) => r.type === 'شخصي' || r.type === 'personal')
+      set({
+        appointments: extractData(appointmentsRes),
+        notes: allNotes,
+        alerts: allAlerts,
+        laserRecords: extractData(laserRes),
+        waitingQueue: extractData(waitingRes),
+        inventoryItems: extractData(inventoryRes),
+        reminders: allReminders,
+        personalNotes,
+        personalReminders,
+      } as any)
+      loaded.add('dashboard')
+      set({ _loadedSections: new Set(loaded) })
+    } catch (e) { console.error('loadDashboardData error:', e) }
+  },
+
+  // ── Laser data: records, packages, settings ──
+  loadLaserData: async () => {
+    const loaded = get()._loadedSections
+    if (loaded.has('laser')) return
+    try {
+      await get().loadCoreData()
+      const [laserRes, packagesRes, settingsRes] = await Promise.allSettled([
+        apiFetch('/laser/records?limit=5000'),
+        apiFetch('/laser/packages?limit=500'),
+        apiFetch('/laser/settings?limit=500'),
+      ])
+      set({
+        laserRecords: extractData(laserRes),
+        laserPackages: extractData(packagesRes),
+        laserSettings: extractData(settingsRes),
+      } as any)
+      loaded.add('laser')
+      set({ _loadedSections: new Set(loaded) })
+    } catch (e) { console.error('loadLaserData error:', e) }
+  },
+
+  // ── More section data: inventory, medications, prescriptions, reminders, notes ──
+  loadMoreData: async () => {
+    const loaded = get()._loadedSections
+    if (loaded.has('more')) return
+    try {
+      await get().loadCoreData()
+      const [inventoryRes, medsRes, prescRes, remindersRes, notesRes, apptsRes, followUpRes, laserPkgsRes, laserSettingsRes] = await Promise.allSettled([
+        apiFetch('/inventory/items?limit=1000'),
+        apiFetch('/medications?limit=1000'),
+        apiFetch('/prescriptions?limit=5000'),
+        apiFetch('/reminders?limit=1000'),
+        apiFetch('/notes?limit=5000'),
+        apiFetch('/appointments?limit=5000'),
+        apiFetch('/follow-up/records?limit=5000'),
+        apiFetch('/laser/packages?limit=500'),
+        apiFetch('/laser/settings?limit=500'),
+      ])
+      const allNotes = extractData(notesRes)
+      const allReminders = extractData(remindersRes)
+      const personalNotes = allNotes.filter((n: any) => n.section === 'personal')
+      const personalReminders = allReminders.filter((r: any) => r.type === 'شخصي' || r.type === 'personal')
+      set({
+        inventoryItems: extractData(inventoryRes),
+        medications: extractData(medsRes),
+        prescriptions: extractData(prescRes),
+        reminders: allReminders,
+        notes: allNotes,
+        appointments: extractData(apptsRes),
+        followUpRecords: extractData(followUpRes),
+        laserPackages: extractData(laserPkgsRes),
+        laserSettings: extractData(laserSettingsRes),
+        personalNotes,
+        personalReminders,
+      } as any)
+      loaded.add('more')
+      set({ _loadedSections: new Set(loaded) })
+    } catch (e) { console.error('loadMoreData error:', e) }
+  },
+
+  // Load all data from API - loads core first, then everything else in parallel
   loadAllData: async () => {
     set({ loading: true })
     try {
+      // Phase 1: Load core data immediately (patients, services, doctors) - FAST
+      await get().loadCoreData()
+      // Phase 2: Load ALL remaining data in a single parallel batch
       const results = await Promise.allSettled([
-        apiFetch('/patients?limit=5000'), apiFetch('/visits?limit=10000'), apiFetch('/sessions?limit=10000'),
-        apiFetch('/services?limit=500'), apiFetch('/notes?limit=5000'), apiFetch('/alerts?limit=1000'),
-        apiFetch('/reminders?limit=1000'), apiFetch('/laser/records?limit=5000'), apiFetch('/laser/packages?limit=500'),
-        apiFetch('/laser/settings?limit=500'), apiFetch('/finance/transactions?limit=10000'), apiFetch('/appointments?limit=5000'),
-        apiFetch('/waiting?limit=500'), apiFetch('/inventory/items?limit=1000'), apiFetch('/medications?limit=1000'),
-        apiFetch('/prescriptions?limit=5000'), apiFetch('/backups?limit=100'), apiFetch('/notifications?limit=1000'),
-        apiFetch('/doctors?limit=100'),
+        apiFetch('/visits?limit=10000'),
+        apiFetch('/sessions?limit=10000'),
+        apiFetch('/notes?limit=5000'),
+        apiFetch('/alerts?limit=1000'),
+        apiFetch('/reminders?limit=1000'),
+        apiFetch('/laser/records?limit=5000'),
+        apiFetch('/laser/packages?limit=500'),
+        apiFetch('/laser/settings?limit=500'),
+        apiFetch('/finance/transactions?limit=10000'),
+        apiFetch('/appointments?limit=5000'),
+        apiFetch('/waiting?limit=500'),
+        apiFetch('/inventory/items?limit=1000'),
+        apiFetch('/medications?limit=1000'),
+        apiFetch('/prescriptions?limit=5000'),
+        apiFetch('/backups?limit=100'),
+        apiFetch('/notifications?limit=1000'),
         apiFetch('/follow-up/records?limit=5000'),
       ])
-      const allPatients = extractData(results[0])
-      const allVisits = extractData(results[1])
-      const allSessions = extractData(results[2])
-      const allServices = extractData(results[3])
-      const allNotes = extractData(results[4])
-      const allAlerts = extractData(results[5])
-      const allReminders = extractData(results[6])
-      const allLaserRecords = extractData(results[7])
-      const allLaserPackages = extractData(results[8])
-      const allLaserSettings = extractData(results[9])
-      const allTransactions = extractData(results[10])
-      const allAppointments = extractData(results[11])
-      const allWaitingQueue = extractData(results[12])
-      const allInventoryItems = extractData(results[13])
-      const allMedications = extractData(results[14])
-      const allPrescriptions = extractData(results[15])
-      const allBackups = extractData(results[16])
-      const allNotifications = extractData(results[17])
-      const allDoctors = extractData(results[18])
-      const allFollowUpRecords = extractData(results[19])
+      const allVisits = extractData(results[0])
+      const allSessions = extractData(results[1])
+      const allNotes = extractData(results[2])
+      const allAlerts = extractData(results[3])
+      const allReminders = extractData(results[4])
+      const allLaserRecords = extractData(results[5])
+      const allLaserPackages = extractData(results[6])
+      const allLaserSettings = extractData(results[7])
+      const allTransactions = extractData(results[8])
+      const allAppointments = extractData(results[9])
+      const allWaitingQueue = extractData(results[10])
+      const allInventoryItems = extractData(results[11])
+      const allMedications = extractData(results[12])
+      const allPrescriptions = extractData(results[13])
+      const allBackups = extractData(results[14])
+      const allNotifications = extractData(results[15])
+      const allFollowUpRecords = extractData(results[16])
 
       // Derive personal data from main datasets (no duplicate API calls)
       const personalTxns = allTransactions.filter((t: any) => t.category === 'personal')
@@ -241,10 +409,8 @@ export const useDataStore = create<DataState>()((set, get) => ({
       const personalReminders = allReminders.filter((r: any) => r.type === 'شخصي' || r.type === 'personal')
 
       set({
-        patients: allPatients,
         visits: allVisits,
         sessions: allSessions,
-        services: allServices,
         notes: allNotes,
         alerts: allAlerts,
         reminders: allReminders,
@@ -259,12 +425,13 @@ export const useDataStore = create<DataState>()((set, get) => ({
         prescriptions: allPrescriptions,
         backups: allBackups,
         notifications: allNotifications,
-        doctors: allDoctors,
         followUpRecords: allFollowUpRecords,
         personalTransactions: personalTxns,
         personalReminders: personalReminders,
         personalNotes: personalNotes,
       })
+      // Mark all sections as loaded
+      set({ _loadedSections: new Set(['core', 'finance', 'dashboard', 'laser', 'more']) })
     } catch (e) {
       console.error(e)
     }

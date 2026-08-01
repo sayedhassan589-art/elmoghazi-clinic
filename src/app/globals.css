@@ -309,7 +309,7 @@
   --popover: oklch(0.995 0.003 80);
   --popover-foreground: oklch(0.15 0.02 260);
 
-  --primary: oklch(0.47 0.14 162);
+  --primary: oklch(0.50 0.17 162);
   --primary-foreground: oklch(0.99 0.002 80);
 
   --secondary: oklch(0.95 0.025 162);
@@ -328,12 +328,12 @@
   --input: oklch(0.91 0.012 80);
   --ring: oklch(0.47 0.14 162);
 
-  /* Chart palette – emerald & gold family */
-  --chart-1: oklch(0.47 0.14 162);
-  --chart-2: oklch(0.76 0.13 82);
-  --chart-3: oklch(0.60 0.10 182);
-  --chart-4: oklch(0.70 0.10 142);
-  --chart-5: oklch(0.65 0.14 52);
+  /* Chart palette – emerald & gold family (higher chroma for vivid, pure colors) */
+  --chart-1: oklch(0.50 0.17 162);
+  --chart-2: oklch(0.78 0.16 82);
+  --chart-3: oklch(0.62 0.14 230);
+  --chart-4: oklch(0.65 0.16 142);
+  --chart-5: oklch(0.68 0.18 52);
 
   /* Sidebar – deep emerald luxury */
   --sidebar: oklch(0.22 0.06 162);
@@ -370,7 +370,7 @@
   --popover: oklch(0.18 0.02 260);
   --popover-foreground: oklch(0.95 0.006 80);
 
-  --primary: oklch(0.60 0.17 162);
+  --primary: oklch(0.65 0.20 162);
   --primary-foreground: oklch(0.14 0.02 260);
 
   --secondary: oklch(0.22 0.04 162);
@@ -389,12 +389,12 @@
   --input: oklch(0.25 0.03 260);
   --ring: oklch(0.60 0.17 162);
 
-  /* Chart palette – luminous for dark */
-  --chart-1: oklch(0.60 0.17 162);
-  --chart-2: oklch(0.78 0.14 82);
-  --chart-3: oklch(0.68 0.12 182);
-  --chart-4: oklch(0.75 0.12 142);
-  --chart-5: oklch(0.72 0.15 52);
+  /* Chart palette – luminous for dark (higher chroma for vivid colors) */
+  --chart-1: oklch(0.65 0.20 162);
+  --chart-2: oklch(0.80 0.17 82);
+  --chart-3: oklch(0.72 0.16 230);
+  --chart-4: oklch(0.78 0.16 142);
+  --chart-5: oklch(0.75 0.20 52);
 
   /* Sidebar – rich dark emerald */
   --sidebar: oklch(0.12 0.03 162);
@@ -532,60 +532,60 @@
    GLASS-MORPHISM UTILITY CLASSES
    ────────────────────────────────────────────────────────── */
 @layer utilities {
-  /* Light glass */
+  /* Light glass - reduced blur/saturate for cleaner colors */
   .glass {
-    background: oklch(0.995 0.003 80 / 65%);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid oklch(1 0 0 / 25%);
+    background: oklch(0.995 0.003 80 / 82%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid oklch(1 0 0 / 20%);
     box-shadow:
-      0 8px 32px oklch(0.15 0.02 260 / 8%),
-      inset 0 1px 0 oklch(1 0 0 / 30%);
+      0 4px 16px oklch(0.15 0.02 260 / 6%),
+      inset 0 1px 0 oklch(1 0 0 / 25%);
   }
 
   .glass-heavy {
-    background: oklch(0.995 0.003 80 / 80%);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid oklch(1 0 0 / 35%);
+    background: oklch(0.995 0.003 80 / 90%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(1 0 0 / 25%);
     box-shadow:
-      0 12px 48px oklch(0.15 0.02 260 / 10%),
-      inset 0 1px 0 oklch(1 0 0 / 40%);
+      0 6px 24px oklch(0.15 0.02 260 / 8%),
+      inset 0 1px 0 oklch(1 0 0 / 30%);
   }
 
-  /* Dark glass */
+  /* Dark glass - higher opacity for cleaner appearance */
   .dark .glass {
-    background: oklch(0.18 0.02 260 / 55%);
+    background: oklch(0.18 0.02 260 / 75%);
     border: 1px solid oklch(1 0 0 / 8%);
     box-shadow:
-      0 8px 32px oklch(0 0 0 / 25%),
+      0 4px 16px oklch(0 0 0 / 20%),
       inset 0 1px 0 oklch(1 0 0 / 5%);
   }
 
   .dark .glass-heavy {
-    background: oklch(0.18 0.02 260 / 70%);
-    border: 1px solid oklch(1 0 0 / 12%);
+    background: oklch(0.18 0.02 260 / 85%);
+    border: 1px solid oklch(1 0 0 / 10%);
     box-shadow:
-      0 12px 48px oklch(0 0 0 / 35%),
-      inset 0 1px 0 oklch(1 0 0 / 8%);
+      0 6px 24px oklch(0 0 0 / 28%),
+      inset 0 1px 0 oklch(1 0 0 / 6%);
   }
 
   /* Emerald glass – for sidebar / special panels */
   .glass-emerald {
-    background: oklch(0.22 0.06 162 / 80%);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: oklch(0.22 0.06 162 / 88%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid oklch(0.47 0.14 162 / 20%);
     box-shadow:
       0 8px 32px oklch(0.15 0.02 260 / 15%),
       inset 0 1px 0 oklch(0.47 0.14 162 / 10%);
   }
 
-  /* Gold-accent glass – for highlights */
+  /* Gold-accent glass – for highlights (reduced blur for cleaner colors) */
   .glass-gold {
-    background: oklch(0.92 0.055 82 / 60%);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: oklch(0.92 0.055 82 / 78%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid oklch(0.76 0.13 82 / 25%);
     box-shadow:
       0 8px 32px oklch(0.62 0.12 75 / 10%),
@@ -593,7 +593,7 @@
   }
 
   .dark .glass-gold {
-    background: oklch(0.28 0.05 82 / 45%);
+    background: oklch(0.28 0.05 82 / 65%);
     border: 1px solid oklch(0.78 0.14 82 / 15%);
     box-shadow:
       0 8px 32px oklch(0 0 0 / 20%),
@@ -884,9 +884,9 @@
     left: 0;
     right: 0;
     z-index: 50;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid rgba(0, 0, 0, 0.06);
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
     padding-bottom: env(safe-area-inset-bottom);
@@ -1010,8 +1010,8 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: oklch(0.15 0.02 260 / 50%);
-    backdrop-filter: blur(8px);
+    background: oklch(0.15 0.02 260 / 40%);
+    backdrop-filter: blur(4px);
   }
 
   .smart-search-panel {

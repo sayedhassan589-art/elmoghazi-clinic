@@ -73,7 +73,7 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
 export default function Home() {
   const { user, isAuthenticated, login, logout, userRole, setUserRole } = useAuthStore()
   const { activeTab, setActiveTab, theme, setTheme, autoBackup, setAutoBackup, backupInterval, setBackupInterval, setLastBackup, sectionPasswords, setSectionPasswords, defaultCheckupPrice, defaultRevisitPrice, setDefaultCheckupPrice, setDefaultRevisitPrice } = useClinicStore()
-  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, laserRecords, setLaserRecords, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, loading, setLoading, patientPhotos, setPatientPhotos, loadAllData, refreshPatientPhotos } = useDataStore()
+  const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, laserRecords, setLaserRecords, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, loading, setLoading, patientPhotos, setPatientPhotos, loadAllData, loadCoreData, loadFinanceData, loadDashboardData, loadLaserData, loadMoreData, refreshPatientPhotos } = useDataStore()
   const { bookingFormPatientSearch, setBookingFormPatientSearch } = useAppointmentFormStore()
   const { setTxnFormDate } = useFinanceFormStore()
 
@@ -123,9 +123,21 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [autoBackup, backupInterval, setLastBackup])
 
-  // Data loading is now handled by useDataStore().loadAllData
+  // Data loading: Load core data immediately on login, then per-section data on tab switch
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { if (isAuthenticated) loadAllData() }, [isAuthenticated, loadAllData])
+  useEffect(() => { if (isAuthenticated) loadCoreData() }, [isAuthenticated, loadCoreData])
+
+  // Load section-specific data when tab changes (lazy loading for performance)
+  useEffect(() => {
+    if (!isAuthenticated) return
+    switch (activeTab) {
+      case 'dashboard': loadDashboardData(); break
+      case 'finance': loadFinanceData(); break
+      case 'laser': loadLaserData(); break
+      case 'more': loadMoreData(); break
+      // 'patients' and 'waiting' tabs use core data (already loaded)
+    }
+  }, [isAuthenticated, activeTab, loadDashboardData, loadFinanceData, loadLaserData, loadMoreData])
 
   // Load patient photos when selectedPatient changes
   useEffect(() => {
