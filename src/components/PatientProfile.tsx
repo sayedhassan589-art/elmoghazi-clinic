@@ -1,4 +1,5 @@
 'use client'
+// PatientProfile v2.1 - cairoTodayInput fix applied
 
 import { useAuthStore, useClinicStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'

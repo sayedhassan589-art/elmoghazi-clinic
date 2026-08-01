@@ -13,7 +13,7 @@ import {
   Trash2, Star, StarOff, Phone, Calendar, Clock, DollarSign,
   Package, FileText, Activity, AlertTriangle, CheckCircle,
   ChevronDown, Settings, Shield, BarChart3, TrendingUp, Eye,
-  Camera, Pill, Heart, Send, RefreshCw, Download, Upload,
+  Camera, Pill, Heart, RefreshCw, Download, Upload,
   Filter, UserPlus, Sparkles, Hash, MapPin, Palette, X,
   Database, HardDrive, Archive, FileDown, FileUp, Timer, Tag,
   Scissors, Syringe, Layers, Wand2, ThermometerSun, Lock,
@@ -57,7 +57,7 @@ const FinanceCenter = dynamic(() => import('@/components/FinanceCenter'), { ssr:
 const MoreSection = dynamic(() => import('@/components/MoreSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
 const WaitingSection = dynamic(() => import('@/components/WaitingSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
 const DashboardSection = dynamic(() => import('@/components/DashboardSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
-const MessageSection = dynamic(() => import('@/components/MessageSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+// MessageSection removed - accessible via MoreSection
 
 // ─── Smart Search Helpers ────────────────────────────────────────────
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -920,7 +920,7 @@ export default function Home() {
   const canDelete = isDoctor
   const canEditPatientFull = isDoctor
   const canAddPatient = isDoctor
-  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'messages', 'more', 'settings'] : ['patients', 'laser', 'waiting']
+  const allowedTabs = isDoctor ? ['dashboard', 'patients', 'sessions', 'laser', 'finance', 'more', 'settings'] : ['patients', 'laser', 'waiting']
   const handleTabSwitch = (tab: string) => {
     if (!allowedTabs.includes(tab)) {
       toast.error('هذا القسم غير متاح للسكرتيرة'); return
@@ -966,7 +966,6 @@ export default function Home() {
     { id: 'patients', label: 'المرضى', emoji: '👥', icon: <Users size={20} />, activeColor: 'from-blue-400 to-indigo-500', activeShadow: 'shadow-blue-500/40', labelColor: 'text-blue-600 dark:text-blue-400' },
     { id: 'laser', label: 'الليزر', emoji: '💎', icon: <Zap size={20} />, activeColor: 'from-cyan-400 to-violet-500', activeShadow: 'shadow-cyan-500/40', labelColor: 'text-cyan-600 dark:text-cyan-400' },
     { id: 'finance', label: 'المالية', emoji: '💰', icon: <DollarSign size={20} />, activeColor: 'from-amber-400 to-orange-500', activeShadow: 'shadow-amber-500/40', labelColor: 'text-amber-600 dark:text-amber-400' },
-    { id: 'messages', label: 'الرسائل', emoji: '📩', icon: <Send size={20} />, activeColor: 'from-[#075E54] to-[#128C7E]', activeShadow: 'shadow-green-500/40', labelColor: 'text-green-600 dark:text-green-400' },
     { id: 'more', label: 'المزيد', emoji: '📋', icon: <MoreHorizontal size={20} />, activeColor: 'from-rose-400 to-pink-500', activeShadow: 'shadow-rose-500/40', labelColor: 'text-rose-600 dark:text-rose-400' },
   ]
   const bottomNavItems = isDoctor ? allNavItems : allNavItems.filter(i => ['patients', 'laser'].includes(i.id)).concat([{ id: 'waiting', label: 'الانتظار', emoji: '⏳', icon: <Timer size={20} />, activeColor: 'from-orange-400 to-red-500', activeShadow: 'shadow-orange-500/40', labelColor: 'text-orange-600 dark:text-orange-400' }])
@@ -1045,7 +1044,7 @@ export default function Home() {
             {activeTab === 'dashboard' && <ErrorBoundary><DashboardSection /></ErrorBoundary>}
 
             {/* ═══ MESSAGES ═══ */}
-            {activeTab === 'messages' && <ErrorBoundary><MessageSection /></ErrorBoundary>}
+            {/* messages tab removed - accessible via MoreSection */}
 
             {/* ═══ PATIENTS ═══ */}
             {activeTab === 'patients' && !selectedPatient && (
