@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { useAuthStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { useUIStore, useFinanceFormStore, usePatientFormStore } from '@/store'
@@ -26,23 +27,39 @@ import { addItem, deleteItem } from '@/lib/crud-helpers'
 import CairoClock from '@/components/CairoClock'
 
 
-// ─── FinanceCenter Component (self-contained) ──────────────────────────────────
-export default function FinanceCenter() {
-  // ─── Stores ────────────────────────────────────────────────────
+// ─── FinanceCenter Component (self-contained, memoized for performance) ─────────────────
+function FinanceCenterInner() {
+  // ─── Stores (useShallow prevents re-renders from unrelated state changes) ──────
   const { userRole } = useAuthStore()
   const isDoctor = userRole === 'doctor'
   const canDelete = isDoctor
 
-  const { patients, transactions, setTransactions, sessions, visits, appointments, notes, setNotes } = useDataStore()
-  const { showAddTransaction, setShowAddTransaction, expandedFinanceDay, setExpandedFinanceDay } = useUIStore()
-  const { txnFormType, setTxnFormType, txnFormCategory, setTxnFormCategory, txnFormAmount, setTxnFormAmount, txnFormDescription, setTxnFormDescription, txnFormDate, setTxnFormDate } = useFinanceFormStore()
-  const { quickNote, setQuickNote } = usePatientFormStore()
+  const { patients, transactions, setTransactions, sessions, visits, appointments, notes, setNotes } = useDataStore(useShallow((s) => ({
+    patients: s.patients, transactions: s.transactions, setTransactions: s.setTransactions,
+    sessions: s.sessions, visits: s.visits, appointments: s.appointments,
+    notes: s.notes, setNotes: s.setNotes,
+  })))
+  const { showAddTransaction, setShowAddTransaction, expandedFinanceDay, setExpandedFinanceDay } = useUIStore(useShallow((s) => ({
+    showAddTransaction: s.showAddTransaction, setShowAddTransaction: s.setShowAddTransaction,
+    expandedFinanceDay: s.expandedFinanceDay, setExpandedFinanceDay: s.setExpandedFinanceDay,
+  })))
+  const { txnFormType, setTxnFormType, txnFormCategory, setTxnFormCategory, txnFormAmount, setTxnFormAmount, txnFormDescription, setTxnFormDescription, txnFormDate, setTxnFormDate } = useFinanceFormStore(useShallow((s) => ({
+    txnFormType: s.txnFormType, setTxnFormType: s.setTxnFormType,
+    txnFormCategory: s.txnFormCategory, setTxnFormCategory: s.setTxnFormCategory,
+    txnFormAmount: s.txnFormAmount, setTxnFormAmount: s.setTxnFormAmount,
+    txnFormDescription: s.txnFormDescription, setTxnFormDescription: s.setTxnFormDescription,
+    txnFormDate: s.txnFormDate, setTxnFormDate: s.setTxnFormDate,
+  })))
+  const { quickNote, setQuickNote } = usePatientFormStore(useShallow((s) => ({
+    quickNote: s.quickNote, setQuickNote: s.setQuickNote,
+  })))
 
   // ─── Financial Computed Values ──────────────────────────────────
-  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])
-  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length])
+  // ─── Memoized date values (stable references) ──────────────────
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [])
+  const cairoNow = useMemo(() => getCairoDateParts(), [])
 
-  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
+  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions.length])
   const clinicFinancials = useMemo(() => {
     let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
     for (const t of clinicTransactions) {
@@ -445,3 +462,7 @@ export default function FinanceCenter() {
     </>
   )
 }
+
+// ─── Memoized export: prevents re-renders when parent state changes ──────────
+const FinanceCenter = memo(FinanceCenterInner)
+export default FinanceCenter

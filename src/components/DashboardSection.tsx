@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect, useRef, memo } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { useAuthStore, useClinicStore } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { useUIStore, useFinanceFormStore, useAppointmentFormStore } from '@/store'
@@ -90,16 +91,20 @@ function ShimmerBadge({ children, className }: { children: React.ReactNode; clas
 function DashboardSectionInner() {
   const { user, userRole } = useAuthStore()
   const { activeTab, setActiveTab } = useClinicStore()
-  const { patients, visits, sessions, services, laserRecords, transactions, appointments, inventoryItems, notes, setNotes, alerts, loading, loadAllData } = useDataStore()
-  const { setShowAddPatient, setShowAddLaserRecord, setShowAddTransaction, setShowAddAppointment, setSmartSearchOpen, quickNote, setQuickNote } = useUIStore()
+  const { patients, visits, sessions, services, laserRecords, transactions, appointments, inventoryItems, notes, setNotes, alerts, loading, loadAllData } = useDataStore(useShallow((s) => ({
+    patients: s.patients, visits: s.visits, sessions: s.sessions, services: s.services, laserRecords: s.laserRecords, transactions: s.transactions, appointments: s.appointments, inventoryItems: s.inventoryItems, notes: s.notes, setNotes: s.setNotes, alerts: s.alerts, loading: s.loading, loadAllData: s.loadAllData,
+  })))
+  const { setShowAddPatient, setShowAddLaserRecord, setShowAddTransaction, setShowAddAppointment, setSmartSearchOpen, quickNote, setQuickNote } = useUIStore(useShallow((s) => ({
+    setShowAddPatient: s.setShowAddPatient, setShowAddLaserRecord: s.setShowAddLaserRecord, setShowAddTransaction: s.setShowAddTransaction, setShowAddAppointment: s.setShowAddAppointment, setSmartSearchOpen: s.setSmartSearchOpen, quickNote: s.quickNote, setQuickNote: s.setQuickNote,
+  })))
   const { setTxnFormDate } = useFinanceFormStore()
 
   const isDoctor = userRole === 'doctor'
   const canAddPatient = isDoctor
 
   // ─── Computed Data ─────────────────────────────────────────────
-  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])
-  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr])
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [])
+  const cairoNow = useMemo(() => getCairoDateParts(), [])
 
   const todayStats = useMemo(() => {
     let todayIncome = 0, todayExpense = 0
@@ -304,12 +309,12 @@ function DashboardSectionInner() {
 
   // ─── STAT CARD CONFIG ──────────────────────────────────────────
   const statCards = [
-    { emoji: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${newPatientsToday.length} اليوم`, gradient: 'from-blue-600 via-indigo-600 to-violet-700', shadowColor: 'shadow-blue-500/25', iconBg: 'bg-blue-400/20', accent: 'border-blue-400/30', countValue: patients.length },
-    { emoji: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف · ${todayVisits.filter(v => v.type === 'revisit').length} إعادة`, gradient: 'from-emerald-600 via-teal-600 to-cyan-700', shadowColor: 'shadow-emerald-500/25', iconBg: 'bg-emerald-400/20', accent: 'border-emerald-400/30', countValue: todayVisits.length },
-    { emoji: '💰', label: 'إيراد اليوم', value: formatCurrency(todayStats.todayIncome), sub: `صافي: ${formatCurrency(todayStats.todayNetProfit)}`, gradient: 'from-amber-600 via-yellow-600 to-orange-700', shadowColor: 'shadow-amber-500/25', iconBg: 'bg-amber-400/20', accent: 'border-amber-400/30', countValue: todayStats.todayIncome },
-    { emoji: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${todayAppointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-purple-600 via-violet-600 to-indigo-700', shadowColor: 'shadow-purple-500/25', iconBg: 'bg-purple-400/20', accent: 'border-purple-400/30', countValue: todayAppointments.length },
-    { emoji: '⚡', label: 'جلسات اليوم', value: todaySessions.length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-600 via-purple-600 to-fuchsia-700', shadowColor: 'shadow-violet-500/25', iconBg: 'bg-violet-400/20', accent: 'border-violet-400/30', countValue: todaySessions.length },
-    { emoji: '💎', label: 'سجلات الليزر', value: activeLaserRecords.length, sub: `${new Set(activeLaserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-600 via-teal-600 to-emerald-700', shadowColor: 'shadow-cyan-500/25', iconBg: 'bg-cyan-400/20', accent: 'border-cyan-400/30', countValue: activeLaserRecords.length },
+    { emoji: '👥', label: 'إجمالي المرضى', value: patients.length, sub: `+${newPatientsToday.length} اليوم`, gradient: 'from-blue-500 to-blue-600', shadowColor: 'shadow-blue-500/20', iconBg: 'bg-blue-400/20', accent: 'border-blue-400/30', countValue: patients.length },
+    { emoji: '🩺', label: 'زيارات اليوم', value: todayVisits.length, sub: `${todayVisits.filter(v => v.type === 'checkup').length} كشف · ${todayVisits.filter(v => v.type === 'revisit').length} إعادة`, gradient: 'from-emerald-500 to-emerald-600', shadowColor: 'shadow-emerald-500/20', iconBg: 'bg-emerald-400/20', accent: 'border-emerald-400/30', countValue: todayVisits.length },
+    { emoji: '💰', label: 'إيراد اليوم', value: formatCurrency(todayStats.todayIncome), sub: `صافي: ${formatCurrency(todayStats.todayNetProfit)}`, gradient: 'from-amber-500 to-amber-600', shadowColor: 'shadow-amber-500/20', iconBg: 'bg-amber-400/20', accent: 'border-amber-400/30', countValue: todayStats.todayIncome },
+    { emoji: '📅', label: 'مواعيد اليوم', value: todayAppointments.length, sub: `${todayAppointments.filter(a => a.status === 'scheduled').length} مجدول`, gradient: 'from-violet-500 to-violet-600', shadowColor: 'shadow-violet-500/20', iconBg: 'bg-violet-400/20', accent: 'border-violet-400/30', countValue: todayAppointments.length },
+    { emoji: '⚡', label: 'جلسات اليوم', value: todaySessions.length, sub: `${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-fuchsia-500 to-fuchsia-600', shadowColor: 'shadow-fuchsia-500/20', iconBg: 'bg-fuchsia-400/20', accent: 'border-fuchsia-400/30', countValue: todaySessions.length },
+    { emoji: '💎', label: 'سجلات الليزر', value: activeLaserRecords.length, sub: `${new Set(activeLaserRecords.map(r => r.patientId)).size} مريض`, gradient: 'from-cyan-500 to-cyan-600', shadowColor: 'shadow-cyan-500/20', iconBg: 'bg-cyan-400/20', accent: 'border-cyan-400/30', countValue: activeLaserRecords.length },
   ]
 
   // ─── RENDER ────────────────────────────────────────────────────
@@ -319,7 +324,7 @@ function DashboardSectionInner() {
       {/* ═══ HERO HEADER — Premium Mesh Gradient ═══ */}
       <motion.div variants={heroVariant} initial="hidden" animate="visible" className="relative overflow-hidden rounded-3xl shadow-2xl shadow-emerald-500/20 dark:shadow-emerald-500/10">
         {/* Multi-layer gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-teal-800 to-cyan-900 dark:from-emerald-900 dark:via-teal-950 dark:to-cyan-950" />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-teal-700 dark:from-emerald-800 dark:to-teal-900" />
         {/* Mesh gradient overlay */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute -top-20 -right-20 w-[500px] h-[500px] bg-gradient-to-br from-amber-400/40 to-transparent rounded-full blur-3xl animate-drift-a" />
@@ -480,10 +485,10 @@ function DashboardSectionInner() {
           <CardContent className="relative z-10">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {[
-                { emoji: '🩺', label: 'زيارات اليوم', value: todayVisits.length, detail: `${todayVisits.filter(v => v.type === 'checkup').length} كشف · ${todayVisits.filter(v => v.type === 'revisit').length} إعادة`, gradient: 'from-emerald-600 to-teal-700', icon: <ClipboardCheck size={14} className="text-white/50" />, count: todayVisits.length },
-                { emoji: '💰', label: 'إجمالي الإيرادات', value: formatCurrency(todayStats.todayIncome), detail: `كشف ${formatCurrency(clinicFinancials.checkupRevenue)} · إعادة ${formatCurrency(clinicFinancials.revisitRevenue)}`, gradient: 'from-amber-600 to-orange-700', icon: <Wallet size={14} className="text-white/50" />, count: null },
-                { emoji: '⚡', label: 'جلسات مكتملة', value: todaySessions.filter(s => s.status === 'completed').length, detail: `${todaySessions.length} إجمالي · ${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-600 to-purple-700', icon: <Zap size={14} className="text-white/50" />, count: todaySessions.filter(s => s.status === 'completed').length },
-                { emoji: '⚠️', label: 'مبالغ غير مدفوعة', value: formatCurrency(todayUnpaid), detail: `إجمالي: ${formatCurrency(unpaidTotal)}`, gradient: 'from-red-600 to-rose-700', icon: <AlertTriangle size={14} className="text-white/50" />, count: null },
+                { emoji: '🩺', label: 'زيارات اليوم', value: todayVisits.length, detail: `${todayVisits.filter(v => v.type === 'checkup').length} كشف · ${todayVisits.filter(v => v.type === 'revisit').length} إعادة`, gradient: 'from-emerald-500 to-emerald-600', icon: <ClipboardCheck size={14} className="text-white/50" />, count: todayVisits.length },
+                { emoji: '💰', label: 'إجمالي الإيرادات', value: formatCurrency(todayStats.todayIncome), detail: `كشف ${formatCurrency(clinicFinancials.checkupRevenue)} · إعادة ${formatCurrency(clinicFinancials.revisitRevenue)}`, gradient: 'from-amber-500 to-amber-600', icon: <Wallet size={14} className="text-white/50" />, count: null },
+                { emoji: '⚡', label: 'جلسات مكتملة', value: todaySessions.filter(s => s.status === 'completed').length, detail: `${todaySessions.length} إجمالي · ${sessions.filter(s => !s.paid).length} غير مدفوعة`, gradient: 'from-violet-500 to-violet-600', icon: <Zap size={14} className="text-white/50" />, count: todaySessions.filter(s => s.status === 'completed').length },
+                { emoji: '⚠️', label: 'مبالغ غير مدفوعة', value: formatCurrency(todayUnpaid), detail: `إجمالي: ${formatCurrency(unpaidTotal)}`, gradient: 'from-red-500 to-red-600', icon: <AlertTriangle size={14} className="text-white/50" />, count: null },
               ].map((item, i) => (
                 <motion.div key={i} initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 + i * 0.08 }} whileHover={{ scale: 1.03, y: -3 }} className={cn('relative overflow-hidden p-4 md:p-5 rounded-2xl text-white shadow-lg bg-gradient-to-br', item.gradient)}>
                   <div className="absolute top-0 right-0 w-16 h-16 bg-white/[0.08] rounded-full -translate-y-1/3 translate-x-1/3" />
