@@ -62,6 +62,13 @@ const extractData = (r: PromiseSettledResult<any>): any[] => {
   return v?.data || v?.patients || v?.visits || v?.sessions || v?.services || v?.notes || v?.alerts || v?.reminders || v?.records || v?.packages || v?.settings || v?.transactions || v?.appointments || v?.queue || v?.items || v?.medications || v?.prescriptions || v?.backups || v?.notifications || v?.doctors || (Array.isArray(v) ? v : [])
 }
 
+// ─── Functional update helper ───────────────────────────────────────────────
+// Supports both direct values and functional updates: setX(prev => newValue)
+type Updater<T> = T | ((prev: T) => T)
+function applyUpdater<T>(val: Updater<T>, prev: T): T {
+  return typeof val === 'function' ? (val as (prev: T) => T)(prev) : val
+}
+
 // ─── Store Interface ────────────────────────────────────────────────────────
 
 interface DataState {
@@ -96,34 +103,34 @@ interface DataState {
   // Patient photos (loaded per-patient on demand)
   patientPhotos: PatientPhoto[]
 
-  // Setters (exact names matching page.tsx useState setters)
-  setPatients: (patients: Patient[]) => void
-  setVisits: (visits: Visit[]) => void
-  setSessions: (sessions: Session[]) => void
-  setServices: (services: Service[]) => void
-  setNotes: (notes: Note[]) => void
-  setAlerts: (alerts: Alert[]) => void
-  setReminders: (reminders: Reminder[]) => void
-  setLaserRecords: (laserRecords: LaserRecord[]) => void
-  setLaserPackages: (laserPackages: LaserPackage[]) => void
-  setLaserSettings: (laserSettings: LaserSetting[]) => void
-  setTransactions: (transactions: Transaction[]) => void
-  setAppointments: (appointments: Appointment[]) => void
-  setWaitingQueue: (waitingQueue: WaitingItem[]) => void
-  setInventoryItems: (inventoryItems: InventoryItem[]) => void
-  setMedications: (medications: Medication[]) => void
-  setPrescriptions: (prescriptions: Prescription[]) => void
-  setBackups: (backups: Backup[]) => void
-  setNotifications: (notifications: Notification[]) => void
-  setDoctors: (doctors: PartnerDoctor[]) => void
-  setFollowUpRecords: (followUpRecords: FollowUpRecord[]) => void
+  // Setters - support both direct values and functional updates (prev => newValue)
+  setPatients: (patients: Updater<Patient[]>) => void
+  setVisits: (visits: Updater<Visit[]>) => void
+  setSessions: (sessions: Updater<Session[]>) => void
+  setServices: (services: Updater<Service[]>) => void
+  setNotes: (notes: Updater<Note[]>) => void
+  setAlerts: (alerts: Updater<Alert[]>) => void
+  setReminders: (reminders: Updater<Reminder[]>) => void
+  setLaserRecords: (laserRecords: Updater<LaserRecord[]>) => void
+  setLaserPackages: (laserPackages: Updater<LaserPackage[]>) => void
+  setLaserSettings: (laserSettings: Updater<LaserSetting[]>) => void
+  setTransactions: (transactions: Updater<Transaction[]>) => void
+  setAppointments: (appointments: Updater<Appointment[]>) => void
+  setWaitingQueue: (waitingQueue: Updater<WaitingItem[]>) => void
+  setInventoryItems: (inventoryItems: Updater<InventoryItem[]>) => void
+  setMedications: (medications: Updater<Medication[]>) => void
+  setPrescriptions: (prescriptions: Updater<Prescription[]>) => void
+  setBackups: (backups: Updater<Backup[]>) => void
+  setNotifications: (notifications: Updater<Notification[]>) => void
+  setDoctors: (doctors: Updater<PartnerDoctor[]>) => void
+  setFollowUpRecords: (followUpRecords: Updater<FollowUpRecord[]>) => void
   setLoading: (loading: boolean) => void
 
-  setPersonalTransactions: (transactions: Transaction[]) => void
-  setPersonalReminders: (reminders: Reminder[]) => void
-  setPersonalNotes: (notes: Note[]) => void
+  setPersonalTransactions: (transactions: Updater<Transaction[]>) => void
+  setPersonalReminders: (reminders: Updater<Reminder[]>) => void
+  setPersonalNotes: (notes: Updater<Note[]>) => void
 
-  setPatientPhotos: (photos: PatientPhoto[]) => void
+  setPatientPhotos: (photos: Updater<PatientPhoto[]>) => void
 
   // Actions
   loadAllData: () => Promise<void>
@@ -132,7 +139,7 @@ interface DataState {
 
 // ─── Data Store ─────────────────────────────────────────────────────────────
 
-export const useDataStore = create<DataState>()((set) => ({
+export const useDataStore = create<DataState>()((set, get) => ({
   // Data arrays (initial empty state)
   patients: [],
   visits: [],
@@ -164,34 +171,34 @@ export const useDataStore = create<DataState>()((set) => ({
   // Patient photos
   patientPhotos: [],
 
-  // Setters
-  setPatients: (patients) => set({ patients }),
-  setVisits: (visits) => set({ visits }),
-  setSessions: (sessions) => set({ sessions }),
-  setServices: (services) => set({ services }),
-  setNotes: (notes) => set({ notes }),
-  setAlerts: (alerts) => set({ alerts }),
-  setReminders: (reminders) => set({ reminders }),
-  setLaserRecords: (laserRecords) => set({ laserRecords }),
-  setLaserPackages: (laserPackages) => set({ laserPackages }),
-  setLaserSettings: (laserSettings) => set({ laserSettings }),
-  setTransactions: (transactions) => set({ transactions }),
-  setAppointments: (appointments) => set({ appointments }),
-  setWaitingQueue: (waitingQueue) => set({ waitingQueue }),
-  setInventoryItems: (inventoryItems) => set({ inventoryItems }),
-  setMedications: (medications) => set({ medications }),
-  setPrescriptions: (prescriptions) => set({ prescriptions }),
-  setBackups: (backups) => set({ backups }),
-  setNotifications: (notifications) => set({ notifications }),
-  setDoctors: (doctors) => set({ doctors }),
-  setFollowUpRecords: (followUpRecords) => set({ followUpRecords }),
+  // Setters - support functional updates (prev => newValue)
+  setPatients: (patients) => set({ patients: applyUpdater(patients, get().patients) }),
+  setVisits: (visits) => set({ visits: applyUpdater(visits, get().visits) }),
+  setSessions: (sessions) => set({ sessions: applyUpdater(sessions, get().sessions) }),
+  setServices: (services) => set({ services: applyUpdater(services, get().services) }),
+  setNotes: (notes) => set({ notes: applyUpdater(notes, get().notes) }),
+  setAlerts: (alerts) => set({ alerts: applyUpdater(alerts, get().alerts) }),
+  setReminders: (reminders) => set({ reminders: applyUpdater(reminders, get().reminders) }),
+  setLaserRecords: (laserRecords) => set({ laserRecords: applyUpdater(laserRecords, get().laserRecords) }),
+  setLaserPackages: (laserPackages) => set({ laserPackages: applyUpdater(laserPackages, get().laserPackages) }),
+  setLaserSettings: (laserSettings) => set({ laserSettings: applyUpdater(laserSettings, get().laserSettings) }),
+  setTransactions: (transactions) => set({ transactions: applyUpdater(transactions, get().transactions) }),
+  setAppointments: (appointments) => set({ appointments: applyUpdater(appointments, get().appointments) }),
+  setWaitingQueue: (waitingQueue) => set({ waitingQueue: applyUpdater(waitingQueue, get().waitingQueue) }),
+  setInventoryItems: (inventoryItems) => set({ inventoryItems: applyUpdater(inventoryItems, get().inventoryItems) }),
+  setMedications: (medications) => set({ medications: applyUpdater(medications, get().medications) }),
+  setPrescriptions: (prescriptions) => set({ prescriptions: applyUpdater(prescriptions, get().prescriptions) }),
+  setBackups: (backups) => set({ backups: applyUpdater(backups, get().backups) }),
+  setNotifications: (notifications) => set({ notifications: applyUpdater(notifications, get().notifications) }),
+  setDoctors: (doctors) => set({ doctors: applyUpdater(doctors, get().doctors) }),
+  setFollowUpRecords: (followUpRecords) => set({ followUpRecords: applyUpdater(followUpRecords, get().followUpRecords) }),
   setLoading: (loading) => set({ loading }),
 
-  setPersonalTransactions: (personalTransactions) => set({ personalTransactions }),
-  setPersonalReminders: (personalReminders) => set({ personalReminders }),
-  setPersonalNotes: (personalNotes) => set({ personalNotes }),
+  setPersonalTransactions: (personalTransactions) => set({ personalTransactions: applyUpdater(personalTransactions, get().personalTransactions) }),
+  setPersonalReminders: (personalReminders) => set({ personalReminders: applyUpdater(personalReminders, get().personalReminders) }),
+  setPersonalNotes: (personalNotes) => set({ personalNotes: applyUpdater(personalNotes, get().personalNotes) }),
 
-  setPatientPhotos: (patientPhotos) => set({ patientPhotos }),
+  setPatientPhotos: (patientPhotos) => set({ patientPhotos: applyUpdater(patientPhotos, get().patientPhotos) }),
 
   // Load all data from API (same logic as page.tsx loadAllData)
   loadAllData: async () => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { useAuthStore, useClinicStore, THEME_CONFIGS } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
@@ -45,15 +45,18 @@ import { useAppointmentFormStore, useFinanceFormStore, usePatientFormStore, useU
 
 import { ImprovementEntry, Patient, Visit, Session, Service, Note, LaserRecord, LaserSession, Transaction, Reminder, WaitingItem, InventoryItem, Medication, Prescription, Notification, Backup, PatientPhoto, PartnerDoctor, FollowUpRecord, FollowUpVisit, Alert, LaserPackage, LaserSetting, Appointment } from '@/lib/types'
 import { CHART_COLORS, normalizePhone, waPhone, getLocalDateStr, getCairoWeekday, getCairoDateLabel, getCairoDateParts, getEgyptianWeekDays, cairoISO, cairoTodayInput, cairoTimeInput, cairoDateTime, apiFetch, BODY_AREAS, SKIN_TYPES, HAIR_COLORS, getImprovementColor, getImprovementEmoji, getImprovementHistory, normalizeArabic, fuzzyMatch, smartSearch, getVisitCategory, VISIT_TYPES } from '@/lib/helpers'
-import PatientProfile from '@/components/PatientProfile'
-import LaserCenter from '@/components/LaserCenter'
-import FinanceCenter from '@/components/FinanceCenter'
-import MoreSection from '@/components/MoreSection'
+import dynamic from 'next/dynamic'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import WaitingSection from '@/components/WaitingSection'
 import CairoClock from '@/components/CairoClock'
-import DashboardSection from '@/components/DashboardSection'
-import MessageSection from '@/components/MessageSection'
+
+// ─── Dynamic imports for heavy components (performance optimization) ────────
+const PatientProfile = dynamic(() => import('@/components/PatientProfile'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+const LaserCenter = dynamic(() => import('@/components/LaserCenter'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+const FinanceCenter = dynamic(() => import('@/components/FinanceCenter'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+const MoreSection = dynamic(() => import('@/components/MoreSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+const WaitingSection = dynamic(() => import('@/components/WaitingSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+const DashboardSection = dynamic(() => import('@/components/DashboardSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
+const MessageSection = dynamic(() => import('@/components/MessageSection'), { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div> })
 
 // ─── Smart Search Helpers ────────────────────────────────────────────
 function useDebouncedValue<T>(value: T, delay = 300): T {

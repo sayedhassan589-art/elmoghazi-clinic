@@ -10,7 +10,7 @@ import { apiFetch, waPhone, normalizePhone, cairoISO, cairoDateTime, getImprovem
 import { addItem, deleteItem } from '@/lib/crud-helpers'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { Activity, AlertTriangle, Bell, Calendar, CheckCircle, ChevronDown, ClipboardCheck, Clock, DollarSign, Edit3, FileText, Hash, Heart, Lock, MapPin, Phone, Plus, Receipt, Send, Shield, Sparkles, Star, Stethoscope, StickyNote, ThumbsUp, Timer, Trash2, Zap, X } from 'lucide-react'
+import { Activity, AlertTriangle, Bell, Calendar, CheckCircle, ChevronDown, ClipboardCheck, Clock, DollarSign, Edit3, FileText, Hash, Heart, Lock, MapPin, Phone, Plus, Receipt, Send, Shield, Sparkles, Star, Stethoscope, StickyNote, ThumbsUp, Timer, Trash2, Wallet, Zap, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
