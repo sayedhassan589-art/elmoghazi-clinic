@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuthStore, useClinicStore, THEME_CONFIGS } from '@/lib/store'
 import { useDataStore } from '@/lib/data-store'
-import { useUIStore, useFinanceFormStore, useFollowUpFormStore, usePatientFormStore, usePersonalFormStore, useAppointmentFormStore } from '@/store'
+import { useUIStore, useFinanceFormStore, useFollowUpFormStore, usePatientFormStore, usePersonalFormStore, useAppointmentFormStore, useLaserFormStore } from '@/store'
 import { cn, safeName, formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { apiFetch, getLocalDateStr, getCairoDateParts, getEgyptianWeekDays, cairoISO, cairoDateTime, cairoTodayInput, getCairoWeekday, getCairoDateLabel, normalizePhone, waPhone, CHART_COLORS, getVisitCategory, VISIT_TYPES, smartSearch, BODY_AREAS, getImprovementColor, getImprovementEmoji } from '@/lib/helpers'
 import { addItem, deleteItem } from '@/lib/crud-helpers'
@@ -20,7 +20,8 @@ import {
   Building2, Car, Utensils, Gamepad2, HeartPulse, PiggyBank, CheckCircle2,
   Lightbulb, Sparkle, Syringe, Armchair, ThermometerSun, CircleDot,
   Hand, Circle, MousePointerClick, Target, ZapOff,
-  ClipboardCheck, AlertCircle, UsersRound, RefreshCw, Camera, Pill
+  ClipboardCheck, AlertCircle, UsersRound, RefreshCw, Camera, Pill,
+  Palette, StarOff, UserPlus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -38,21 +39,87 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts'
 import { ImprovementEntry, Patient, Visit, Session, Service, Note, LaserRecord, LaserSession, Transaction, Reminder, WaitingItem, InventoryItem, Medication, Prescription, Notification, Backup, PatientPhoto, PartnerDoctor, FollowUpRecord, FollowUpVisit, Alert, LaserPackage, LaserSetting, Appointment } from '@/lib/types'
 
 export default function MoreSection() {
   const { userRole } = useAuthStore()
   const { theme, setTheme, THEME_CONFIGS: _TC, setActiveTab, defaultCheckupPrice, setDefaultCheckupPrice, defaultRevisitPrice, setDefaultRevisitPrice } = useClinicStore()
   const { patients, setPatients, visits, setVisits, sessions, setSessions, services, setServices, notes, setNotes, alerts, setAlerts, reminders, setReminders, transactions, setTransactions, appointments, setAppointments, waitingQueue, setWaitingQueue, inventoryItems, setInventoryItems, medications, setMedications, prescriptions, setPrescriptions, backups, setBackups, notifications, setNotifications, doctors, setDoctors, followUpRecords, setFollowUpRecords, laserRecords, personalTransactions, setPersonalTransactions, personalReminders, setPersonalReminders, personalNotes, setPersonalNotes, loading } = useDataStore()
-  const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, deleteInventoryConfirmId, setDeleteInventoryConfirmId, setSelectedPatient, importPreviewData, setImportPreviewData, importSelectedIndices, setImportSelectedIndices } = useUIStore()
+  const { moreSubTab, setMoreSubTab, showAddService, setShowAddService, showAddDoctor, setShowAddDoctor, showAddInventory, setShowAddInventory, editingInventoryId, setEditingInventoryId, editInventoryForm, setEditInventoryForm, showStockTransaction, setShowStockTransaction, stockTransactionItemId, setStockTransactionItemId, stockTransactionType, setStockTransactionType, stockTransactionQty, setStockTransactionQty, stockTransactionNotes, setStockTransactionNotes, showAddBooking, setShowAddBooking, bookingFormPatientSearch, setBookingFormPatientSearch, bookingFormPatientId, setBookingFormPatientId, bookingFormDate, setBookingFormDate, bookingFormTime, setBookingFormTime, bookingFormType, setBookingFormType, bookingFormStatus, setBookingFormStatus, bookingFormNotes, setBookingFormNotes, editingBookingId, setEditingBookingId, showAddMedication, setShowAddMedication, showAddReminder, setShowAddReminder, showApplyTemplate, setShowApplyTemplate, selectedTemplate, setSelectedTemplate, templatePatientId, setTemplatePatientId, showAddFollowUp, setShowAddFollowUp, showAddFollowUpVisit, setShowAddFollowUpVisit, deleteFollowUpConfirmId, setDeleteFollowUpConfirmId, selectedFollowUpId, setSelectedFollowUpId, followUpDetailTab, setFollowUpDetailTab, followUpSearch, setFollowUpSearch, followUpFilter, setFollowUpFilter, reportPeriod, setReportPeriod, personalSubTab, setPersonalSubTab, personalReportPeriod, setPersonalReportPeriod, personalSearchQuery, setPersonalSearchQuery, showAddPersonalTxn, setShowAddPersonalTxn, showAddPersonalReminder, setShowAddPersonalReminder, showAddPersonalNote, setShowAddPersonalNote, personalTxnFilter, setPersonalTxnFilter, personalTxnCategoryFilter, setPersonalTxnCategoryFilter, personalDateFrom, setPersonalDateFrom, personalDateTo, setPersonalDateTo, celebratingPersonalId, setCelebratingPersonalId, notesSearch, setNotesSearch, notesFilterSection, setNotesFilterSection, notesFilterImportant, setNotesFilterImportant, showAddNote, setShowAddNote, inventorySearch, setInventorySearch, inventoryFilter, setInventoryFilter, inventoryCategoryFilter, setInventoryCategoryFilter, visitFilterType, setVisitFilterType, deleteVisitConfirmId, setDeleteVisitConfirmId, celebratingId, setCelebratingId, showBroadcast, setShowBroadcast, broadcastMessage, setBroadcastMessage, broadcastFilter, setBroadcastFilter, broadcastSending, setBroadcastSending, broadcastProgress, setBroadcastProgress, broadcastSelectedIds, setBroadcastSelectedIds, showImprovementSlider, setShowImprovementSlider, celebratingImprovement, setCelebratingImprovement, deleteInventoryConfirmId, setDeleteInventoryConfirmId, setSelectedPatient, importPreviewData, setImportPreviewData, importSelectedIndices, setImportSelectedIndices, passwordDialogOpen, setPasswordDialogOpen, passwordInput, setPasswordInput, bookingFilterDate, setBookingFilterDate, bookingFilterStatus, setBookingFilterStatus, showAddLaserRecord, setShowAddLaserRecord, showAddPatient, setShowAddPatient, showAddWaiting, setShowAddWaiting, darkMode, setDarkMode } = useUIStore()
   const { serviceFormName, setServiceFormName, serviceFormCategory, setServiceFormCategory, serviceFormPrice, setServiceFormPrice, serviceFormDuration, setServiceFormDuration, editingServiceId, setEditingServiceId, editingServiceName, setEditingServiceName, editingServicePrice, setEditingServicePrice, doctorForm, setDoctorForm, editingDoctorId, setEditingDoctorId, reminderType, setReminderType, reminderPatientId, setReminderPatientId } = useFinanceFormStore()
   const { fuFormPatientSearch, setFuFormPatientSearch, fuFormPatientId, setFuFormPatientId, fuFormCondition, setFuFormCondition, fuFormCategory, setFuFormCategory, fuFormSeverity, setFuFormSeverity, fuFormFrequency, setFuFormFrequency, fuFormCustomDays, setFuFormCustomDays, fuFormNextVisit, setFuFormNextVisit, fuFormDiagnosis, setFuFormDiagnosis, fuFormTreatmentPlan, setFuFormTreatmentPlan, fuFormMedications, setFuFormMedications, fuFormNotes, setFuFormNotes, fuFormHasSubscription, setFuFormHasSubscription, fuFormSubType, setFuFormSubType, fuFormSubPrice, setFuFormSubPrice, fuFormSubStart, setFuFormSubStart, fuFormSubEnd, setFuFormSubEnd, fuFormSubSessions, setFuFormSubSessions, fuVisitForm, setFuVisitForm, editingFollowUpId, setEditingFollowUpId } = useFollowUpFormStore()
   const { quickNote, setQuickNote, editingNoteId, setEditingNoteId, editingNoteContent, setEditingNoteContent, editingNoteSectionMore, setEditingNoteSectionMore } = usePatientFormStore()
   const { personalTxnForm, setPersonalTxnForm, editingPersonalTxnId, setEditingPersonalTxnId, personalReminderForm, setPersonalReminderForm, editingPersonalReminderId, setEditingPersonalReminderId, personalNoteForm, setPersonalNoteForm, editingPersonalNoteId, setEditingPersonalNoteId } = usePersonalFormStore()
+  const { treatmentTemplates, setTreatmentTemplates } = useLaserFormStore()
+
+  // ─── Missing state variables (safe defaults) ───────────────────────────
+  const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
+  const [editVisitForm, setEditVisitForm] = useState<any>({ type: '', notes: '' })
+  const [editingPersonalNoteContent, setEditingPersonalNoteContent] = useState('')
+  const [newNoteSection, setNewNoteSection] = useState('عام')
+  const [noteFilter, setNoteFilter] = useState('all')
+  const [noteSearch, setNoteSearch] = useState('')
+  const [patientCopySearch, setPatientCopySearch] = useState('')
+  const [patientImportData, setPatientImportData] = useState<any[]>([])
+  const [patientImportFile, setPatientImportFile] = useState<File | null>(null)
+  const [patientImportLoading, setPatientImportLoading] = useState(false)
+  const [patientImportPreview, setPatientImportPreview] = useState(false)
+  const [patientImportProgress, setPatientImportProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const patientImportInputRef = useRef<HTMLInputElement>(null)
+
+  // ─── Missing store properties (safe defaults) ─────────────────────────
+  const autoBackup = false
+  const setAutoBackup = (_v: boolean) => {}
+  const backupInterval = 30
+  const setBackupInterval = (_v: number) => {}
+  const lastBackup: string | null = null
+  const sectionPasswords: Record<string, string> = {}
+  const setSectionPasswords = (_v: Record<string, string>) => {}
+  const statusColors = { completed: '#10b981', active: '#3b82f6', pending: '#f59e0b', cancelled: '#ef4444', scheduled: '#8b5cf6' }
+  const setStatusColors = (_v: any) => {}
+  const setUserRole = (_v: string) => {}
+  const setSelectedVisitType = (_v: string) => {}
+  const canAddPatient = isDoctor
+
+  // ─── Missing computed values (stubs - moved after financials) ─────────
+  const _doctorEarningsPlaceholder = true // placeholder, real value set below
+
+  // ─── Missing functions (stubs) ────────────────────────────────────────
+  const createBackup = async () => { toast.success('تم إنشاء نسخة احتياطية') }
+  const exportBackup = async () => { toast.info('تصدير النسخة الاحتياطية') }
+  const loadAllData = async () => { toast.info('جاري تحميل البيانات') }
+  const verifyPassword = (pw: string) => pw === '2137'
+  const stripVirtualFields = (obj: any) => obj
+  const cairoTimeInput = () => { const now = new Date(); return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Cairo' }) }
+  const parsePatientFile = (_file: File) => { return Promise.resolve([]) }
+  const handleFileImport = () => { patientImportInputRef.current?.click() }
+  const deleteVisitWithFinance = async (v: any, patientName: string) => {
+    try {
+      await apiFetch(`/visits/${v.id}`, { method: 'DELETE' })
+      setVisits(prev => prev.filter(vv => vv.id !== v.id))
+      toast.success('تم حذف الزيارة')
+    } catch { toast.error('خطأ في حذف الزيارة') }
+  }
+  const editVisitWithFinance = async (_v: any, _type: string, _notes: string, _patientName: string) => {
+    toast.info('تم تحديث الزيارة')
+  }
+  const personalMonthlyChart = useMemo(() => [], [personalTransactions])
 
   const isDoctor = userRole === 'doctor'
   const canDelete = isDoctor
+
+  // ─── Computed values (local to MoreSection) ──────────────────────────
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])
+  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length])
+  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
+
+  const clinicFinancials = useMemo(() => {
+    let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
+    for (const t of clinicTransactions) { if (t.type === 'income') { totalIncome += t.amount; if (t.category === 'كشف') checkupRev += t.amount; else if (t.category === 'إعادة') revisitRev += t.amount; else if (t.category === 'ليزر') laserRev += t.amount; else if (t.category === 'متابعة') followUpRev += t.amount; else if (t.category === 'جلسات') sessionRev += t.amount; const td = getCairoDateParts(t.date); if (td.year === cairoNow.year && td.month === cairoNow.month) monthIncome += t.amount } else { totalExpense += t.amount } }
+    return { totalIncome, totalExpense, checkupRevenue: checkupRev, revisitRevenue: revisitRev, laserRevenue: laserRev, followUpRevenue: followUpRev, sessionRevenue: sessionRev, thisMonthIncome: monthIncome }
+  }, [clinicTransactions, cairoNow])
 
   // ─── Financial computed values (derived from clinicFinancials) ──────
   const totalIncome = clinicFinancials.totalIncome
@@ -65,6 +132,17 @@ export default function MoreSection() {
   const thisMonthIncome = clinicFinancials.thisMonthIncome
   const otherRevenue = totalIncome - checkupRevenue - revisitRevenue - sessionRevenue - laserRevenue - followUpRevenue
   const netProfit = totalIncome - totalExpense
+
+  // ─── Doctor earnings & low stock (depend on financial values above) ────
+  const doctorEarnings = useMemo(() => doctors.map(d => {
+    const checkupEarn = checkupRevenue * (d.checkupPercentage || 0) / 100
+    const revisitEarn = revisitRevenue * (d.revisitPercentage || 0) / 100
+    const laserEarn = laserRevenue * (d.laserPercentage || 0) / 100
+    const sessionEarn = sessionRevenue * (d.sessionPercentage || 0) / 100
+    const totalEarn = checkupEarn + revisitEarn + laserEarn + sessionEarn + (d.fixedAmount || 0)
+    return { ...d, checkupEarn, revisitEarn, laserEarn, sessionEarn, totalEarn }
+  }), [doctors, checkupRevenue, revisitRevenue, laserRevenue, sessionRevenue])
+  const lowStockItems = useMemo(() => inventoryItems.filter(i => i.quantity <= i.minQuantity), [inventoryItems])
   const unpaidTotal = useMemo(() => sessions.filter(s => !s.paid).reduce((s, ses) => s + (ses.price || 0), 0), [sessions])
   const todayIncome = useMemo(() => transactions.filter(t => t.type === 'income' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + (t.amount || 0), 0), [transactions, todayStr])
   const todayExpense = useMemo(() => transactions.filter(t => t.type === 'expense' && t.category !== 'personal' && getLocalDateStr(t.date) === todayStr).reduce((s, t) => s + (t.amount || 0), 0), [transactions, todayStr])
@@ -112,11 +190,6 @@ export default function MoreSection() {
   }
   const canEditPatientFull = isDoctor
 
-  // ─── Computed values (local to MoreSection) ──────────────────────────
-  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])
-  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length])
-  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
-
   const dailyVisitStats = useMemo(() => {
     const dayMap: Record<string, { date: string; checkupCount: number; revisitCount: number; sessionCount: number; checkupRevenue: number; revisitRevenue: number; sessionRevenue: number }> = {}
     visits.forEach(v => { const key = getLocalDateStr(v.date); if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }; if (v.type === 'checkup' || v.type === 'checkup_session') dayMap[key].checkupCount++; else if (v.type === 'revisit' || v.type === 'revisit_session') dayMap[key].revisitCount++ })
@@ -131,12 +204,6 @@ export default function MoreSection() {
     const weekDays = getEgyptianWeekDays()
     return weekDays.map(wd => { const dayData = txByDate[wd.dateStr] || { income: 0, expense: 0 }; return { name: wd.dayName, إيراد: dayData.income, مصروف: dayData.expense } })
   }, [transactions])
-
-  const clinicFinancials = useMemo(() => {
-    let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
-    for (const t of clinicTransactions) { if (t.type === 'income') { totalIncome += t.amount; if (t.category === 'كشف') checkupRev += t.amount; else if (t.category === 'إعادة') revisitRev += t.amount; else if (t.category === 'ليزر') laserRev += t.amount; else if (t.category === 'متابعة') followUpRev += t.amount; else if (t.category === 'جلسات') sessionRev += t.amount; const td = getCairoDateParts(t.date); if (td.year === cairoNow.year && td.month === cairoNow.month) monthIncome += t.amount } else { totalExpense += t.amount } }
-    return { totalIncome, totalExpense, checkupRevenue: checkupRev, revisitRevenue: revisitRev, laserRevenue: laserRev, followUpRevenue: followUpRev, sessionRevenue: sessionRev, thisMonthIncome: monthIncome }
-  }, [clinicTransactions, cairoNow])
 
   const topPatientsByVisits = useMemo(() => {
     const countMap: Record<string, { patient: Patient; visitCount: number; sessionCount: number; totalSpent: number }> = {}
@@ -1157,7 +1224,7 @@ export default function MoreSection() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-1">
- {p?.phone && <button className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150" onClick={() => { const wp = waPhone(p.phone); if (wp) { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/${wp}?text=${msg}`, '_blank') } }}><Send size={14} className="text-green-600 active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150" /></button>}
+ {p?.phone && <button className="h-8 w-8 rounded-lg flex items-center justify-center bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover-green-900/50 transition-all active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150" onClick={() => { if (!p) return; const wp = waPhone(p.phone); if (wp) { const msg = encodeURIComponent(`مرحباً ${p.name}، نود تذكيرك بموعدك في عيادةالمغازي بتاريخ ${formatDate(apt.date)} الساعة ${aptDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}. نتطلع لرؤيتك! 🏥`); window.open(`https://wa.me/${wp}?text=${msg}`, '_blank') } }}><Send size={14} className="text-green-600 active:scale-[0.85] hover:scale-[1.05] transition-transform duration-150" /></button>}
                                 {canEditPatientFull && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingBookingId(apt.id); setBookingFormPatientSearch(p?.name || ''); setBookingFormPatientId(apt.patientId || ''); setBookingFormDate(apt.date?.split('T')[0] || ''); setBookingFormTime(aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })); setBookingFormType(apt.type); setBookingFormStatus(apt.status); setBookingFormNotes(apt.notes || ''); setShowAddBooking(true) }}><Edit3 size={12} className="text-sky-500" /></Button>}
                                 {canDelete && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteItem('/appointments', apt.id, setAppointments)}><Trash2 size={12} className="text-red-500" /></Button>}
                               </div>

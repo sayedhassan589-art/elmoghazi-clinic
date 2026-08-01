@@ -94,14 +94,42 @@ interface UIState {
   // Dialog visibility - Inventory
   showAddInventory: boolean
   setShowAddInventory: (v: boolean) => void
+  editingInventoryId: string | null
+  setEditingInventoryId: (v: string | null) => void
+  editInventoryForm: { name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }
+  setEditInventoryForm: (v: { name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }) => void
   showStockTransaction: boolean
   setShowStockTransaction: (v: boolean) => void
+  stockTransactionItemId: string | null
+  setStockTransactionItemId: (v: string | null) => void
+  stockTransactionType: 'in' | 'out'
+  setStockTransactionType: (v: 'in' | 'out') => void
+  stockTransactionQty: string
+  setStockTransactionQty: (v: string) => void
+  stockTransactionNotes: string
+  setStockTransactionNotes: (v: string) => void
 
   // Dialog visibility - Booking/Waiting
   showAddWaiting: boolean
   setShowAddWaiting: (v: boolean) => void
   showAddBooking: boolean
   setShowAddBooking: (v: boolean) => void
+  editingBookingId: string | null
+  setEditingBookingId: (v: string | null) => void
+  bookingFormPatientSearch: string
+  setBookingFormPatientSearch: (v: string) => void
+  bookingFormPatientId: string
+  setBookingFormPatientId: (v: string) => void
+  bookingFormDate: string
+  setBookingFormDate: (v: string) => void
+  bookingFormTime: string
+  setBookingFormTime: (v: string) => void
+  bookingFormType: string
+  setBookingFormType: (v: string) => void
+  bookingFormStatus: string
+  setBookingFormStatus: (v: string) => void
+  bookingFormNotes: string
+  setBookingFormNotes: (v: string) => void
 
   // Dialog visibility - Follow-up
   showAddFollowUp: boolean
@@ -356,14 +384,42 @@ export const useUIStore = create<UIState>()(
       // Dialog visibility - Inventory
       showAddInventory: false,
       setShowAddInventory: (v) => set({ showAddInventory: v }),
+      editingInventoryId: null,
+      setEditingInventoryId: (v) => set({ editingInventoryId: v }),
+      editInventoryForm: { name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' },
+      setEditInventoryForm: (v) => set({ editInventoryForm: v }),
       showStockTransaction: false,
       setShowStockTransaction: (v) => set({ showStockTransaction: v }),
+      stockTransactionItemId: null,
+      setStockTransactionItemId: (v) => set({ stockTransactionItemId: v }),
+      stockTransactionType: 'in',
+      setStockTransactionType: (v) => set({ stockTransactionType: v }),
+      stockTransactionQty: '',
+      setStockTransactionQty: (v) => set({ stockTransactionQty: v }),
+      stockTransactionNotes: '',
+      setStockTransactionNotes: (v) => set({ stockTransactionNotes: v }),
 
       // Dialog visibility - Booking/Waiting
       showAddWaiting: false,
       setShowAddWaiting: (v) => set({ showAddWaiting: v }),
       showAddBooking: false,
       setShowAddBooking: (v) => set({ showAddBooking: v }),
+      editingBookingId: null,
+      setEditingBookingId: (v) => set({ editingBookingId: v }),
+      bookingFormPatientSearch: '',
+      setBookingFormPatientSearch: (v) => set({ bookingFormPatientSearch: v }),
+      bookingFormPatientId: '',
+      setBookingFormPatientId: (v) => set({ bookingFormPatientId: v }),
+      bookingFormDate: '',
+      setBookingFormDate: (v) => set({ bookingFormDate: v }),
+      bookingFormTime: '',
+      setBookingFormTime: (v) => set({ bookingFormTime: v }),
+      bookingFormType: 'checkup',
+      setBookingFormType: (v) => set({ bookingFormType: v }),
+      bookingFormStatus: 'scheduled',
+      setBookingFormStatus: (v) => set({ bookingFormStatus: v }),
+      bookingFormNotes: '',
+      setBookingFormNotes: (v) => set({ bookingFormNotes: v }),
 
       // Dialog visibility - Follow-up
       showAddFollowUp: false,
