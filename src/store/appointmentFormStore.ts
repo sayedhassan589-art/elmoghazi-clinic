@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { applyUpdater, type Updater } from '@/lib/updater'
 
 // ─── Appointment Form Store ────────────────────────────────────────────────
 // Contains: waiting queue form, booking form, booking editing
@@ -48,7 +49,7 @@ interface AppointmentFormState {
   editingInventoryId: string | null
   setEditingInventoryId: (v: string | null) => void
   editInventoryForm: { name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }
-  setEditInventoryForm: (v: { name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }) => void
+  setEditInventoryForm: (v: Updater<{ name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }>) => void
 
   // Reset forms
   resetWaitingForm: () => void
@@ -57,7 +58,7 @@ interface AppointmentFormState {
 
 const defaultEditInventoryForm = { name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' }
 
-export const useAppointmentFormStore = create<AppointmentFormState>()((set) => ({
+export const useAppointmentFormStore = create<AppointmentFormState>()((set, get) => ({
   // Waiting queue form
   waitingFormName: '',
   setWaitingFormName: (v) => set({ waitingFormName: v }),
@@ -102,7 +103,7 @@ export const useAppointmentFormStore = create<AppointmentFormState>()((set) => (
   editingInventoryId: null,
   setEditingInventoryId: (v) => set({ editingInventoryId: v }),
   editInventoryForm: { ...defaultEditInventoryForm },
-  setEditInventoryForm: (v) => set({ editInventoryForm: v }),
+  setEditInventoryForm: (v) => set({ editInventoryForm: applyUpdater(v, get().editInventoryForm) }),
 
   // Reset forms
   resetWaitingForm: () => set({

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { applyUpdater, type Updater } from '@/lib/updater'
 
 // ─── Laser Form Store ──────────────────────────────────────────────────────
 // Contains: laser record form, laser session form, laser editing, laser finance
@@ -60,7 +61,7 @@ interface LaserFormState {
 
   // Treatment templates
   treatmentTemplates: any[]
-  setTreatmentTemplates: (v: any[]) => void
+  setTreatmentTemplates: (v: Updater<any[]>) => void
 
   // Reset laser form
   resetLaserForm: () => void
@@ -70,7 +71,7 @@ const defaultEditLaserSessionForm = { energy: '', pulse: '', painLevel: '', reac
 const defaultNewLaserSessionForm = { energy: '', pulse: '', painLevel: '', reaction: '', notes: '', date: '', price: '', paid: false }
 const defaultEditLaserRecordForm = { bodyArea: '', skinType: '', hairColor: '', hairDensity: '', totalSessions: '', price: '', totalPrice: '', paid: false, machineName: '', energy: '', pulse: '', status: '', notes: '' }
 
-export const useLaserFormStore = create<LaserFormState>()((set) => ({
+export const useLaserFormStore = create<LaserFormState>()((set, get) => ({
   // Laser record form
   laserFormArea: '',
   setLaserFormArea: (v) => set({ laserFormArea: v }),
@@ -133,7 +134,7 @@ export const useLaserFormStore = create<LaserFormState>()((set) => ({
     { id: '4', name: 'علاج التصبغات', description: 'علاج بقع وتصبغات البشرة', sessions: 5, estimatedPrice: 1800, category: 'جلدية' },
     { id: '5', name: 'تجديد البشرة', description: 'جلسات تجديد وتنضيج البشرة', sessions: 4, estimatedPrice: 2500, category: 'تجميل' },
   ],
-  setTreatmentTemplates: (v) => set({ treatmentTemplates: v }),
+  setTreatmentTemplates: (v) => set({ treatmentTemplates: applyUpdater(v, get().treatmentTemplates) }),
 
   // Reset laser form
   resetLaserForm: () => set({

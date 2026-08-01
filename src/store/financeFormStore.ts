@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { applyUpdater, type Updater } from '@/lib/updater'
 
 // ─── Finance Form Store ──────────────────────────────────────────────────────
 // Contains: transaction form, service form, service editing, doctor form
@@ -38,7 +39,7 @@ interface FinanceFormState {
   editingDoctorId: string | null
   setEditingDoctorId: (v: string | null) => void
   doctorForm: { name: string; phone: string; specialty: string; checkupPercentage: string; revisitPercentage: string; laserPercentage: string; sessionPercentage: string; fixedAmount: string; notes: string }
-  setDoctorForm: (v: { name: string; phone: string; specialty: string; checkupPercentage: string; revisitPercentage: string; laserPercentage: string; sessionPercentage: string; fixedAmount: string; notes: string }) => void
+  setDoctorForm: (v: Updater<{ name: string; phone: string; specialty: string; checkupPercentage: string; revisitPercentage: string; laserPercentage: string; sessionPercentage: string; fixedAmount: string; notes: string }>) => void
 
   // Reminder form
   reminderType: string
@@ -60,7 +61,7 @@ interface FinanceFormState {
 
 const defaultDoctorForm = { name: '', phone: '', specialty: '', checkupPercentage: '', revisitPercentage: '', laserPercentage: '', sessionPercentage: '', fixedAmount: '', notes: '' }
 
-export const useFinanceFormStore = create<FinanceFormState>()((set) => ({
+export const useFinanceFormStore = create<FinanceFormState>()((set, get) => ({
   // Transaction form
   txnFormType: 'income',
   setTxnFormType: (v) => set({ txnFormType: v }),
@@ -95,7 +96,7 @@ export const useFinanceFormStore = create<FinanceFormState>()((set) => ({
   editingDoctorId: null,
   setEditingDoctorId: (v) => set({ editingDoctorId: v }),
   doctorForm: { ...defaultDoctorForm },
-  setDoctorForm: (v) => set({ doctorForm: v }),
+  setDoctorForm: (v) => set({ doctorForm: applyUpdater(v, get().doctorForm) }),
 
   // Reminder form
   reminderType: 'general',

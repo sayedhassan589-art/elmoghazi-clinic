@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Patient } from '@/lib/data-store'
+import { applyUpdater, type Updater } from '@/lib/updater'
 
 // ─── UI Store ──────────────────────────────────────────────────────────────
 // Contains: dark mode, search, tabs, dialog visibility, confirm dialogs,
@@ -97,7 +98,7 @@ interface UIState {
   editingInventoryId: string | null
   setEditingInventoryId: (v: string | null) => void
   editInventoryForm: { name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }
-  setEditInventoryForm: (v: { name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }) => void
+  setEditInventoryForm: (v: Updater<{ name: string; category: string; quantity: string; minQuantity: string; unitPrice: string; notes: string }>) => void
   showStockTransaction: boolean
   setShowStockTransaction: (v: boolean) => void
   stockTransactionItemId: string | null
@@ -215,9 +216,9 @@ interface UIState {
 
   // Import preview
   importPreviewData: { name: string; phone: string }[]
-  setImportPreviewData: (v: { name: string; phone: string }[]) => void
+  setImportPreviewData: (v: Updater<{ name: string; phone: string }[]>) => void
   importSelectedIndices: number[]
-  setImportSelectedIndices: (v: number[]) => void
+  setImportSelectedIndices: (v: Updater<number[]>) => void
 
   // Note filters (dashboard)
   noteSearch: string
@@ -291,12 +292,12 @@ interface UIState {
   broadcastProgress: { sent: number; total: number }
   setBroadcastProgress: (v: { sent: number; total: number }) => void
   broadcastSelectedIds: string[]
-  setBroadcastSelectedIds: (v: string[]) => void
+  setBroadcastSelectedIds: (v: Updater<string[]>) => void
 }
 
 export const useUIStore = create<UIState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Dark mode
       darkMode: false,
       setDarkMode: (v) => set({ darkMode: v }),
@@ -387,7 +388,7 @@ export const useUIStore = create<UIState>()(
       editingInventoryId: null,
       setEditingInventoryId: (v) => set({ editingInventoryId: v }),
       editInventoryForm: { name: '', category: '', quantity: '', minQuantity: '', unitPrice: '', notes: '' },
-      setEditInventoryForm: (v) => set({ editInventoryForm: v }),
+      setEditInventoryForm: (v) => set({ editInventoryForm: applyUpdater(v, get().editInventoryForm) }),
       showStockTransaction: false,
       setShowStockTransaction: (v) => set({ showStockTransaction: v }),
       stockTransactionItemId: null,
@@ -503,9 +504,9 @@ export const useUIStore = create<UIState>()(
       patientCopySearch: '',
       setPatientCopySearch: (v) => set({ patientCopySearch: v }),
       importPreviewData: [],
-      setImportPreviewData: (v) => set({ importPreviewData: v }),
+      setImportPreviewData: (v) => set({ importPreviewData: applyUpdater(v, get().importPreviewData) }),
       importSelectedIndices: [],
-      setImportSelectedIndices: (v) => set({ importSelectedIndices: v }),
+      setImportSelectedIndices: (v) => set({ importSelectedIndices: applyUpdater(v, get().importSelectedIndices) }),
 
       // Note filters (dashboard)
       noteSearch: '',
@@ -579,7 +580,7 @@ export const useUIStore = create<UIState>()(
       broadcastProgress: { sent: 0, total: 0 },
       setBroadcastProgress: (v) => set({ broadcastProgress: v }),
       broadcastSelectedIds: [],
-      setBroadcastSelectedIds: (v) => set({ broadcastSelectedIds: v }),
+      setBroadcastSelectedIds: (v) => set({ broadcastSelectedIds: applyUpdater(v, get().broadcastSelectedIds) }),
     }),
     {
       name: 'elmoghazi-ui',

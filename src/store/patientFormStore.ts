@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { applyUpdater, type Updater } from '@/lib/updater'
 
 // ─── Patient Form Store ──────────────────────────────────────────────────
 // Contains: new patient form, edit patient form, patient profile forms,
@@ -27,7 +28,7 @@ interface PatientFormState {
   selectedVisitType: string
   setSelectedVisitType: (v: string) => void
   selectedServiceIds: string[]
-  setSelectedServiceIds: (v: string[]) => void
+  setSelectedServiceIds: (v: Updater<string[]>) => void
   customServicePrice: string
   setCustomServicePrice: (v: string) => void
   visitPrice: string
@@ -37,7 +38,7 @@ interface PatientFormState {
 
   // Edit patient form
   editPatientForm: { name: string; phone: string; phone2: string; age: string; gender: string; address: string; bloodType: string; medicalHistory: string; notes: string }
-  setEditPatientForm: (v: { name: string; phone: string; phone2: string; age: string; gender: string; address: string; bloodType: string; medicalHistory: string; notes: string }) => void
+  setEditPatientForm: (v: Updater<{ name: string; phone: string; phone2: string; age: string; gender: string; address: string; bloodType: string; medicalHistory: string; notes: string }>) => void
 
   // Editing note in patient profile
   editingNoteId: string | null
@@ -75,13 +76,13 @@ interface PatientFormState {
   editingVisitId: string | null
   setEditingVisitId: (v: string | null) => void
   editVisitForm: { type: string; notes: string; price: string }
-  setEditVisitForm: (v: { type: string; notes: string; price: string }) => void
+  setEditVisitForm: (v: Updater<{ type: string; notes: string; price: string }>) => void
 
   // Editing session
   editingSessionId: string | null
   setEditingSessionId: (v: string | null) => void
   editSessionForm: { price: string; notes: string; status: string; paid: boolean }
-  setEditSessionForm: (v: { price: string; notes: string; status: string; paid: boolean }) => void
+  setEditSessionForm: (v: Updater<{ price: string; notes: string; status: string; paid: boolean }>) => void
 
   // Editing note in more tab
   editingNoteIdMore: string | null
@@ -127,7 +128,7 @@ const defaultEditPatientForm = { name: '', phone: '', phone2: '', age: '', gende
 const defaultEditVisitForm = { type: '', notes: '', price: '' }
 const defaultEditSessionForm = { price: '', notes: '', status: '', paid: false }
 
-export const usePatientFormStore = create<PatientFormState>()((set) => ({
+export const usePatientFormStore = create<PatientFormState>()((set, get) => ({
   // New patient form
   newPatientName: '',
   setNewPatientName: (v) => set({ newPatientName: v }),
@@ -150,7 +151,7 @@ export const usePatientFormStore = create<PatientFormState>()((set) => ({
   selectedVisitType: '',
   setSelectedVisitType: (v) => set({ selectedVisitType: v }),
   selectedServiceIds: [],
-  setSelectedServiceIds: (v) => set({ selectedServiceIds: v }),
+  setSelectedServiceIds: (v) => set({ selectedServiceIds: applyUpdater(v, get().selectedServiceIds) }),
   customServicePrice: '',
   setCustomServicePrice: (v) => set({ customServicePrice: v }),
   visitPrice: '',
@@ -160,7 +161,7 @@ export const usePatientFormStore = create<PatientFormState>()((set) => ({
 
   // Edit patient form
   editPatientForm: { ...defaultEditPatientForm },
-  setEditPatientForm: (v) => set({ editPatientForm: v }),
+  setEditPatientForm: (v) => set({ editPatientForm: applyUpdater(v, get().editPatientForm) }),
 
   // Editing note in patient profile
   editingNoteId: null,
@@ -198,13 +199,13 @@ export const usePatientFormStore = create<PatientFormState>()((set) => ({
   editingVisitId: null,
   setEditingVisitId: (v) => set({ editingVisitId: v }),
   editVisitForm: { ...defaultEditVisitForm },
-  setEditVisitForm: (v) => set({ editVisitForm: v }),
+  setEditVisitForm: (v) => set({ editVisitForm: applyUpdater(v, get().editVisitForm) }),
 
   // Editing session
   editingSessionId: null,
   setEditingSessionId: (v) => set({ editingSessionId: v }),
   editSessionForm: { ...defaultEditSessionForm },
-  setEditSessionForm: (v) => set({ editSessionForm: v }),
+  setEditSessionForm: (v) => set({ editSessionForm: applyUpdater(v, get().editSessionForm) }),
 
   // Editing note in more tab
   editingNoteIdMore: null,
