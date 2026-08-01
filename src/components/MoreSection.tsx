@@ -94,6 +94,10 @@ export default function MoreSection() {
   const setStatusColors = (_v: any) => {}
   const setUserRole = (_v: string) => {}
   const setSelectedVisitType = (_v: string) => {}
+
+  // ─── Role-based access (must be defined BEFORE canAddPatient) ────────
+  const isDoctor = userRole === 'doctor'
+  const canDelete = isDoctor
   const canAddPatient = isDoctor
 
   // ─── Missing computed values (stubs - moved after financials) ─────────
@@ -120,13 +124,11 @@ export default function MoreSection() {
   }
   const personalMonthlyChart = useMemo(() => [], [personalTransactions])
 
-  const isDoctor = userRole === 'doctor'
-  const canDelete = isDoctor
-
   // ─── Computed values (local to MoreSection) ──────────────────────────
-  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [transactions.length, visits.length, sessions.length])
-  const cairoNow = useMemo(() => getCairoDateParts(), [todayStr, patients.length, visits.length, sessions.length])
-  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions])
+  // Stable date values - never change within a session
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }), [])
+  const cairoNow = useMemo(() => getCairoDateParts(), [])
+  const clinicTransactions = useMemo(() => transactions.filter(t => t.category !== 'personal'), [transactions.length])
 
   const clinicFinancials = useMemo(() => {
     let totalIncome = 0, totalExpense = 0, checkupRev = 0, revisitRev = 0, laserRev = 0, followUpRev = 0, sessionRev = 0, monthIncome = 0
@@ -203,6 +205,7 @@ export default function MoreSection() {
   }
   const canEditPatientFull = isDoctor
 
+  // ─── Daily visit stats ───────────────────────────────────────────────
   const dailyVisitStats = useMemo(() => {
     const dayMap: Record<string, { date: string; checkupCount: number; revisitCount: number; sessionCount: number; checkupRevenue: number; revisitRevenue: number; sessionRevenue: number }> = {}
     visits.forEach(v => { const key = getLocalDateStr(v.date); if (!dayMap[key]) dayMap[key] = { date: key, checkupCount: 0, revisitCount: 0, sessionCount: 0, checkupRevenue: 0, revisitRevenue: 0, sessionRevenue: 0 }; if (v.type === 'checkup' || v.type === 'checkup_session') dayMap[key].checkupCount++; else if (v.type === 'revisit' || v.type === 'revisit_session') dayMap[key].revisitCount++ })

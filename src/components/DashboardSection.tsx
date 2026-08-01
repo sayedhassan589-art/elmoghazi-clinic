@@ -325,11 +325,10 @@ function DashboardSectionInner() {
       <motion.div variants={heroVariant} initial="hidden" animate="visible" className="relative overflow-hidden rounded-3xl shadow-2xl shadow-emerald-500/20 dark:shadow-emerald-500/10">
         {/* Multi-layer gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-teal-700 dark:from-emerald-800 dark:to-teal-900" />
-        {/* Mesh gradient overlay */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute -top-20 -right-20 w-[500px] h-[500px] bg-gradient-to-br from-amber-400/40 to-transparent rounded-full blur-3xl animate-drift-a" />
-          <div className="absolute -bottom-10 -left-10 w-[400px] h-[400px] bg-gradient-to-tr from-emerald-300/30 to-transparent rounded-full blur-3xl animate-drift-b" />
-          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-gradient-to-bl from-cyan-300/20 to-transparent rounded-full blur-3xl animate-drift-c" />
+        {/* Subtle accent glow — minimal for clean colors */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -top-20 -right-20 w-[500px] h-[500px] bg-gradient-to-br from-amber-400/30 to-transparent rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-[400px] h-[400px] bg-gradient-to-tr from-emerald-300/20 to-transparent rounded-full blur-3xl" />
         </div>
         {/* Dot pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
